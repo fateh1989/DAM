@@ -20,8 +20,7 @@ jobs:
           set -euxo pipefail
           git clone --depth 1 https://github.com/lampe-games/godot-open-rts.git /tmp/open-rts
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
-          cp -a /tmp/open-rts/. .
-          rm -rf .git
+          find /tmp/open-rts -mindepth 1 -maxdepth 1 ! -name .git -exec cp -a {} . \;
           git add -A
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
