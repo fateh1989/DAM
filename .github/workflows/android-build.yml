@@ -35,6 +35,8 @@ jobs:
           echo "HOME=$HOME"
           java -version
           test -d /usr/lib/android-sdk
+          yes | sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          test -x /usr/lib/android-sdk/build-tools/34.0.0/apksigner
           test -f /github/home/debug.keystore
 
       - name: Clean stale imported resources
