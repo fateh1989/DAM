@@ -1,0 +1,48 @@
+name: Build DAM Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "project.godot"
+      - "export_presets.cfg"
+      - "source/**"
+      - "assets/**"
+      - ".github/workflows/android-build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - name: Checkout DAM
+        uses: actions/checkout@v4
+
+      - name: Prepare Android export templates
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates
+          mv /root/.local/share/godot/export_templates/4.3.stable ~/.local/share/godot/export_templates/4.3.stable 2>/dev/null || true
+          mkdir -p build
+
+      - name: Import project
+        run: godot --headless --editor --quit --path .
+
+      - name: Export APK
+        run: godot --headless --path . --export-debug "Android" build/DAM.apk
+
+      - name: Verify APK
+        run: |
+          test -s build/DAM.apk
+          ls -lh build/DAM.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DAM-Android-debug
+          path: build/DAM.apk
+          if-no-files-found: error
