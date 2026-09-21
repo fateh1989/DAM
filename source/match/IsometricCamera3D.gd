@@ -21,6 +21,8 @@ const EXPECTED_PROJECTION = PROJECTION_ORTHOGONAL
 
 var _mouse_pos_when_rotation_started = null
 var _camera_global_pos_when_rotation_started = null
+var _touches := {}
+var _last_pinch_distance := 0.0
 
 
 func _ready():
@@ -39,8 +41,33 @@ func _physics_process(delta: float):
 
 
 func _unhandled_input(event: InputEvent):
+	_try_handling_touch_camera(event)
 	_try_handling_zoom(event)
 	_try_handling_mouse_rotation(event)
+
+
+func _try_handling_touch_camera(event: InputEvent):
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			_touches[event.index] = event.position
+		else:
+			_touches.erase(event.index)
+		if _touches.size() < 2:
+			_last_pinch_distance = 0.0
+	elif event is InputEventScreenDrag:
+		_touches[event.index] = event.position
+		if _touches.size() == 1:
+			var screen_delta = event.relative
+			var world_delta = Vector3(-screen_delta.x, 0, -screen_delta.y)
+			world_delta = world_delta.rotated(Vector3.UP, rotation.y)
+			global_translate(world_delta * size * 0.0015)
+			_align_position_to_bounding_planes()
+		elif _touches.size() == 2:
+			var points = _touches.values()
+			var pinch_distance = points[0].distance_to(points[1])
+			if _last_pinch_distance > 0.0:
+				set_size_safely(size - (pinch_distance - _last_pinch_distance) * 0.02)
+			_last_pinch_distance = pinch_distance
 
 
 func set_size_safely(a_size: float):
