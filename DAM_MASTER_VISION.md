@@ -15,6 +15,16 @@ The target experience is an original, full, polished mobile RTS with fast base b
 - Optimize continuously for mobile hardware rather than porting a desktop UI at the end.
 - GitHub Actions produces installable APK artifacts; milestones must remain buildable.
 
+
+## 2A. Real-world world map
+DAM's long-term strategic space is one continuous real-world Earth map rather than a collection of unrelated fictional arenas. The geographic background is deliberately open and readable: terrain, coastlines, countries, borders, major cities and major roads remain visible. Any later enemy-intelligence or unit-visibility rules are separate from the visibility of the geographic map itself.
+
+The first implementation milestone uses the Middle East as a bounded test region before expanding globally. The agreed prototype covers the connected region from Egypt and Turkey through the Levant and Gulf to Iran, Oman and Yemen, including Cyprus. Map content is streamed in tiles instead of loading the whole region into memory.
+
+For the prototype, map detail is capped at **zoom 10**. Lower zoom levels remain available so the complete test region can be viewed at once; zoom 10 is the maximum detail level. The first implementation may use network-fetched OpenStreetMap raster tiles with visible attribution and an on-demand local cache only. It must not bulk-download the public OpenStreetMap tile service. The production architecture should later support a self-hosted or packaged tile source so DAM is not dependent on a public third-party tile server.
+
+Geopolitical labels and boundary geometry must come from versioned source datasets rather than being manually redrawn in code. Disputed boundary presentation should preserve the source dataset's distinctions and provenance rather than inventing a DAM-specific political interpretation.
+
 ## 3. Current foundation
 The repository already provides basic RTS foundations including resources, terrain/air units, deathmatch, AI, fog of war, minimap, group movement and simple UI. DAM work has added Android-compatible rendering/export, CI APK builds, touch camera pan/pinch zoom, touch unit selection/commands, and DAM identity.
 
