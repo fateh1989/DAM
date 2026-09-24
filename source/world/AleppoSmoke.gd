@@ -27,8 +27,8 @@ func _run() -> void:
 	scene._refresh_vector_data(true)
 	await process_frame
 
-	var vector_count := scene.vector_root.get_child_count()
-	var label_count := scene.labels_root.get_child_count()
+	var vector_count: int = int(scene.vector_root.get_child_count())
+	var label_count: int = int(scene.labels_root.get_child_count())
 	print("Aleppo smoke vectors=", vector_count, " labels=", label_count)
 
 	if vector_count < 10:

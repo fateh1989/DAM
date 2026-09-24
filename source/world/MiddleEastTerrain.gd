@@ -46,8 +46,8 @@ const VECTOR_REFRESH_DISTANCE_DEG := 0.025
 @onready var labels_root: Node3D = $LabelsRoot
 @onready var camera: Camera3D = $Camera3D
 @onready var world_environment: WorldEnvironment = $WorldEnvironment
-@onready var zoom_label: Label = $HUD/TopBar/ZoomLabel
-@onready var status_label: Label = $HUD/TopBar/StatusLabel
+@onready var zoom_label: Label = $HUD/TopBar/Row/ZoomLabel
+@onready var status_label: Label = $HUD/TopBar/Row/StatusLabel
 @onready var mode_button: Button = $HUD/ModeButton
 
 var _terrain_mode := false
