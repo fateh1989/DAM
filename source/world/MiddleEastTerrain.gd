@@ -7,7 +7,7 @@ extends Node3D
 const MIN_ZOOM := 4
 const MAX_ZOOM := 10
 const DEFAULT_ZOOM := 5
-const TILE_RADIUS := 2
+const TILE_RADIUS := 1
 const MAX_PARALLEL_REQUESTS := 5
 const TERRARIUM_URL := "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/%d/%d/%d.png"
 const CACHE_ROOT := "user://dam_terrain_cache/terrarium"
@@ -69,6 +69,8 @@ func _setup_environment() -> void:
 func _setup_material() -> void:
 	_terrain_material = StandardMaterial3D.new()
 	_terrain_material.vertex_color_use_as_albedo = true
+	_terrain_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_terrain_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_terrain_material.roughness = 1.0
 	_terrain_material.metallic = 0.0
 
@@ -159,7 +161,7 @@ func _position_camera() -> void:
 	var surface := _geo_to_world(_center_lon, _center_lat, 0.0)
 	var up := _surface_up(_center_lon, _center_lat)
 	var north := _surface_north(_center_lon, _center_lat)
-	var altitude := 8000.0 / pow(2.0, float(_zoom - MIN_ZOOM))
+	var altitude := 4200.0 / pow(2.0, float(_zoom - MIN_ZOOM))
 	camera.position = surface + up * altitude - north * (altitude * 0.52)
 	camera.look_at(surface, up)
 	camera.near = 0.05
@@ -171,6 +173,7 @@ func _refresh_tiles() -> void:
 	var center_tile := _lon_lat_to_tile(_center_lon, _center_lat, _zoom)
 	var max_index := int(pow(2.0, float(_zoom))) - 1
 	var required := {}
+	var candidates: Array = []
 
 	for ty in range(center_tile.y - TILE_RADIUS, center_tile.y + TILE_RADIUS + 1):
 		if ty < 0 or ty > max_index:
@@ -182,10 +185,16 @@ func _refresh_tiles() -> void:
 				continue
 			var key := _tile_key(_zoom, tx, ty)
 			required[key] = true
-			if not _tiles.has(key):
-				_begin_tile(_zoom, tx, ty, key)
+			candidates.append({"z": _zoom, "x": tx, "y": ty, "key": key})
 
+	# Publish the required set before any tile is queued. This prevents freshly
+	# queued requests from being discarded as "not required".
 	_required_keys = required
+
+	for item in candidates:
+		var key: String = item["key"]
+		if not _tiles.has(key):
+			_begin_tile(item["z"], item["x"], item["y"], key)
 
 	for key in _tiles.keys().duplicate():
 		if not required.has(key):
@@ -197,7 +206,6 @@ func _refresh_tiles() -> void:
 
 	_pump_requests()
 	_update_status()
-
 
 func _begin_tile(z: int, x: int, y: int, key: String) -> void:
 	_tiles[key] = {
@@ -483,7 +491,7 @@ func _update_status() -> void:
 	zoom_label.text = "ZOOM %d / %d" % [_zoom, MAX_ZOOM]
 	var loading := _active_requests + _pending.size()
 	if loading > 0:
-		status_label.text = "BUILDING EARTH • %d" % loading
+		status_label.text = "LOADING REAL TERRAIN • %d" % loading
 	elif _failed_requests > 0:
 		status_label.text = "TERRAIN READY • %d TILE ERRORS" % _failed_requests
 	else:

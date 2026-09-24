@@ -46,6 +46,10 @@ jobs:
       - name: Import project
         run: godot --headless --editor --path . --import --quit
 
+      - name: Smoke test real terrain scene
+        run: |
+          godot --headless --path . res://source/world/MiddleEastTerrain.tscn --quit-after 90
+
       - name: Export APK
         run: godot --headless --path . --export-debug "Android" build/DAM.apk
 
