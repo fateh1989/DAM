@@ -39,9 +39,8 @@ jobs:
           test -x /usr/lib/android-sdk/build-tools/34.0.0/apksigner
           test -f /github/home/debug.keystore
 
-      - name: Clean stale imported resources
+      - name: Clean generated Godot cache
         run: |
-          find assets -name '*.import' -delete
           rm -rf .godot
 
       - name: Import project
