@@ -3,7 +3,7 @@
 ## 1. Project identity
 **DAM (دم)** is an Android-first 3D real-time strategy game built with Godot 4.3. It evolves from the current Open RTS codebase already in this repository. Development continues in-place; do not restart the project or create a replacement repository.
 
-The target experience is a full, polished mobile RTS inspired by the *scope and feel* of Red Alert 3: fast base building, strong faction identity, land/air/naval warfare, resource pressure, superweapons, special abilities, skirmish AI, campaign missions, and readable cinematic presentation. DAM must use its own names, art, audio, story, factions, units, maps, UI, and balancing rather than copying proprietary game assets/content.
+The target experience is an original, full, polished mobile RTS with fast base building, strong faction identity, land/air/naval warfare, resource pressure, strategic powers, special abilities, skirmish AI, campaign missions, and readable cinematic presentation. DAM may feel familiar to players of games such as *Red Alert*, but it is not designed around reproducing Red Alert's rules, factions, balance, structure, or content. DAM defines its own gameplay systems, names, art, audio, story, factions, units, maps, UI, progression, and balancing.
 
 ## 2. Product principles
 - Android is the primary platform and touch is a first-class control scheme.
