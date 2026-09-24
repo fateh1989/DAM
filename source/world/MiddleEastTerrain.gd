@@ -1,24 +1,29 @@
 extends Node3D
 
-# DAM real-Earth terrain foundation.
-# Geometry is generated from real DEM elevation tiles and placed on a WGS84
-# ellipsoid. One Godot world unit equals one kilometer.
+# DAM real-map foundation.
+# The player sees a continuous map surface. Raster map tiles are only an
+# internal streaming source; real elevation is applied from DEM data.
+# One Godot world unit equals one kilometer.
 
 const MIN_ZOOM := 4
 const MAX_ZOOM := 10
 const DEFAULT_ZOOM := 5
-const TILE_RADIUS := 1
-const MAX_PARALLEL_REQUESTS := 5
-const TERRARIUM_URL := "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/%d/%d/%d.png"
-const CACHE_ROOT := "user://dam_terrain_cache/terrarium"
+const TILE_RADIUS := 2
+const MAX_PARALLEL_REQUESTS := 4
 
-# Prototype Middle East streaming bounds. These are loading bounds, not political borders.
+const MAP_TILE_URL := "https://tile.openstreetmap.org/%d/%d/%d.png"
+const DEM_TILE_URL := "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/%d/%d/%d.png"
+const MAP_CACHE_ROOT := "user://dam_map_cache/osm"
+const DEM_CACHE_ROOT := "user://dam_map_cache/terrarium"
+const MAP_CACHE_MAX_AGE_SEC := 604800
+
+# Loading bounds only. They are not political borders.
 const REGION_WEST := 24.0
 const REGION_EAST := 64.5
 const REGION_NORTH := 43.0
 const REGION_SOUTH := 11.5
 
-# WGS84 ellipsoid, in kilometers.
+# WGS84 ellipsoid, kilometers.
 const WGS84_A := 6378.137
 const WGS84_F := 1.0 / 298.257223563
 const WGS84_E2 := WGS84_F * (2.0 - WGS84_F)
@@ -39,17 +44,16 @@ var _pending: Array = []
 var _queued := {}
 var _inflight := {}
 var _active_requests := 0
-var _failed_requests := 0
+var _failed_map := 0
+var _failed_dem := 0
 
 var _touches := {}
 var _pinch_accumulator := 0.0
 var _mouse_dragging := false
-var _terrain_material: StandardMaterial3D
 
 
 func _ready() -> void:
 	_setup_environment()
-	_setup_material()
 	_position_camera()
 	_refresh_tiles()
 	_update_status()
@@ -58,21 +62,12 @@ func _ready() -> void:
 func _setup_environment() -> void:
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color(0.36, 0.67, 0.86, 1.0)
+	environment.background_color = Color(0.15, 0.38, 0.58, 1.0)
 	environment.background_energy_multiplier = 0.8
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color(0.68, 0.72, 0.76, 1.0)
-	environment.ambient_light_energy = 0.9
+	environment.ambient_light_color = Color(0.82, 0.84, 0.86, 1.0)
+	environment.ambient_light_energy = 1.0
 	world_environment.environment = environment
-
-
-func _setup_material() -> void:
-	_terrain_material = StandardMaterial3D.new()
-	_terrain_material.vertex_color_use_as_albedo = true
-	_terrain_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_terrain_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_terrain_material.roughness = 1.0
-	_terrain_material.metallic = 0.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -104,7 +99,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			var new_b: Vector2 = _touches[second_id]
 			var new_distance := new_a.distance_to(new_b)
 			_pinch_accumulator += new_distance - old_distance
-			if abs(_pinch_accumulator) >= 45.0:
+			if abs(_pinch_accumulator) >= 42.0:
 				_set_zoom(_zoom + (1 if _pinch_accumulator > 0.0 else -1))
 				_pinch_accumulator = 0.0
 
@@ -150,6 +145,7 @@ func _set_zoom(new_zoom: int) -> void:
 	new_zoom = clampi(new_zoom, MIN_ZOOM, MAX_ZOOM)
 	if new_zoom == _zoom:
 		return
+
 	_zoom = new_zoom
 	_clear_visible_tiles()
 	_position_camera()
@@ -161,12 +157,14 @@ func _position_camera() -> void:
 	var surface := _geo_to_world(_center_lon, _center_lat, 0.0)
 	var up := _surface_up(_center_lon, _center_lat)
 	var north := _surface_north(_center_lon, _center_lat)
-	var altitude := 4200.0 / pow(2.0, float(_zoom - MIN_ZOOM))
-	camera.position = surface + up * altitude - north * (altitude * 0.52)
+
+	# Mostly top-down like a map application, while retaining visible 3D terrain.
+	var altitude := 4300.0 / pow(2.0, float(_zoom - MIN_ZOOM))
+	camera.position = surface + up * altitude - north * (altitude * 0.22)
 	camera.look_at(surface, up)
 	camera.near = 0.05
 	camera.far = 20000.0
-	camera.fov = 54.0
+	camera.fov = 48.0
 
 
 func _refresh_tiles() -> void:
@@ -187,8 +185,6 @@ func _refresh_tiles() -> void:
 			required[key] = true
 			candidates.append({"z": _zoom, "x": tx, "y": ty, "key": key})
 
-	# Publish the required set before any tile is queued. This prevents freshly
-	# queued requests from being discarded as "not required".
 	_required_keys = required
 
 	for item in candidates:
@@ -198,14 +194,11 @@ func _refresh_tiles() -> void:
 
 	for key in _tiles.keys().duplicate():
 		if not required.has(key):
-			var state: Dictionary = _tiles[key]
-			var node: MeshInstance3D = state.get("node")
-			if is_instance_valid(node):
-				node.queue_free()
-			_tiles.erase(key)
+			_remove_tile(key)
 
 	_pump_requests()
 	_update_status()
+
 
 func _begin_tile(z: int, x: int, y: int, key: String) -> void:
 	_tiles[key] = {
@@ -213,35 +206,60 @@ func _begin_tile(z: int, x: int, y: int, key: String) -> void:
 		"x": x,
 		"y": y,
 		"node": null,
+		"dem_image": null,
+		"map_texture": null,
 	}
 
-	var cache_path := _cache_path(z, x, y)
-	if FileAccess.file_exists(cache_path):
-		var bytes := _read_bytes(cache_path)
-		if not bytes.is_empty() and _build_tile_from_bytes(key, bytes):
-			return
+	var map_cache := _map_cache_path(z, x, y)
+	var dem_cache := _dem_cache_path(z, x, y)
 
-	_queue_request(z, x, y, key, cache_path)
+	var map_loaded := false
+	if _cache_is_fresh(map_cache, MAP_CACHE_MAX_AGE_SEC):
+		var map_bytes := _read_bytes(map_cache)
+		map_loaded = not map_bytes.is_empty() and _apply_map_bytes(key, map_bytes)
+
+	var dem_loaded := false
+	if FileAccess.file_exists(dem_cache):
+		var dem_bytes := _read_bytes(dem_cache)
+		dem_loaded = not dem_bytes.is_empty() and _apply_dem_bytes(key, dem_bytes)
+
+	# Interleave map and elevation work so visible map content appears quickly.
+	if not map_loaded:
+		_queue_request("map", z, x, y, key, map_cache)
+	if not dem_loaded:
+		_queue_request("dem", z, x, y, key, dem_cache)
+
+	# If cached elevation exists but no map texture yet, keep a neutral terrain
+	# placeholder instead of a blue/blank screen.
+	if dem_loaded and not map_loaded:
+		_rebuild_tile(key)
 
 
-func _queue_request(z: int, x: int, y: int, key: String, cache_path: String) -> void:
-	if _queued.has(key) or _inflight.has(key):
+func _queue_request(kind: String, z: int, x: int, y: int, key: String, cache_path: String) -> void:
+	var request_key := "%s:%s" % [kind, key]
+	if _queued.has(request_key) or _inflight.has(request_key):
 		return
-	_queued[key] = true
+
+	var url := MAP_TILE_URL % [z, x, y] if kind == "map" else DEM_TILE_URL % [z, x, y]
+	_queued[request_key] = true
 	_pending.append({
+		"kind": kind,
 		"z": z,
 		"x": x,
 		"y": y,
 		"key": key,
+		"request_key": request_key,
 		"cache_path": cache_path,
+		"url": url,
 	})
 
 
 func _pump_requests() -> void:
 	while _active_requests < MAX_PARALLEL_REQUESTS and not _pending.is_empty():
 		var item: Dictionary = _pending.pop_front()
+		var request_key: String = item["request_key"]
 		var key: String = item["key"]
-		_queued.erase(key)
+		_queued.erase(request_key)
 
 		if not _required_keys.has(key):
 			continue
@@ -252,18 +270,21 @@ func _pump_requests() -> void:
 		add_child(request)
 
 		_active_requests += 1
-		_inflight[key] = true
+		_inflight[request_key] = true
 		request.request_completed.connect(
 			_on_request_completed.bind(request, item),
 			CONNECT_ONE_SHOT
 		)
 
-		var url := TERRARIUM_URL % [item["z"], item["x"], item["y"]]
-		var error := request.request(url)
+		var headers := PackedStringArray([
+			"User-Agent: DAM-RTS/0.1 (github.com/fateh1989/DAM)",
+			"Accept: image/png,image/*"
+		])
+		var error := request.request(item["url"], headers)
 		if error != OK:
 			_active_requests -= 1
-			_inflight.erase(key)
-			_failed_requests += 1
+			_inflight.erase(request_key)
+			_note_failure(item["kind"])
 			request.queue_free()
 
 
@@ -276,16 +297,18 @@ func _on_request_completed(
 	item: Dictionary
 ) -> void:
 	_active_requests = maxi(0, _active_requests - 1)
+	var request_key: String = item["request_key"]
 	var key: String = item["key"]
-	_inflight.erase(key)
+	_inflight.erase(request_key)
 
-	if result == HTTPRequest.RESULT_SUCCESS and response_code == 200:
+	if result == HTTPRequest.RESULT_SUCCESS and response_code == 200 and not body.is_empty():
 		_write_bytes(item["cache_path"], body)
 		if _required_keys.has(key):
-			if not _build_tile_from_bytes(key, body):
-				_failed_requests += 1
+			var ok := _apply_map_bytes(key, body) if item["kind"] == "map" else _apply_dem_bytes(key, body)
+			if not ok:
+				_note_failure(item["kind"])
 	else:
-		_failed_requests += 1
+		_note_failure(item["kind"])
 
 	if is_instance_valid(request):
 		request.queue_free()
@@ -294,7 +317,30 @@ func _on_request_completed(
 	_update_status()
 
 
-func _build_tile_from_bytes(key: String, bytes: PackedByteArray) -> bool:
+func _apply_map_bytes(key: String, bytes: PackedByteArray) -> bool:
+	if not _tiles.has(key):
+		return false
+
+	var image := Image.new()
+	if image.load_png_from_buffer(bytes) != OK:
+		return false
+
+	var texture := ImageTexture.create_from_image(image)
+	var state: Dictionary = _tiles[key]
+	state["map_texture"] = texture
+	_tiles[key] = state
+
+	var node: MeshInstance3D = state.get("node")
+	if is_instance_valid(node):
+		node.material_override = _make_tile_material(texture)
+	else:
+		# Build a flat, textured geographic tile immediately. When DEM arrives,
+		# the same tile is rebuilt with its real elevation.
+		_rebuild_tile(key)
+	return true
+
+
+func _apply_dem_bytes(key: String, bytes: PackedByteArray) -> bool:
 	if not _tiles.has(key):
 		return false
 
@@ -304,11 +350,24 @@ func _build_tile_from_bytes(key: String, bytes: PackedByteArray) -> bool:
 	image.convert(Image.FORMAT_RGB8)
 
 	var state: Dictionary = _tiles[key]
+	state["dem_image"] = image
+	_tiles[key] = state
+	_rebuild_tile(key)
+	return true
+
+
+func _rebuild_tile(key: String) -> void:
+	if not _tiles.has(key):
+		return
+
+	var state: Dictionary = _tiles[key]
 	var z: int = state["z"]
 	var x: int = state["x"]
 	var y: int = state["y"]
-	var segments := _segments_for_zoom(z)
+	var dem_image: Image = state.get("dem_image")
+	var map_texture: Texture2D = state.get("map_texture")
 
+	var segments := _segments_for_zoom(z)
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 
@@ -316,13 +375,18 @@ func _build_tile_from_bytes(key: String, bytes: PackedByteArray) -> bool:
 		var v := float(gy) / float(segments)
 		for gx in range(segments + 1):
 			var u := float(gx) / float(segments)
-			var px := clampi(int(round(u * float(image.get_width() - 1))), 0, image.get_width() - 1)
-			var py := clampi(int(round(v * float(image.get_height() - 1))), 0, image.get_height() - 1)
-			var color := image.get_pixel(px, py)
-			var elevation_m := _decode_terrarium(color)
+			var elevation_m := 0.0
+
+			if dem_image != null:
+				var px := clampi(int(round(u * float(dem_image.get_width() - 1))), 0, dem_image.get_width() - 1)
+				var py := clampi(int(round(v * float(dem_image.get_height() - 1))), 0, dem_image.get_height() - 1)
+				elevation_m = _decode_terrarium(dem_image.get_pixel(px, py))
+
 			var geo := _tile_fraction_to_lon_lat(z, x, y, u, v)
 			var position := _geo_to_world(geo.x, geo.y, elevation_m / 1000.0)
-			surface.set_color(_height_color(elevation_m))
+
+			surface.set_uv(Vector2(u, v))
+			surface.set_color(Color.WHITE)
 			surface.add_vertex(position)
 
 	var row := segments + 1
@@ -344,24 +408,44 @@ func _build_tile_from_bytes(key: String, bytes: PackedByteArray) -> bool:
 	surface.generate_normals()
 	var mesh := surface.commit()
 	if mesh == null:
-		return false
+		return
 
-	var node := MeshInstance3D.new()
-	node.name = "Terrain_%d_%d_%d" % [z, x, y]
+	var node: MeshInstance3D = state.get("node")
+	if not is_instance_valid(node):
+		node = MeshInstance3D.new()
+		node.name = "MapTerrain_%d_%d_%d" % [z, x, y]
+		terrain_root.add_child(node)
+
 	node.mesh = mesh
-	node.material_override = _terrain_material
-	terrain_root.add_child(node)
+	node.material_override = _make_tile_material(map_texture)
 
-	var old_node: MeshInstance3D = state.get("node")
-	if is_instance_valid(old_node):
-		old_node.queue_free()
 	state["node"] = node
 	_tiles[key] = state
-	return true
+
+
+func _make_tile_material(map_texture: Texture2D) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	material.vertex_color_use_as_albedo = false
+	material.roughness = 1.0
+	material.metallic = 0.0
+
+	if map_texture != null:
+		material.albedo_texture = map_texture
+		material.albedo_color = Color.WHITE
+	else:
+		material.albedo_color = Color(0.58, 0.58, 0.55, 1.0)
+
+	return material
 
 
 func _segments_for_zoom(z: int) -> int:
-	return 32 if z <= 6 else 64
+	if z <= 5:
+		return 48
+	if z <= 7:
+		return 64
+	return 80
 
 
 func _decode_terrarium(color: Color) -> float:
@@ -369,20 +453,6 @@ func _decode_terrarium(color: Color) -> float:
 	var green := int(round(color.g * 255.0))
 	var blue := int(round(color.b * 255.0))
 	return float(red * 256 + green) + float(blue) / 256.0 - 32768.0
-
-
-func _height_color(elevation_m: float) -> Color:
-	if elevation_m <= 0.0:
-		return Color(0.08, 0.31, 0.50, 1.0)
-	if elevation_m < 250.0:
-		return Color(0.56, 0.48, 0.31, 1.0)
-	if elevation_m < 900.0:
-		return Color(0.48, 0.40, 0.26, 1.0)
-	if elevation_m < 1800.0:
-		return Color(0.39, 0.33, 0.25, 1.0)
-	if elevation_m < 3000.0:
-		return Color(0.45, 0.43, 0.39, 1.0)
-	return Color(0.78, 0.78, 0.76, 1.0)
 
 
 func _geo_to_world(lon_deg: float, lat_deg: float, height_km: float) -> Vector3:
@@ -396,7 +466,6 @@ func _geo_to_world(lon_deg: float, lat_deg: float, height_km: float) -> Vector3:
 	var ecef_y := (radius + height_km) * cos_lat * sin(lon)
 	var ecef_z := (radius * (1.0 - WGS84_E2) + height_km) * sin_lat
 
-	# Map ECEF to Godot coordinates with +Y as north-axis vertical.
 	return Vector3(ecef_x, ecef_z, -ecef_y)
 
 
@@ -454,8 +523,24 @@ func _tile_key(z: int, x: int, y: int) -> String:
 	return "%d/%d/%d" % [z, x, y]
 
 
-func _cache_path(z: int, x: int, y: int) -> String:
-	return "%s/%d/%d/%d.png" % [CACHE_ROOT, z, x, y]
+func _map_cache_path(z: int, x: int, y: int) -> String:
+	return "%s/%d/%d/%d.png" % [MAP_CACHE_ROOT, z, x, y]
+
+
+func _dem_cache_path(z: int, x: int, y: int) -> String:
+	return "%s/%d/%d/%d.png" % [DEM_CACHE_ROOT, z, x, y]
+
+
+func _cache_is_fresh(path: String, max_age_seconds: int) -> bool:
+	if not FileAccess.file_exists(path):
+		return false
+
+	var modified := FileAccess.get_modified_time(path)
+	if modified <= 0:
+		return false
+
+	var now := int(Time.get_unix_time_from_system())
+	return now - int(modified) <= max_age_seconds
 
 
 func _read_bytes(path: String) -> PackedByteArray:
@@ -476,26 +561,41 @@ func _write_bytes(path: String, bytes: PackedByteArray) -> void:
 	file.close()
 
 
+func _remove_tile(key: String) -> void:
+	if not _tiles.has(key):
+		return
+	var state: Dictionary = _tiles[key]
+	var node: MeshInstance3D = state.get("node")
+	if is_instance_valid(node):
+		node.queue_free()
+	_tiles.erase(key)
+
+
 func _clear_visible_tiles() -> void:
-	for state in _tiles.values():
-		var node: MeshInstance3D = state.get("node")
-		if is_instance_valid(node):
-			node.queue_free()
-	_tiles.clear()
+	for key in _tiles.keys().duplicate():
+		_remove_tile(key)
 	_required_keys.clear()
 	_pending.clear()
 	_queued.clear()
 
 
+func _note_failure(kind: String) -> void:
+	if kind == "map":
+		_failed_map += 1
+	else:
+		_failed_dem += 1
+
+
 func _update_status() -> void:
 	zoom_label.text = "ZOOM %d / %d" % [_zoom, MAX_ZOOM]
 	var loading := _active_requests + _pending.size()
+
 	if loading > 0:
-		status_label.text = "LOADING REAL TERRAIN • %d" % loading
-	elif _failed_requests > 0:
-		status_label.text = "TERRAIN READY • %d TILE ERRORS" % _failed_requests
+		status_label.text = "LOADING MAP • %d" % loading
+	elif _failed_map > 0 or _failed_dem > 0:
+		status_label.text = "MAP READY • M%d E%d" % [_failed_map, _failed_dem]
 	else:
-		status_label.text = "REAL TERRAIN READY"
+		status_label.text = "REAL MAP READY"
 
 
 func _on_zoom_in_pressed() -> void:
@@ -509,9 +609,12 @@ func _on_zoom_out_pressed() -> void:
 func _on_reset_pressed() -> void:
 	_center_lon = 44.25
 	_center_lat = 27.25
-	_set_zoom(DEFAULT_ZOOM)
-	_position_camera()
-	_refresh_tiles()
+	if _zoom != DEFAULT_ZOOM:
+		_set_zoom(DEFAULT_ZOOM)
+	else:
+		_clear_visible_tiles()
+		_position_camera()
+		_refresh_tiles()
 
 
 func _on_back_pressed() -> void:

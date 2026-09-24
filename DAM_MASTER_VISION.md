@@ -16,17 +16,28 @@ The target experience is an original, full, polished mobile RTS with fast base b
 - GitHub Actions produces installable APK artifacts; milestones must remain buildable.
 
 
-## 2A. Real-world world map
-DAM's long-term strategic space is one continuous real-world Earth map rather than a collection of unrelated fictional arenas. The geographic background is deliberately open and readable: terrain, coastlines, countries, borders, major cities and major roads remain visible. Any later enemy-intelligence or unit-visibility rules are separate from the visibility of the geographic map itself.
+## 2A. Real-world map engine
+DAM's strategic space is built like a real map/terrain application first, then gameplay is layered on top. The player should see one continuous geographic world rather than visible square terrain blocks.
 
-The first implementation milestone uses the Middle East as a bounded test region before expanding globally. The agreed prototype covers the connected region from Egypt and Turkey through the Levant and Gulf to Iran, Oman and Yemen, including Cyprus. Map content is streamed in tiles instead of loading the whole region into memory.
+The first bounded implementation is the Middle East. Runtime streaming keeps only the visible neighborhood loaded. At strategic zoom levels the visual surface is a real map texture draped over real 3D elevation geometry. The raster tiles are an internal delivery mechanism only; tile edges must not be presented as game-world boundaries.
 
-For the prototype, map detail is capped at **zoom 10**. Lower zoom levels remain available so the complete test region can be viewed at once; zoom 10 is the maximum detail level. The first implementation may use network-fetched OpenStreetMap raster tiles with visible attribution and an on-demand local cache only. It must not bulk-download the public OpenStreetMap tile service. The production architecture should later support a self-hosted or packaged tile source so DAM is not dependent on a public third-party tile server.
+The prototype uses OpenStreetMap standard raster tiles for the visible geographic surface and Terrarium DEM tiles for elevation. OpenStreetMap use is limited to interactive prototype viewing with attribution and a small time-limited cache; DAM must not bulk-download the public tile service. Production will move to self-hosted/packaged map data suitable for offline regional downloads.
 
-Geopolitical labels and boundary geometry must come from versioned source datasets rather than being manually redrawn in code. Disputed boundary presentation should preserve the source dataset's distinctions and provenance rather than inventing a DAM-specific political interpretation.
+Later map layers are independent of the visual basemap: vector roads, buildings, railways, bridges, tunnels, airports, ports, waterways, land cover, administrative areas and gameplay resources. Those layers will drive gameplay and pathfinding rather than relying on pixels in the raster map.
 
-### Terrain foundation — implemented prototype
-The first real-world terrain stage renders streamed **3D elevation geometry**, not a flat map viewer. Geographic positions are generated from WGS84 geodetic coordinates on the Earth ellipsoid, using real elevation values from Terrarium DEM tiles. Godot world units are kilometers so horizontal position and elevation use the same physical scale. The camera streams only nearby terrain chunks and supports map detail levels up to zoom 10. Roads, settlements, buildings, borders, land-cover and gameplay entities are separate later layers that must be placed on this same geospatial terrain rather than replacing it with a flat map.
+High-resolution satellite imagery is planned as an optional selectable regional package. A player can use the standard map without satellite imagery, then download higher-detail imagery only for regions they choose. The satellite layer must use a source whose license explicitly permits the intended distribution/offline use.
+
+Political and control layers are versioned data snapshots with source/date provenance. DAM does not silently redraw disputed political geography.
+
+### Map milestone currently under test
+- continuous 3D WGS84 terrain
+- real DEM elevation
+- OpenStreetMap surface texture
+- portrait/landscape Android rotation
+- touch pan and pinch zoom
+- zoom levels 4–10
+- wider visible tile neighborhood to prevent an isolated floating patch
+- map appears flat/textured first if necessary, then upgrades to real elevation as DEM arrives
 
 ## 3. Current foundation
 The repository already provides basic RTS foundations including resources, terrain/air units, deathmatch, AI, fog of war, minimap, group movement and simple UI. DAM work has added Android-compatible rendering/export, CI APK builds, touch camera pan/pinch zoom, touch unit selection/commands, and DAM identity.
