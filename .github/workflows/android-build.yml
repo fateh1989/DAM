@@ -52,13 +52,13 @@ jobs:
           fi
           mkdir -p source/world/data
           cat > /tmp/aleppo.overpass <<'EOF'
-          [out:json][timeout:120];
+          [out:json][timeout:90];
           (
-            way["highway"](36.170,37.120,36.232,37.205);
-            way["waterway"](36.170,37.120,36.232,37.205);
-            way["natural"="water"](36.170,37.120,36.232,37.205);
-            node["place"~"city|town|village|hamlet|suburb|neighbourhood"](36.170,37.120,36.232,37.205);
-            way["building"](36.184,37.137,36.218,37.190);
+            way["highway"](36.184,37.135,36.218,37.188);
+            way["waterway"](36.184,37.135,36.218,37.188);
+            way["natural"="water"](36.184,37.135,36.218,37.188);
+            node["place"~"city|town|village|hamlet|suburb|neighbourhood"](36.184,37.135,36.218,37.188);
+            way["building"](36.190,37.145,36.212,37.180);
           );
           out geom;
           EOF
@@ -68,7 +68,17 @@ jobs:
           echo "Aleppo OSM bytes: $(wc -c < source/world/data/aleppo_osm.json)"
 
       - name: Import project
-        run: godot --headless --editor --path . --import --quit
+        shell: bash
+        run: |
+          set +e
+          godot --headless --editor --path . --import --quit
+          first_status=$?
+          set -e
+          if [ "$first_status" -ne 0 ]; then
+            echo "First import returned $first_status; retrying after generated imports settle."
+            sleep 3
+            godot --headless --editor --path . --import --quit
+          fi
 
       - name: Smoke test real terrain scene
         run: |
