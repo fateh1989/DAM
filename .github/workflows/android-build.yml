@@ -52,17 +52,17 @@ jobs:
           fi
           mkdir -p source/world/data
           cat > /tmp/aleppo.overpass <<'EOF'
-          [out:json][timeout:90];
+          [out:json][timeout:45];
           (
-            way["highway"](36.184,37.135,36.218,37.188);
-            way["waterway"](36.184,37.135,36.218,37.188);
-            way["natural"="water"](36.184,37.135,36.218,37.188);
-            node["place"~"city|town|village|hamlet|suburb|neighbourhood"](36.184,37.135,36.218,37.188);
-            way["building"](36.190,37.145,36.212,37.180);
+            way["highway"](36.190,37.145,36.212,37.180);
+            way["waterway"](36.190,37.145,36.212,37.180);
+            way["natural"="water"](36.190,37.145,36.212,37.180);
+            node["place"~"city|town|village|hamlet|suburb|neighbourhood"](36.190,37.145,36.212,37.180);
+            way["building"](36.195,37.150,36.207,37.172);
           );
-          out geom;
+          out geom 3500;
           EOF
-          curl --fail --retry 2 --connect-timeout 20 --max-time 180             --data-urlencode "data@/tmp/aleppo.overpass"             https://overpass-api.de/api/interpreter             -o source/world/data/aleppo_osm.json           || curl --fail --retry 2 --connect-timeout 20 --max-time 180             --data-urlencode "data@/tmp/aleppo.overpass"             https://overpass.kumi.systems/api/interpreter             -o source/world/data/aleppo_osm.json
+          curl --fail --retry 1 --connect-timeout 12 --max-time 60             --data-urlencode "data@/tmp/aleppo.overpass"             https://overpass-api.de/api/interpreter             -o source/world/data/aleppo_osm.json           || curl --fail --retry 1 --connect-timeout 12 --max-time 60             --data-urlencode "data@/tmp/aleppo.overpass"             https://overpass.kumi.systems/api/interpreter             -o source/world/data/aleppo_osm.json
           test -s source/world/data/aleppo_osm.json
           test "$(wc -c < source/world/data/aleppo_osm.json)" -gt 5000
           echo "Aleppo OSM bytes: $(wc -c < source/world/data/aleppo_osm.json)"
