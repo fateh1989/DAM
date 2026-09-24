@@ -50,6 +50,10 @@ jobs:
         run: |
           godot --headless --path . res://source/world/MiddleEastTerrain.tscn --quit-after 90
 
+      - name: Validate terrain vector scene
+        run: |
+          timeout 12s godot --headless --path . res://source/world/MiddleEastTerrain.tscn || test $? -eq 124
+
       - name: Export APK
         run: godot --headless --path . --export-debug "Android" build/DAM.apk
 

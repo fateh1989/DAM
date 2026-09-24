@@ -53,6 +53,18 @@ Current prototype translation:
 - Later vector layers will generate roads, buildings, bridges, water edges and movement rules from real data, equivalent to how classic RTS terrain tiles carried passability and ramp/cliff meaning.
 - Strategic MAP mode and playable TERRAIN mode are separate presentations of the same geographic state.
 
+### Real-data battlefield generator
+The playable terrain is not a tilted raster map. DAM uses two presentations of one geographic state:
+
+- **MAP**: strategic cartographic view with real names and boundaries.
+- **TERRAIN**: isometric RTS battlefield generated from real data.
+
+The first terrain generator uses real DEM elevation for the ground mesh and OpenStreetMap vector geometry for road centerlines, building footprints, waterways and place names. Arabic place names are preferred when an OSM `name:ar` tag exists; otherwise the normal `name` tag is retained. Buildings are positioned from their real footprints and use tagged height/level information where available. Roads follow their real geographic geometry. Names remain separate 3D labels rather than being baked into the ground texture.
+
+The Red Alert reference is structural, not geographic: readable isometric camera, terrain that affects play, roads/buildings/water as independent gameplay layers, and clear visual hierarchy. Geography itself remains derived from published real-world data.
+
+The vertical terrain is visually exaggerated for RTS readability while horizontal positions remain tied to real coordinates. The underlying real elevation is preserved in the data pipeline so later movement/slope rules do not need to infer height from artwork.
+
 ## 3. Current foundation
 The repository already provides basic RTS foundations including resources, terrain/air units, deathmatch, AI, fog of war, minimap, group movement and simple UI. DAM work has added Android-compatible rendering/export, CI APK builds, touch camera pan/pinch zoom, touch unit selection/commands, and DAM identity.
 
