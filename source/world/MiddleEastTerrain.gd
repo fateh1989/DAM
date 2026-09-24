@@ -36,6 +36,12 @@ const REGION_SOUTH := 11.5
 const EARTH_RADIUS_KM := 6371.0088
 const VERTICAL_EXAGGERATION := 2.2
 
+# Red-Alert-style cell terrain experiment.
+# A real DEM tile is compiled into a discrete cell grid before rendering.
+const CELL_GRID := 48
+const CELL_HEIGHT_STEP_M := 20.0
+const CELL_MAX_CORNER_DELTA := 1
+
 # Vector-detail query radius around current terrain camera.
 const VECTOR_HALF_LAT := 0.055
 const VECTOR_HALF_LON := 0.065
@@ -196,9 +202,9 @@ func _position_camera() -> void:
 
 	if _terrain_mode:
 		camera.projection = Camera3D.PROJECTION_PERSPECTIVE
-		camera.position = center + Vector3(0.0, 7.6, 8.8)
-		camera.look_at(center + Vector3(0.0, 0.25, 0.0), Vector3.UP)
-		camera.fov = 48.0
+		camera.position = center + Vector3(0.0, 5.4, 6.2)
+		camera.look_at(center + Vector3(0.0, 0.18, 0.0), Vector3.UP)
+		camera.fov = 44.0
 		camera.near = 0.01
 		camera.far = 1000.0
 	else:
@@ -257,6 +263,7 @@ func _begin_tile(z: int, x: int, y: int, key: String) -> void:
 		"node": null,
 		"dem_image": null,
 		"map_texture": null,
+		"cell_levels": PackedInt32Array(),
 	}
 
 	# Always draw a placeholder immediately so terrain mode is never blank.
@@ -402,51 +409,142 @@ func _rebuild_tile(key: String) -> void:
 	var dem_image: Image = state.get("dem_image")
 	var map_texture: Texture2D = state.get("map_texture")
 
-	var segments := 56 if _terrain_mode else 1
-	var surface := SurfaceTool.new()
-	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	if not _terrain_mode:
+		_build_map_quad(state, key, z, x, y, map_texture)
+		return
 
-	for gy in range(segments + 1):
-		var v := float(gy) / float(segments)
-		for gx in range(segments + 1):
-			var u := float(gx) / float(segments)
+	# Compile the real DEM into explicit RTS cells first.
+	var levels := PackedInt32Array()
+	levels.resize((CELL_GRID + 1) * (CELL_GRID + 1))
+
+	for gy in range(CELL_GRID + 1):
+		var v := float(gy) / float(CELL_GRID)
+		for gx in range(CELL_GRID + 1):
+			var u := float(gx) / float(CELL_GRID)
 			var elevation_m := 0.0
 			if dem_image != null:
 				elevation_m = _sample_dem(dem_image, u, v)
+			var level := int(round(elevation_m / CELL_HEIGHT_STEP_M))
+			levels[gy * (CELL_GRID + 1) + gx] = level
 
-			var geo := _tile_fraction_to_lon_lat(z, x, y, u, v)
-			var height_km := 0.0
-			if _terrain_mode:
-				height_km = elevation_m / 1000.0 * VERTICAL_EXAGGERATION
+	# Constrain each corner so a playable ramp never jumps more than one
+	# height step from the cell's average level. Large real elevation changes
+	# naturally become a sequence of RTS levels across neighbouring cells.
+	for gy in range(CELL_GRID):
+		for gx in range(CELL_GRID):
+			var i00 := gy * (CELL_GRID + 1) + gx
+			var i10 := i00 + 1
+			var i01 := i00 + CELL_GRID + 1
+			var i11 := i01 + 1
+			var avg := int(round((
+				float(levels[i00]) + float(levels[i10])
+				+ float(levels[i01]) + float(levels[i11])
+			) * 0.25))
+			levels[i00] = clampi(levels[i00], avg - CELL_MAX_CORNER_DELTA, avg + CELL_MAX_CORNER_DELTA)
+			levels[i10] = clampi(levels[i10], avg - CELL_MAX_CORNER_DELTA, avg + CELL_MAX_CORNER_DELTA)
+			levels[i01] = clampi(levels[i01], avg - CELL_MAX_CORNER_DELTA, avg + CELL_MAX_CORNER_DELTA)
+			levels[i11] = clampi(levels[i11], avg - CELL_MAX_CORNER_DELTA, avg + CELL_MAX_CORNER_DELTA)
 
-			var position := _geo_to_local(geo.x, geo.y, height_km)
-			surface.set_uv(Vector2(u, v))
-			surface.set_color(_terrain_color(elevation_m))
-			surface.add_vertex(position)
+	state["cell_levels"] = levels
+	_tiles[key] = state
 
-	var row := segments + 1
-	for gy in range(segments):
-		for gx in range(segments):
-			var i0 := gy * row + gx
-			var i1 := i0 + 1
-			var i2 := i0 + row
-			var i3 := i2 + 1
-			surface.add_index(i0)
-			surface.add_index(i2)
-			surface.add_index(i1)
-			surface.add_index(i1)
-			surface.add_index(i2)
-			surface.add_index(i3)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 
-	surface.generate_normals()
-	var mesh := surface.commit()
+	# Each cell owns its vertices. This intentionally creates the crisp,
+	# readable faceting of a classic RTS instead of one smoothed 3D sheet.
+	for gy in range(CELL_GRID):
+		var v0 := float(gy) / float(CELL_GRID)
+		var v1 := float(gy + 1) / float(CELL_GRID)
+		for gx in range(CELL_GRID):
+			var u0 := float(gx) / float(CELL_GRID)
+			var u1 := float(gx + 1) / float(CELL_GRID)
+
+			var i00 := gy * (CELL_GRID + 1) + gx
+			var i10 := i00 + 1
+			var i01 := i00 + CELL_GRID + 1
+			var i11 := i01 + 1
+
+			var l00 := levels[i00]
+			var l10 := levels[i10]
+			var l01 := levels[i01]
+			var l11 := levels[i11]
+
+			var p00 := _cell_vertex(z, x, y, u0, v0, l00)
+			var p10 := _cell_vertex(z, x, y, u1, v0, l10)
+			var p01 := _cell_vertex(z, x, y, u0, v1, l01)
+			var p11 := _cell_vertex(z, x, y, u1, v1, l11)
+
+			var avg_level := (l00 + l10 + l01 + l11) / 4.0
+			var color := _cell_terrain_color(avg_level * CELL_HEIGHT_STEP_M)
+
+			st.set_color(color)
+			st.add_vertex(p00)
+			st.set_color(color)
+			st.add_vertex(p01)
+			st.set_color(color)
+			st.add_vertex(p10)
+
+			st.set_color(color)
+			st.add_vertex(p10)
+			st.set_color(color)
+			st.add_vertex(p01)
+			st.set_color(color)
+			st.add_vertex(p11)
+
+	st.generate_normals()
+	var mesh := st.commit()
 	if mesh == null:
 		return
 
 	var node: MeshInstance3D = state.get("node")
 	if not is_instance_valid(node):
 		node = MeshInstance3D.new()
-		node.name = "WorldTile_%d_%d_%d" % [z, x, y]
+		node.name = "CellTile_%d_%d_%d" % [z, x, y]
+		terrain_root.add_child(node)
+
+	node.mesh = mesh
+	node.material_override = _make_ground_material(null)
+	state["node"] = node
+	_tiles[key] = state
+
+
+func _build_map_quad(
+	state: Dictionary,
+	key: String,
+	z: int,
+	x: int,
+	y: int,
+	map_texture: Texture2D
+) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+	var nw := _tile_fraction_to_lon_lat(z, x, y, 0.0, 0.0)
+	var ne := _tile_fraction_to_lon_lat(z, x, y, 1.0, 0.0)
+	var sw := _tile_fraction_to_lon_lat(z, x, y, 0.0, 1.0)
+	var se := _tile_fraction_to_lon_lat(z, x, y, 1.0, 1.0)
+
+	var p00 := _geo_to_local(nw.x, nw.y, 0.0)
+	var p10 := _geo_to_local(ne.x, ne.y, 0.0)
+	var p01 := _geo_to_local(sw.x, sw.y, 0.0)
+	var p11 := _geo_to_local(se.x, se.y, 0.0)
+
+	st.set_uv(Vector2(0, 0)); st.add_vertex(p00)
+	st.set_uv(Vector2(0, 1)); st.add_vertex(p01)
+	st.set_uv(Vector2(1, 0)); st.add_vertex(p10)
+	st.set_uv(Vector2(1, 0)); st.add_vertex(p10)
+	st.set_uv(Vector2(0, 1)); st.add_vertex(p01)
+	st.set_uv(Vector2(1, 1)); st.add_vertex(p11)
+
+	var mesh := st.commit()
+	if mesh == null:
+		return
+
+	var node: MeshInstance3D = state.get("node")
+	if not is_instance_valid(node):
+		node = MeshInstance3D.new()
+		node.name = "MapTile_%d_%d_%d" % [z, x, y]
 		terrain_root.add_child(node)
 
 	node.mesh = mesh
@@ -454,6 +552,27 @@ func _rebuild_tile(key: String) -> void:
 	state["node"] = node
 	_tiles[key] = state
 
+
+func _cell_vertex(z: int, x: int, y: int, u: float, v: float, level: int) -> Vector3:
+	var geo := _tile_fraction_to_lon_lat(z, x, y, u, v)
+	var height_km := (
+		float(level) * CELL_HEIGHT_STEP_M / 1000.0 * VERTICAL_EXAGGERATION
+	)
+	return _geo_to_local(geo.x, geo.y, height_km)
+
+
+func _cell_terrain_color(elevation_m: float) -> Color:
+	# Readable RTS palette. Real land-cover classification will replace these
+	# broad elevation colors after the cell engine itself is verified.
+	if elevation_m < 250.0:
+		return Color(0.53, 0.47, 0.30, 1.0)
+	if elevation_m < 450.0:
+		return Color(0.46, 0.43, 0.27, 1.0)
+	if elevation_m < 700.0:
+		return Color(0.40, 0.39, 0.26, 1.0)
+	if elevation_m < 1100.0:
+		return Color(0.38, 0.35, 0.28, 1.0)
+	return Color(0.48, 0.46, 0.42, 1.0)
 
 func _make_ground_material(map_texture: Texture2D) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
@@ -558,7 +677,9 @@ func _build_vector_world(data: Dictionary) -> void:
 		var element_type: String = element.get("type", "")
 
 		if element_type == "node" and tags.has("place"):
-			_add_place_label(element, tags)
+			var place_type := str(tags.get("place", ""))
+			if place_type in ["city", "town", "village"]:
+				_add_place_label(element, tags)
 			continue
 
 		var geometry: Array = element.get("geometry", [])
