@@ -72,6 +72,13 @@ The current Aleppo sector is centered on the real city coordinates and bundles a
 
 This is a development sector, not yet the full Aleppo Governorate. Once its terrain, buildings, roads, labels, streaming and Android performance are verified on-device, the exact same generator will be extended by adjacent sectors until the governorate is continuous.
 
+### Syria 14-governorate milestone
+DAM's current geographic scope is Syria only. The Android prototype now treats the fourteen governorates as selectable detailed test sectors built by one shared compiler and one shared Cell Engine. Aleppo remains the default because it is the first visually verified sector.
+
+The build pipeline downloads one current Syria OpenStreetMap extract, scans it once, and creates a compact runtime dataset for each governorate. Each sector preserves real road geometry, real building footprints, waterways and place names around the governorate's main urban center, while the DEM terrain continues to stream separately. The fourteen datasets are not fourteen separate game engines; they are fourteen inputs to the same Syria world engine.
+
+This milestone intentionally gives every governorate a working Aleppo-style sector before expanding each sector outward to continuous full-governorate coverage. This keeps Android performance measurable while avoiding a return to a single giant Middle East dataset.
+
 ## 3. Current foundation
 The repository already provides basic RTS foundations including resources, terrain/air units, deathmatch, AI, fog of war, minimap, group movement and simple UI. DAM work has added Android-compatible rendering/export, CI APK builds, touch camera pan/pinch zoom, touch unit selection/commands, and DAM identity.
 

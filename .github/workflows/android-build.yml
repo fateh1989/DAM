@@ -44,41 +44,22 @@ jobs:
         run: |
           rm -rf .godot
 
-      - name: Recover verified Aleppo data snapshot
+      - name: Compile 14 Syria governorate sectors
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if ! command -v curl >/dev/null 2>&1; then
-            apt-get update -qq
-            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq curl ca-certificates unzip
-          fi
-          mkdir -p source/world/data /tmp/aleppo-artifact
-          curl --fail --location --retry 2 \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/10837687351/zip" \
-            -o /tmp/aleppo-build21.zip
-          unzip -q /tmp/aleppo-build21.zip -d /tmp/aleppo-artifact
-          test -s /tmp/aleppo-artifact/DAM.apk
-          unzip -p /tmp/aleppo-artifact/DAM.apk \
-            assets/source/world/data/aleppo_osm.json \
-            > source/world/data/aleppo_osm.json
-          test -s source/world/data/aleppo_osm.json
-          test "$(wc -c < source/world/data/aleppo_osm.json)" -gt 1000000
-          echo "Recovered Aleppo OSM bytes: $(wc -c < source/world/data/aleppo_osm.json)"
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq curl ca-certificates python3 python3-pip
+          python3 -m pip install --break-system-packages --no-cache-dir osmium
+          mkdir -p source/world/data
+          curl --fail --location --retry 2 --connect-timeout 20 --max-time 240 \
+            https://download.geofabrik.de/asia/syria-latest.osm.pbf \
+            -o /tmp/syria.osm.pbf
+          test -s /tmp/syria.osm.pbf
+          python3 source/world/CompileSyria.py /tmp/syria.osm.pbf source/world/data
+          test "$(find source/world/data -maxdepth 1 -name 'syria_*.json' ! -name 'syria_manifest.json' | wc -l)" -eq 14
+          echo "Syria runtime data bytes: $(du -cb source/world/data/syria_*.json | tail -1 | awk '{print $1}')"
 
-      - name: Compact Aleppo runtime dataset
-        shell: bash
-        run: |
-          if ! command -v python3 >/dev/null 2>&1; then
-            apt-get update -qq
-            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3
-          fi
-          python3 source/world/CompactAleppo.py source/world/data/aleppo_osm.json
-          echo "Compact Aleppo bytes: $(wc -c < source/world/data/aleppo_osm.json)"
-          test "$(wc -c < source/world/data/aleppo_osm.json)" -lt 15000000
 
       - name: Import project
         shell: bash
@@ -100,6 +81,9 @@ jobs:
       - name: Validate terrain vector scene
         run: |
           timeout 12s godot --headless --path . res://source/world/MiddleEastTerrain.tscn || test $? -eq 124
+
+      - name: Syria 14-sector data smoke
+        run: godot --headless --path . --script source/world/SyriaDataSmoke.gd
 
       - name: Aleppo terrain runtime smoke
         run: godot --headless --path . --script source/world/AleppoSmoke.gd

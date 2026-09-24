@@ -20,18 +20,32 @@ const MAX_PARALLEL_REQUESTS := 5
 
 const MAP_TILE_URL := "https://tile.openstreetmap.org/%d/%d/%d.png"
 const DEM_TILE_URL := "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/%d/%d/%d.png"
-const ALEPPO_DATA_PATH := "res://source/world/data/aleppo_osm.json"
-const ALEPPO_LAT := 36.201241
-const ALEPPO_LON := 37.161173
+const GOVERNORATES := [
+	{"slug":"damascus","name_ar":"دمشق","name_en":"Damascus","lat":33.5138,"lon":36.2765},
+	{"slug":"rif_dimashq","name_ar":"ريف دمشق","name_en":"Rif Dimashq","lat":33.5723,"lon":36.4027},
+	{"slug":"aleppo","name_ar":"حلب","name_en":"Aleppo","lat":36.201241,"lon":37.161173},
+	{"slug":"homs","name_ar":"حمص","name_en":"Homs","lat":34.7324,"lon":36.7137},
+	{"slug":"hama","name_ar":"حماة","name_en":"Hama","lat":35.1318,"lon":36.7578},
+	{"slug":"latakia","name_ar":"اللاذقية","name_en":"Latakia","lat":35.5317,"lon":35.7901},
+	{"slug":"tartus","name_ar":"طرطوس","name_en":"Tartus","lat":34.8959,"lon":35.8867},
+	{"slug":"idlib","name_ar":"إدلب","name_en":"Idlib","lat":35.9306,"lon":36.6339},
+	{"slug":"raqqa","name_ar":"الرقة","name_en":"Raqqa","lat":35.9594,"lon":39.0079},
+	{"slug":"deir_ez_zor","name_ar":"دير الزور","name_en":"Deir ez-Zor","lat":35.3359,"lon":40.1408},
+	{"slug":"hasakah","name_ar":"الحسكة","name_en":"Al-Hasakah","lat":36.5024,"lon":40.7477},
+	{"slug":"daraa","name_ar":"درعا","name_en":"Daraa","lat":32.6189,"lon":36.1021},
+	{"slug":"suwayda","name_ar":"السويداء","name_en":"As-Suwayda","lat":32.7089,"lon":36.5695},
+	{"slug":"quneitra","name_ar":"القنيطرة","name_en":"Quneitra","lat":33.1259,"lon":35.8246},
+]
+const DEFAULT_GOVERNORATE_INDEX := 2
 
 const MAP_CACHE_ROOT := "user://dam_map_cache/osm"
 const DEM_CACHE_ROOT := "user://dam_map_cache/terrarium"
 const MAP_CACHE_MAX_AGE_SEC := 604800
 
-const REGION_WEST := 24.0
-const REGION_EAST := 64.5
-const REGION_NORTH := 43.0
-const REGION_SOUTH := 11.5
+const REGION_WEST := 35.55
+const REGION_EAST := 42.45
+const REGION_NORTH := 37.35
+const REGION_SOUTH := 32.25
 
 const EARTH_RADIUS_KM := 6371.0088
 const VERTICAL_EXAGGERATION := 2.2
@@ -55,14 +69,16 @@ const VECTOR_REFRESH_DISTANCE_DEG := 0.025
 @onready var zoom_label: Label = $HUD/TopBar/Row/ZoomLabel
 @onready var status_label: Label = $HUD/TopBar/Row/StatusLabel
 @onready var mode_button: Button = $HUD/ModeButton
+@onready var governorate_label: Label = $HUD/GovernorateBar/Row/GovernorateLabel
 
 var _terrain_mode := false
 var _map_zoom := DEFAULT_MAP_ZOOM
-var _center_lon := ALEPPO_LON
-var _center_lat := ALEPPO_LAT
+var _governorate_index := DEFAULT_GOVERNORATE_INDEX
+var _center_lon := float(GOVERNORATES[DEFAULT_GOVERNORATE_INDEX]["lon"])
+var _center_lat := float(GOVERNORATES[DEFAULT_GOVERNORATE_INDEX]["lat"])
 
-var _origin_lon := ALEPPO_LON
-var _origin_lat := ALEPPO_LAT
+var _origin_lon := float(GOVERNORATES[DEFAULT_GOVERNORATE_INDEX]["lon"])
+var _origin_lat := float(GOVERNORATES[DEFAULT_GOVERNORATE_INDEX]["lat"])
 
 var _tiles := {}
 var _required_keys := {}
@@ -92,6 +108,7 @@ func _ready() -> void:
 	_setup_environment()
 	_origin_lon = _center_lon
 	_origin_lat = _center_lat
+	_update_governorate_ui()
 	_position_camera()
 	_refresh_tiles()
 	_update_status()
@@ -624,17 +641,18 @@ func _refresh_vector_data(force: bool) -> void:
 
 	_update_status()
 
-	if not FileAccess.file_exists(ALEPPO_DATA_PATH):
+	var data_path := _governorate_data_path()
+	if not FileAccess.file_exists(data_path):
 		_vector_inflight = false
 		_vector_loaded = false
-		status_label.text = "ALEPPO DATA MISSING"
+		status_label.text = "%s DATA MISSING" % _governorate_name()
 		return
 
-	var file := FileAccess.open(ALEPPO_DATA_PATH, FileAccess.READ)
+	var file := FileAccess.open(data_path, FileAccess.READ)
 	if file == null:
 		_vector_inflight = false
 		_vector_loaded = false
-		status_label.text = "ALEPPO DATA ERROR"
+		status_label.text = "%s DATA ERROR" % _governorate_name()
 		return
 
 	var raw := file.get_as_text()
@@ -645,21 +663,72 @@ func _refresh_vector_data(force: bool) -> void:
 	if typeof(parsed) == TYPE_DICTIONARY:
 		_build_vector_world(parsed)
 		_vector_loaded = true
-		_add_fallback_aleppo_label()
+		_add_fallback_governorate_label()
 	else:
 		_vector_loaded = false
 
 	_vector_inflight = false
 	_update_status()
 
-func _add_fallback_aleppo_label() -> void:
+func _governorate() -> Dictionary:
+	return GOVERNORATES[_governorate_index]
+
+
+func _governorate_name() -> String:
+	return str(_governorate().get("name_ar", _governorate().get("name_en", "")))
+
+
+func _governorate_data_path() -> String:
+	return "res://source/world/data/syria_%s.json" % str(_governorate()["slug"])
+
+
+func _update_governorate_ui() -> void:
+	governorate_label.text = "%d / %d   %s" % [
+		_governorate_index + 1,
+		GOVERNORATES.size(),
+		_governorate_name()
+	]
+
+
+func _select_governorate(index: int) -> void:
+	_governorate_index = posmod(index, GOVERNORATES.size())
+	var gov := _governorate()
+	_center_lon = float(gov["lon"])
+	_center_lat = float(gov["lat"])
+	_origin_lon = _center_lon
+	_origin_lat = _center_lat
+	_map_zoom = DEFAULT_MAP_ZOOM
+
+	_clear_all_world_nodes()
+	_update_governorate_ui()
+	_position_camera()
+	_refresh_tiles()
+	_update_status()
+
+	if _terrain_mode:
+		call_deferred("_refresh_vector_data", true)
+
+
+func _on_previous_governorate_pressed() -> void:
+	_select_governorate(_governorate_index - 1)
+
+
+func _on_next_governorate_pressed() -> void:
+	_select_governorate(_governorate_index + 1)
+
+
+func _add_fallback_governorate_label() -> void:
+	var text := _governorate_name()
 	for child in labels_root.get_children():
-		if child is Label3D and child.text == "حلب":
+		if child is Label3D and child.text == text:
 			return
 
+	var gov := _governorate()
+	var lon := float(gov["lon"])
+	var lat := float(gov["lat"])
 	var label := Label3D.new()
-	label.text = "حلب"
-	label.position = _geo_to_local(ALEPPO_LON, ALEPPO_LAT, _height_at_geo(ALEPPO_LON, ALEPPO_LAT) + 0.18)
+	label.text = text
+	label.position = _geo_to_local(lon, lat, _height_at_geo(lon, lat) + 0.18)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.fixed_size = false
 	label.font_size = 36
@@ -1192,17 +1261,17 @@ func _update_status() -> void:
 		loading += 1
 
 	if loading > 0:
-		status_label.text = ("ALEPPO TERRAIN" if _terrain_mode else "ALEPPO MAP") + " • LOADING %d" % loading
+		status_label.text = ("%s TERRAIN" % _governorate_name() if _terrain_mode else "%s MAP" % _governorate_name()) + " • LOADING %d" % loading
 	else:
 		if _terrain_mode:
-			status_label.text = "ALEPPO • R%d B%d W%d • %d NODES" % [
+			status_label.text = "%s • R%d B%d W%d • %d NODES" % [_governorate_name(),
 				_road_feature_count,
 				_building_feature_count,
 				_water_feature_count,
 				vector_root.get_child_count() + labels_root.get_child_count()
 			]
 		else:
-			status_label.text = "ALEPPO MAP READY"
+			status_label.text = "%s MAP READY" % _governorate_name()
 
 
 func _on_mode_pressed() -> void:
@@ -1232,8 +1301,9 @@ func _on_zoom_out_pressed() -> void:
 
 
 func _on_reset_pressed() -> void:
-	_center_lon = ALEPPO_LON
-	_center_lat = ALEPPO_LAT
+	var gov := _governorate()
+	_center_lon = float(gov["lon"])
+	_center_lat = float(gov["lat"])
 	_map_zoom = DEFAULT_MAP_ZOOM
 	_origin_lon = _center_lon
 	_origin_lat = _center_lat
