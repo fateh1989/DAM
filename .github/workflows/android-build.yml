@@ -46,6 +46,10 @@ jobs:
       - name: Fetch Aleppo real-world vector data
         shell: bash
         run: |
+          if ! command -v curl >/dev/null 2>&1; then
+            apt-get update -qq
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq curl ca-certificates
+          fi
           mkdir -p source/world/data
           cat > /tmp/aleppo.overpass <<'EOF'
           [out:json][timeout:120];
