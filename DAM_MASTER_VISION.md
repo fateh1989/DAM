@@ -37,6 +37,8 @@ Political and control layers are versioned data snapshots with source/date prove
 - touch pan and pinch zoom
 - zoom levels 4–10
 - wider visible tile neighborhood to prevent an isolated floating patch
+- dedicated MAP / TERRAIN visual toggle using DEM-derived hillshade
+- retained off-screen tile ring so panning does not immediately punch holes in the map
 - map appears flat/textured first if necessary, then upgrades to real elevation as DEM arrives
 
 ## 3. Current foundation
