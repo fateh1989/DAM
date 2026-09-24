@@ -1,0 +1,94 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://source/world/MiddleEastTerrain.gd" id="1_world"]
+
+[node name="MiddleEastTerrain" type="Node3D"]
+script = ExtResource("1_world")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-48, -28, 0)
+light_energy = 1.1
+shadow_enabled = true
+directional_shadow_max_distance = 8000.0
+
+[node name="TerrainRoot" type="Node3D" parent="."]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+current = true
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="TopBar" type="PanelContainer" parent="HUD"]
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 730.0
+offset_bottom = 72.0
+
+[node name="Row" type="HBoxContainer" parent="HUD/TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="BackButton" type="Button" parent="HUD/TopBar/Row"]
+custom_minimum_size = Vector2(92, 46)
+layout_mode = 2
+text = "BACK"
+
+[node name="Title" type="Label" parent="HUD/TopBar/Row"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "DAM • EARTH"
+vertical_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="HUD/TopBar/Row"]
+custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+text = "BUILDING EARTH"
+vertical_alignment = 1
+
+[node name="ResetButton" type="Button" parent="HUD/TopBar/Row"]
+custom_minimum_size = Vector2(86, 46)
+layout_mode = 2
+text = "RESET"
+
+[node name="ZoomOutButton" type="Button" parent="HUD/TopBar/Row"]
+custom_minimum_size = Vector2(48, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "−"
+
+[node name="ZoomLabel" type="Label" parent="HUD/TopBar/Row"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "ZOOM 5 / 10"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ZoomInButton" type="Button" parent="HUD/TopBar/Row"]
+custom_minimum_size = Vector2(48, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "+"
+
+[node name="Info" type="Label" parent="HUD"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -420.0
+offset_top = -38.0
+offset_right = -12.0
+offset_bottom = -12.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 13
+text = "WGS84 • real elevation scale • Mapzen Terrain Tiles"
+horizontal_alignment = 2
+
+[connection signal="pressed" from="HUD/TopBar/Row/BackButton" to="." method="_on_back_pressed"]
+[connection signal="pressed" from="HUD/TopBar/Row/ResetButton" to="." method="_on_reset_pressed"]
+[connection signal="pressed" from="HUD/TopBar/Row/ZoomOutButton" to="." method="_on_zoom_out_pressed"]
+[connection signal="pressed" from="HUD/TopBar/Row/ZoomInButton" to="." method="_on_zoom_in_pressed"]

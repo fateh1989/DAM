@@ -25,6 +25,9 @@ For the prototype, map detail is capped at **zoom 10**. Lower zoom levels remain
 
 Geopolitical labels and boundary geometry must come from versioned source datasets rather than being manually redrawn in code. Disputed boundary presentation should preserve the source dataset's distinctions and provenance rather than inventing a DAM-specific political interpretation.
 
+### Terrain foundation — implemented prototype
+The first real-world terrain stage renders streamed **3D elevation geometry**, not a flat map viewer. Geographic positions are generated from WGS84 geodetic coordinates on the Earth ellipsoid, using real elevation values from Terrarium DEM tiles. Godot world units are kilometers so horizontal position and elevation use the same physical scale. The camera streams only nearby terrain chunks and supports map detail levels up to zoom 10. Roads, settlements, buildings, borders, land-cover and gameplay entities are separate later layers that must be placed on this same geospatial terrain rather than replacing it with a flat map.
+
 ## 3. Current foundation
 The repository already provides basic RTS foundations including resources, terrain/air units, deathmatch, AI, fog of war, minimap, group movement and simple UI. DAM work has added Android-compatible rendering/export, CI APK builds, touch camera pan/pinch zoom, touch unit selection/commands, and DAM identity.
 
