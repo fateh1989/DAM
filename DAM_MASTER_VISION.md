@@ -65,6 +65,13 @@ The Red Alert reference is structural, not geographic: readable isometric camera
 
 The vertical terrain is visually exaggerated for RTS readability while horizontal positions remain tied to real coordinates. The underlying real elevation is preserved in the data pipeline so later movement/slope rules do not need to infer height from artwork.
 
+### Aleppo first-city milestone
+The first production-quality real-world battlefield is deliberately narrowed to **Aleppo city** before scaling to Aleppo Governorate and then neighboring countries. The purpose is to finish one dense real city correctly rather than repeatedly testing the whole Middle East.
+
+The current Aleppo sector is centered on the real city coordinates and bundles a build-time OpenStreetMap snapshot for a central test area. The snapshot contains real building footprints, roads, waterways and place labels. Terrain elevation remains streamed from DEM data. Arabic names are preferred where the source includes them.
+
+This is a development sector, not yet the full Aleppo Governorate. Once its terrain, buildings, roads, labels, streaming and Android performance are verified on-device, the exact same generator will be extended by adjacent sectors until the governorate is continuous.
+
 ## 3. Current foundation
 The repository already provides basic RTS foundations including resources, terrain/air units, deathmatch, AI, fog of war, minimap, group movement and simple UI. DAM work has added Android-compatible rendering/export, CI APK builds, touch camera pan/pinch zoom, touch unit selection/commands, and DAM identity.
 

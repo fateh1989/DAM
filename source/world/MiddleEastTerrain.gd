@@ -10,7 +10,7 @@ extends Node3D
 
 const MIN_MAP_ZOOM := 4
 const MAX_MAP_ZOOM := 10
-const DEFAULT_MAP_ZOOM := 5
+const DEFAULT_MAP_ZOOM := 9
 
 const TERRAIN_ZOOM := 13
 const TERRAIN_TILE_RADIUS := 1
@@ -20,7 +20,9 @@ const MAX_PARALLEL_REQUESTS := 5
 
 const MAP_TILE_URL := "https://tile.openstreetmap.org/%d/%d/%d.png"
 const DEM_TILE_URL := "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/%d/%d/%d.png"
-const OVERPASS_URL := "https://overpass-api.de/api/interpreter"
+const ALEPPO_DATA_PATH := "res://source/world/data/aleppo_osm.json"
+const ALEPPO_LAT := 36.201241
+const ALEPPO_LON := 37.161173
 
 const MAP_CACHE_ROOT := "user://dam_map_cache/osm"
 const DEM_CACHE_ROOT := "user://dam_map_cache/terrarium"
@@ -50,11 +52,11 @@ const VECTOR_REFRESH_DISTANCE_DEG := 0.025
 
 var _terrain_mode := false
 var _map_zoom := DEFAULT_MAP_ZOOM
-var _center_lon := 44.25
-var _center_lat := 27.25
+var _center_lon := ALEPPO_LON
+var _center_lat := ALEPPO_LAT
 
-var _origin_lon := 44.25
-var _origin_lat := 27.25
+var _origin_lon := ALEPPO_LON
+var _origin_lat := ALEPPO_LAT
 
 var _tiles := {}
 var _required_keys := {}
@@ -70,8 +72,8 @@ var _touches := {}
 var _pinch_accumulator := 0.0
 var _mouse_dragging := false
 
-var _vector_request: HTTPRequest
 var _vector_inflight := false
+var _vector_loaded := false
 var _last_vector_center := Vector2(999.0, 999.0)
 
 
@@ -484,77 +486,63 @@ func _terrain_color(elevation_m: float) -> Color:
 
 
 func _refresh_vector_data(force: bool) -> void:
-	if not _terrain_mode or _vector_inflight:
+	if not _terrain_mode:
+		return
+	if _vector_inflight:
 		return
 
 	var now_center := Vector2(_center_lon, _center_lat)
-	if not force and _last_vector_center.distance_to(now_center) < VECTOR_REFRESH_DISTANCE_DEG:
+	if _vector_loaded and not force and _last_vector_center.distance_to(now_center) < VECTOR_REFRESH_DISTANCE_DEG:
 		return
 
+	_vector_inflight = true
 	_last_vector_center = now_center
 	_clear_vector_nodes()
-
-	var south := _center_lat - VECTOR_HALF_LAT
-	var north := _center_lat + VECTOR_HALF_LAT
-	var west := _center_lon - VECTOR_HALF_LON
-	var east := _center_lon + VECTOR_HALF_LON
-	var bbox := "%.6f,%.6f,%.6f,%.6f" % [south, west, north, east]
-
-	# Real roads + names always. Buildings are limited to the inner battlefield
-	# so city detail remains practical on Android.
-	var building_south := _center_lat - VECTOR_HALF_LAT * 0.42
-	var building_north := _center_lat + VECTOR_HALF_LAT * 0.42
-	var building_west := _center_lon - VECTOR_HALF_LON * 0.42
-	var building_east := _center_lon + VECTOR_HALF_LON * 0.42
-	var building_bbox := "%.6f,%.6f,%.6f,%.6f" % [
-		building_south, building_west, building_north, building_east
-	]
-
-	var query := "[out:json][timeout:18];(" 		+ "way[highway](" + bbox + ");" 		+ "way[waterway](" + bbox + ");" 		+ "way[natural=water](" + bbox + ");" 		+ "node[place~\"city|town|village|hamlet|suburb\"](" + bbox + ");" 		+ "way[building](" + building_bbox + ");" 		+ ");out geom 900;"
-
-	_vector_request = HTTPRequest.new()
-	_vector_request.use_threads = true
-	_vector_request.timeout = 22.0
-	add_child(_vector_request)
-	_vector_request.request_completed.connect(_on_vector_request_completed, CONNECT_ONE_SHOT)
-	_vector_inflight = true
-
-	var headers := PackedStringArray([
-		"User-Agent: DAM-RTS/0.1 (github.com/fateh1989/DAM)",
-		"Content-Type: application/x-www-form-urlencoded"
-	])
-	var body := "data=" + query.uri_encode()
-	var error := _vector_request.request(
-		OVERPASS_URL,
-		headers,
-		HTTPClient.METHOD_POST,
-		body
-	)
-
-	if error != OK:
-		_vector_inflight = false
-		_vector_request.queue_free()
-		_vector_request = null
-
-
-func _on_vector_request_completed(
-	result: int,
-	response_code: int,
-	_headers: PackedStringArray,
-	body: PackedByteArray
-) -> void:
-	_vector_inflight = false
-
-	if result == HTTPRequest.RESULT_SUCCESS and response_code == 200:
-		var parsed = JSON.parse_string(body.get_string_from_utf8())
-		if typeof(parsed) == TYPE_DICTIONARY:
-			_build_vector_world(parsed)
-
-	if is_instance_valid(_vector_request):
-		_vector_request.queue_free()
-	_vector_request = null
 	_update_status()
 
+	if not FileAccess.file_exists(ALEPPO_DATA_PATH):
+		_vector_inflight = false
+		_vector_loaded = false
+		status_label.text = "ALEPPO DATA MISSING"
+		return
+
+	var file := FileAccess.open(ALEPPO_DATA_PATH, FileAccess.READ)
+	if file == null:
+		_vector_inflight = false
+		_vector_loaded = false
+		status_label.text = "ALEPPO DATA ERROR"
+		return
+
+	var raw := file.get_as_text()
+	file.close()
+	var parsed = JSON.parse_string(raw)
+
+	if typeof(parsed) == TYPE_DICTIONARY:
+		_build_vector_world(parsed)
+		_vector_loaded = true
+		_add_fallback_aleppo_label()
+	else:
+		_vector_loaded = false
+
+	_vector_inflight = false
+	_update_status()
+
+
+func _add_fallback_aleppo_label() -> void:
+	for child in labels_root.get_children():
+		if child is Label3D and child.text == "حلب":
+			return
+
+	var label := Label3D.new()
+	label.text = "حلب"
+	label.position = _geo_to_local(ALEPPO_LON, ALEPPO_LAT, _height_at_geo(ALEPPO_LON, ALEPPO_LAT) + 0.18)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.fixed_size = true
+	label.font_size = 44
+	label.outline_size = 10
+	label.modulate = Color(0.98, 0.95, 0.82, 1.0)
+	label.outline_modulate = Color(0.06, 0.06, 0.06, 1.0)
+	labels_root.add_child(label)
 
 func _build_vector_world(data: Dictionary) -> void:
 	var elements: Array = data.get("elements", [])
@@ -577,7 +565,7 @@ func _build_vector_world(data: Dictionary) -> void:
 
 		if tags.has("highway"):
 			_add_road(geometry, tags)
-		elif tags.has("building") and building_count < 420:
+		elif tags.has("building") and building_count < 900:
 			_add_building(geometry, tags)
 			building_count += 1
 		elif tags.has("waterway") or tags.get("natural", "") == "water":
@@ -923,6 +911,7 @@ func _clear_all_world_nodes() -> void:
 	_clear_tiles()
 	_clear_vector_nodes()
 	_last_vector_center = Vector2(999.0, 999.0)
+	_vector_loaded = false
 
 
 func _note_failure(kind: String) -> void:
@@ -943,9 +932,12 @@ func _update_status() -> void:
 		loading += 1
 
 	if loading > 0:
-		status_label.text = ("TERRAIN" if _terrain_mode else "MAP") + " • LOADING %d" % loading
+		status_label.text = ("ALEPPO TERRAIN" if _terrain_mode else "ALEPPO MAP") + " • LOADING %d" % loading
 	else:
-		status_label.text = ("TERRAIN READY" if _terrain_mode else "MAP READY")
+		if _terrain_mode:
+			status_label.text = "ALEPPO • %d OBJECTS" % (vector_root.get_child_count() + labels_root.get_child_count())
+		else:
+			status_label.text = "ALEPPO MAP READY"
 
 
 func _on_mode_pressed() -> void:
@@ -958,11 +950,10 @@ func _on_mode_pressed() -> void:
 	_clear_all_world_nodes()
 	_position_camera()
 	_refresh_tiles()
+	_update_status()
 
 	if _terrain_mode:
-		_refresh_vector_data(true)
-
-	_update_status()
+		call_deferred("_refresh_vector_data", true)
 
 
 func _on_zoom_in_pressed() -> void:
@@ -976,8 +967,8 @@ func _on_zoom_out_pressed() -> void:
 
 
 func _on_reset_pressed() -> void:
-	_center_lon = 44.25
-	_center_lat = 27.25
+	_center_lon = ALEPPO_LON
+	_center_lat = ALEPPO_LAT
 	_map_zoom = DEFAULT_MAP_ZOOM
 	_origin_lon = _center_lon
 	_origin_lat = _center_lat

@@ -43,6 +43,26 @@ jobs:
         run: |
           rm -rf .godot
 
+      - name: Fetch Aleppo real-world vector data
+        shell: bash
+        run: |
+          mkdir -p source/world/data
+          cat > /tmp/aleppo.overpass <<'EOF'
+          [out:json][timeout:120];
+          (
+            way["highway"](36.170,37.120,36.232,37.205);
+            way["waterway"](36.170,37.120,36.232,37.205);
+            way["natural"="water"](36.170,37.120,36.232,37.205);
+            node["place"~"city|town|village|hamlet|suburb|neighbourhood"](36.170,37.120,36.232,37.205);
+            way["building"](36.184,37.137,36.218,37.190);
+          );
+          out geom;
+          EOF
+          curl --fail --retry 2 --connect-timeout 20 --max-time 180             --data-urlencode "data@/tmp/aleppo.overpass"             https://overpass-api.de/api/interpreter             -o source/world/data/aleppo_osm.json           || curl --fail --retry 2 --connect-timeout 20 --max-time 180             --data-urlencode "data@/tmp/aleppo.overpass"             https://overpass.kumi.systems/api/interpreter             -o source/world/data/aleppo_osm.json
+          test -s source/world/data/aleppo_osm.json
+          test "$(wc -c < source/world/data/aleppo_osm.json)" -gt 5000
+          echo "Aleppo OSM bytes: $(wc -c < source/world/data/aleppo_osm.json)"
+
       - name: Import project
         run: godot --headless --editor --path . --import --quit
 
@@ -53,6 +73,9 @@ jobs:
       - name: Validate terrain vector scene
         run: |
           timeout 12s godot --headless --path . res://source/world/MiddleEastTerrain.tscn || test $? -eq 124
+
+      - name: Aleppo terrain runtime smoke
+        run: godot --headless --path . --script source/world/AleppoSmoke.gd
 
       - name: Export APK
         run: godot --headless --path . --export-debug "Android" build/DAM.apk
