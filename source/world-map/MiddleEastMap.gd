@@ -99,7 +99,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			var new_distance := _touch_distance()
 			if old_distance > 0.0 and new_distance > 0.0:
 				_pinch_accumulator += new_distance - old_distance
-				if abs(_pinch_accumulator) >= 90.0:
+				if abs(_pinch_accumulator) >= 30.0:
 					_set_zoom(_zoom + (1 if _pinch_accumulator > 0.0 else -1))
 					_pinch_accumulator = 0.0
 			_last_pinch_distance = new_distance
