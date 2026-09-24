@@ -1,13 +1,24 @@
 extends Node3D
 
-# DAM real-map foundation.
-# The player sees a continuous map surface. Raster map tiles are only an
-# internal streaming source; real elevation is applied from DEM data.
-# One Godot world unit equals one kilometer.
+# DAM real-world strategy terrain prototype.
+#
+# Design rule:
+# - MAP mode behaves like a map application.
+# - TERRAIN mode behaves like a classic isometric RTS battlefield.
+# - Both are generated from the SAME real geographic coordinates.
+# - OSM raster tiles are only a temporary visual reference.
+# - Terrarium DEM supplies the real elevation shape.
+#
+# Red Alert 2 used a tile grid with explicit height levels, ramps and cliffs.
+# DAM mirrors that idea by quantizing real DEM elevations into readable RTS
+# levels, while keeping the horizontal geography tied to real WGS84 positions.
 
 const MIN_ZOOM := 4
-const MAX_ZOOM := 10
+const MAP_MAX_ZOOM := 10
+const MAX_ZOOM := 14
 const DEFAULT_ZOOM := 5
+const TERRAIN_DEFAULT_ZOOM := 11
+
 const TILE_RADIUS := 2
 const KEEP_TILE_RADIUS := 4
 const MAX_PARALLEL_REQUESTS := 4
@@ -18,16 +29,23 @@ const MAP_CACHE_ROOT := "user://dam_map_cache/osm"
 const DEM_CACHE_ROOT := "user://dam_map_cache/terrarium"
 const MAP_CACHE_MAX_AGE_SEC := 604800
 
-# Loading bounds only. They are not political borders.
+# Loading bounds only; not political borders.
 const REGION_WEST := 24.0
 const REGION_EAST := 64.5
 const REGION_NORTH := 43.0
 const REGION_SOUTH := 11.5
 
-# WGS84 ellipsoid, kilometers.
-const WGS84_A := 6378.137
-const WGS84_F := 1.0 / 298.257223563
-const WGS84_E2 := WGS84_F * (2.0 - WGS84_F)
+# Local geographic rendering origin. Horizontal distances remain metric-ish
+# kilometers around the Middle East instead of drawing a curved globe patch.
+const ORIGIN_LON := 44.25
+const ORIGIN_LAT := 27.25
+const EARTH_RADIUS_KM := 6371.0088
+
+# RTS terrain rendering. Horizontal geography comes from real coordinates.
+# Height is deliberately quantized/exaggerated for battlefield readability,
+# like classic isometric RTS height levels.
+const RTS_LEVEL_METERS := 50.0
+const RTS_VERTICAL_EXAGGERATION := 2.6
 
 @onready var terrain_root: Node3D = $TerrainRoot
 @onready var camera: Camera3D = $Camera3D
@@ -37,8 +55,10 @@ const WGS84_E2 := WGS84_F * (2.0 - WGS84_F)
 @onready var mode_button: Button = $HUD/ModeButton
 
 var _zoom := DEFAULT_ZOOM
-var _center_lon := 44.25
-var _center_lat := 27.25
+var _map_zoom := DEFAULT_ZOOM
+var _center_lon := ORIGIN_LON
+var _center_lat := ORIGIN_LAT
+var _terrain_mode := false
 
 var _tiles := {}
 var _required_keys := {}
@@ -53,7 +73,6 @@ var _failed_dem := 0
 var _touches := {}
 var _pinch_accumulator := 0.0
 var _mouse_dragging := false
-var _terrain_mode := false
 
 
 func _ready() -> void:
@@ -66,11 +85,11 @@ func _ready() -> void:
 func _setup_environment() -> void:
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color(0.15, 0.38, 0.58, 1.0)
+	environment.background_color = Color(0.12, 0.30, 0.46, 1.0)
 	environment.background_energy_multiplier = 0.8
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color(0.82, 0.84, 0.86, 1.0)
-	environment.ambient_light_energy = 1.0
+	environment.ambient_light_color = Color(0.72, 0.76, 0.80, 1.0)
+	environment.ambient_light_energy = 0.72
 	world_environment.environment = environment
 
 
@@ -128,14 +147,19 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _pan_from_screen_delta(delta: Vector2) -> void:
-	var circumference_at_lat := TAU * WGS84_A * maxf(0.15, cos(deg_to_rad(_center_lat)))
-	var km_per_pixel := circumference_at_lat / (pow(2.0, float(_zoom)) * 256.0)
+	var viewport_height := maxf(1.0, float(get_viewport().get_visible_rect().size.y))
+	var km_per_pixel := 0.0
+
+	if _terrain_mode:
+		km_per_pixel = _approx_tile_width_km() / 210.0
+	else:
+		km_per_pixel = camera.size / viewport_height
 
 	var east_km := -delta.x * km_per_pixel
 	var north_km := delta.y * km_per_pixel
 
-	var lat_delta := rad_to_deg(north_km / WGS84_A)
-	var lon_radius := WGS84_A * maxf(0.15, cos(deg_to_rad(_center_lat)))
+	var lat_delta := rad_to_deg(north_km / EARTH_RADIUS_KM)
+	var lon_radius := EARTH_RADIUS_KM * maxf(0.15, cos(deg_to_rad(_center_lat)))
 	var lon_delta := rad_to_deg(east_km / lon_radius)
 
 	_center_lat = clampf(_center_lat + lat_delta, REGION_SOUTH, REGION_NORTH)
@@ -146,11 +170,15 @@ func _pan_from_screen_delta(delta: Vector2) -> void:
 
 
 func _set_zoom(new_zoom: int) -> void:
-	new_zoom = clampi(new_zoom, MIN_ZOOM, MAX_ZOOM)
+	var max_zoom := MAX_ZOOM if _terrain_mode else MAP_MAX_ZOOM
+	new_zoom = clampi(new_zoom, MIN_ZOOM, max_zoom)
 	if new_zoom == _zoom:
 		return
 
 	_zoom = new_zoom
+	if not _terrain_mode:
+		_map_zoom = _zoom
+
 	_clear_visible_tiles()
 	_position_camera()
 	_refresh_tiles()
@@ -158,17 +186,24 @@ func _set_zoom(new_zoom: int) -> void:
 
 
 func _position_camera() -> void:
-	var surface := _geo_to_world(_center_lon, _center_lat, 0.0)
-	var up := _surface_up(_center_lon, _center_lat)
-	var north := _surface_north(_center_lon, _center_lat)
+	var center := _geo_to_local(_center_lon, _center_lat, 0.0)
+	var tile_km := _approx_tile_width_km()
 
-	# Mostly top-down like a map application, while retaining visible 3D terrain.
-	var altitude := 4300.0 / pow(2.0, float(_zoom - MIN_ZOOM))
-	camera.position = surface + up * altitude - north * (altitude * 0.22)
-	camera.look_at(surface, up)
-	camera.near = 0.05
-	camera.far = 20000.0
-	camera.fov = 48.0
+	if _terrain_mode:
+		camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+		var altitude := maxf(8.0, tile_km * 2.15)
+		camera.position = center + Vector3(0.0, altitude, altitude * 0.82)
+		camera.look_at(center, Vector3.UP)
+		camera.fov = 46.0
+		camera.near = 0.02
+		camera.far = 5000.0
+	else:
+		camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+		camera.size = tile_km * 4.55
+		camera.position = center + Vector3(0.0, 500.0, 0.01)
+		camera.look_at(center, Vector3(0.0, 0.0, -1.0))
+		camera.near = 0.1
+		camera.far = 1000.0
 
 
 func _refresh_tiles() -> void:
@@ -178,7 +213,6 @@ func _refresh_tiles() -> void:
 	var keep := {}
 	var candidates: Array = []
 
-	# Visible request ring.
 	for ty in range(center_tile.y - TILE_RADIUS, center_tile.y + TILE_RADIUS + 1):
 		if ty < 0 or ty > max_index:
 			continue
@@ -191,8 +225,6 @@ func _refresh_tiles() -> void:
 			required[key] = true
 			candidates.append({"z": _zoom, "x": tx, "y": ty, "key": key})
 
-	# Larger retention ring. Old tiles stay visible while new tiles stream in,
-	# preventing holes during camera movement.
 	for ty in range(center_tile.y - KEEP_TILE_RADIUS, center_tile.y + KEEP_TILE_RADIUS + 1):
 		if ty < 0 or ty > max_index:
 			continue
@@ -211,13 +243,13 @@ func _refresh_tiles() -> void:
 		if not _tiles.has(key):
 			_begin_tile(item["z"], item["x"], item["y"], key)
 
-	# Remove only tiles well outside the current viewport.
 	for key in _tiles.keys().duplicate():
 		if not keep.has(key):
 			_remove_tile(key)
 
 	_pump_requests()
 	_update_status()
+
 
 func _begin_tile(z: int, x: int, y: int, key: String) -> void:
 	_tiles[key] = {
@@ -228,7 +260,7 @@ func _begin_tile(z: int, x: int, y: int, key: String) -> void:
 		"dem_image": null,
 		"map_image": null,
 		"map_texture": null,
-		"relief_texture": null,
+		"terrain_texture": null,
 	}
 
 	var map_cache := _map_cache_path(z, x, y)
@@ -244,14 +276,12 @@ func _begin_tile(z: int, x: int, y: int, key: String) -> void:
 		var dem_bytes := _read_bytes(dem_cache)
 		dem_loaded = not dem_bytes.is_empty() and _apply_dem_bytes(key, dem_bytes)
 
-	# Cover the screen with the map first. DEM work follows behind it.
+	# Always prioritize the visible map image. Elevation follows behind it.
 	if not map_loaded:
 		_queue_request("map", z, x, y, key, map_cache)
 	elif not dem_loaded:
 		_queue_request("dem", z, x, y, key, dem_cache)
 
-	if dem_loaded and not map_loaded:
-		_rebuild_tile(key)
 
 func _queue_request(kind: String, z: int, x: int, y: int, key: String, cache_path: String) -> void:
 	var request_key := "%s:%s" % [kind, key]
@@ -259,7 +289,6 @@ func _queue_request(kind: String, z: int, x: int, y: int, key: String, cache_pat
 		return
 
 	var url := MAP_TILE_URL % [z, x, y] if kind == "map" else DEM_TILE_URL % [z, x, y]
-	_queued[request_key] = true
 	var queue_item := {
 		"kind": kind,
 		"z": z,
@@ -270,6 +299,8 @@ func _queue_request(kind: String, z: int, x: int, y: int, key: String, cache_pat
 		"cache_path": cache_path,
 		"url": url,
 	}
+
+	_queued[request_key] = true
 	if kind == "map":
 		_pending.push_front(queue_item)
 	else:
@@ -332,7 +363,14 @@ func _on_request_completed(
 			elif item["kind"] == "map":
 				var state: Dictionary = _tiles.get(key, {})
 				if state.get("dem_image") == null:
-					_queue_request("dem", item["z"], item["x"], item["y"], key, _dem_cache_path(item["z"], item["x"], item["y"]))
+					_queue_request(
+						"dem",
+						item["z"],
+						item["x"],
+						item["y"],
+						key,
+						_dem_cache_path(item["z"], item["x"], item["y"])
+					)
 	else:
 		_note_failure(item["kind"])
 
@@ -352,18 +390,18 @@ func _apply_map_bytes(key: String, bytes: PackedByteArray) -> bool:
 		return false
 	image.convert(Image.FORMAT_RGBA8)
 
-	var texture := ImageTexture.create_from_image(image)
 	var state: Dictionary = _tiles[key]
 	state["map_image"] = image
-	state["map_texture"] = texture
+	state["map_texture"] = ImageTexture.create_from_image(image)
 
 	var dem_image: Image = state.get("dem_image")
 	if dem_image != null:
-		state["relief_texture"] = _build_relief_texture(image, dem_image, state["z"], state["y"])
+		state["terrain_texture"] = _build_game_terrain_texture(image, dem_image, state["z"], state["y"])
 
 	_tiles[key] = state
 	_rebuild_tile(key)
 	return true
+
 
 func _apply_dem_bytes(key: String, bytes: PackedByteArray) -> bool:
 	if not _tiles.has(key):
@@ -379,11 +417,12 @@ func _apply_dem_bytes(key: String, bytes: PackedByteArray) -> bool:
 
 	var map_image: Image = state.get("map_image")
 	if map_image != null:
-		state["relief_texture"] = _build_relief_texture(map_image, image, state["z"], state["y"])
+		state["terrain_texture"] = _build_game_terrain_texture(map_image, image, state["z"], state["y"])
 
 	_tiles[key] = state
 	_rebuild_tile(key)
 	return true
+
 
 func _rebuild_tile(key: String) -> void:
 	if not _tiles.has(key):
@@ -395,8 +434,8 @@ func _rebuild_tile(key: String) -> void:
 	var y: int = state["y"]
 	var dem_image: Image = state.get("dem_image")
 	var map_texture: Texture2D = state.get("map_texture")
-	var relief_texture: Texture2D = state.get("relief_texture")
-	var visible_texture: Texture2D = relief_texture if _terrain_mode and relief_texture != null else map_texture
+	var terrain_texture: Texture2D = state.get("terrain_texture")
+	var visible_texture: Texture2D = terrain_texture if _terrain_mode and terrain_texture != null else map_texture
 
 	var segments := _segments_for_zoom(z)
 	var surface := SurfaceTool.new()
@@ -409,12 +448,14 @@ func _rebuild_tile(key: String) -> void:
 			var elevation_m := 0.0
 
 			if dem_image != null:
-				var px := clampi(int(round(u * float(dem_image.get_width() - 1))), 0, dem_image.get_width() - 1)
-				var py := clampi(int(round(v * float(dem_image.get_height() - 1))), 0, dem_image.get_height() - 1)
-				elevation_m = _decode_terrarium(dem_image.get_pixel(px, py))
+				elevation_m = _sample_dem(dem_image, u, v)
+
+			var render_height_m := 0.0
+			if _terrain_mode:
+				render_height_m = _rts_height_m(elevation_m)
 
 			var geo := _tile_fraction_to_lon_lat(z, x, y, u, v)
-			var position := _geo_to_world(geo.x, geo.y, elevation_m / 1000.0)
+			var position := _geo_to_local(geo.x, geo.y, render_height_m / 1000.0)
 
 			surface.set_uv(Vector2(u, v))
 			surface.set_color(Color.WHITE)
@@ -444,7 +485,7 @@ func _rebuild_tile(key: String) -> void:
 	var node: MeshInstance3D = state.get("node")
 	if not is_instance_valid(node):
 		node = MeshInstance3D.new()
-		node.name = "MapTerrain_%d_%d_%d" % [z, x, y]
+		node.name = "WorldCell_%d_%d_%d" % [z, x, y]
 		terrain_root.add_child(node)
 
 	node.mesh = mesh
@@ -454,75 +495,110 @@ func _rebuild_tile(key: String) -> void:
 	_tiles[key] = state
 
 
-func _make_tile_material(map_texture: Texture2D) -> StandardMaterial3D:
+func _make_tile_material(texture: Texture2D) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	material.vertex_color_use_as_albedo = false
 	material.roughness = 1.0
 	material.metallic = 0.0
 
-	if map_texture != null:
-		material.albedo_texture = map_texture
+	if not _terrain_mode:
+		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+
+	if texture != null:
+		material.albedo_texture = texture
 		material.albedo_color = Color.WHITE
 	else:
-		material.albedo_color = Color(0.58, 0.58, 0.55, 1.0)
+		material.albedo_color = Color(0.42, 0.39, 0.31, 1.0)
 
 	return material
 
 
-func _build_relief_texture(map_image: Image, dem_image: Image, z: int, tile_y: int) -> Texture2D:
-	var width := map_image.get_width()
-	var height := map_image.get_height()
-	if width <= 2 or height <= 2:
-		return ImageTexture.create_from_image(map_image)
+func _build_game_terrain_texture(map_image: Image, dem_image: Image, z: int, tile_y: int) -> Texture2D:
+	# Blur away labels and tiny cartographic marks. What remains is a rough
+	# real-world land/water/vegetation color reference, then DEM hillshade is
+	# added on top to make it read like an RTS terrain tile instead of a map.
+	var blurred := map_image.duplicate()
+	blurred.resize(32, 32, Image.INTERPOLATE_BILINEAR)
+	blurred.resize(128, 128, Image.INTERPOLATE_BILINEAR)
+	blurred.convert(Image.FORMAT_RGBA8)
 
-	var out := map_image.duplicate()
-	out.convert(Image.FORMAT_RGBA8)
-
+	var out := Image.create(128, 128, false, Image.FORMAT_RGBA8)
 	var tile_center := _tile_fraction_to_lon_lat(z, 0, tile_y, 0.5, 0.5)
 	var meters_per_pixel := (
-		TAU * WGS84_A * 1000.0 * maxf(0.15, cos(deg_to_rad(tile_center.y)))
-		/ (pow(2.0, float(z)) * float(width))
+		TAU * EARTH_RADIUS_KM * 1000.0 * maxf(0.15, cos(deg_to_rad(tile_center.y)))
+		/ (pow(2.0, float(z)) * 128.0)
 	)
-	var relief_strength := 3.0
 
-	for py in range(height):
-		var sy := clampi(int(round(float(py) / float(height - 1) * float(dem_image.get_height() - 1))), 0, dem_image.get_height() - 1)
-		var sy0 := maxi(0, sy - 1)
-		var sy1 := mini(dem_image.get_height() - 1, sy + 1)
+	for py in range(128):
+		var v := float(py) / 127.0
+		for px in range(128):
+			var u := float(px) / 127.0
+			var base := blurred.get_pixel(px, py)
+			var elevation := _sample_dem(dem_image, u, v)
 
-		for px in range(width):
-			var sx := clampi(int(round(float(px) / float(width - 1) * float(dem_image.get_width() - 1))), 0, dem_image.get_width() - 1)
-			var sx0 := maxi(0, sx - 1)
-			var sx1 := mini(dem_image.get_width() - 1, sx + 1)
-
-			var h_l := _decode_terrarium(dem_image.get_pixel(sx0, sy))
-			var h_r := _decode_terrarium(dem_image.get_pixel(sx1, sy))
-			var h_u := _decode_terrarium(dem_image.get_pixel(sx, sy0))
-			var h_d := _decode_terrarium(dem_image.get_pixel(sx, sy1))
+			var du := 1.0 / 128.0
+			var dv := 1.0 / 128.0
+			var h_l := _sample_dem(dem_image, clampf(u - du, 0.0, 1.0), v)
+			var h_r := _sample_dem(dem_image, clampf(u + du, 0.0, 1.0), v)
+			var h_u := _sample_dem(dem_image, u, clampf(v - dv, 0.0, 1.0))
+			var h_d := _sample_dem(dem_image, u, clampf(v + dv, 0.0, 1.0))
 
 			var dx := (h_r - h_l) / maxf(1.0, meters_per_pixel * 2.0)
 			var dy := (h_d - h_u) / maxf(1.0, meters_per_pixel * 2.0)
-			var normal := Vector3(-dx * relief_strength, -dy * relief_strength, 1.0).normalized()
-			var light := Vector3(-0.45, -0.55, 0.72).normalized()
-			var shade := clampf(0.70 + maxf(-0.35, normal.dot(light)) * 0.42, 0.52, 1.10)
+			var normal := Vector3(-dx * 2.2, -dy * 2.2, 1.0).normalized()
+			var light := Vector3(-0.45, -0.50, 0.74).normalized()
+			var shade := clampf(0.74 + normal.dot(light) * 0.34, 0.48, 1.10)
 
-			var base := map_image.get_pixel(px, py)
-			var r := clampf(base.r * shade, 0.0, 1.0)
-			var g := clampf(base.g * shade, 0.0, 1.0)
-			var b := clampf(base.b * shade, 0.0, 1.0)
-			out.set_pixel(px, py, Color(r, g, b, base.a))
+			var looks_like_water := (
+				base.b > base.r * 1.07
+				and base.b > base.g * 1.03
+				and base.b > 0.55
+			)
+
+			var terrain_color := Color(0.56, 0.48, 0.33, 1.0)
+			if looks_like_water:
+				terrain_color = Color(0.12, 0.34, 0.52, 1.0)
+			elif base.g > base.r * 1.025 and base.g > base.b * 0.92:
+				terrain_color = Color(0.34, 0.42, 0.25, 1.0)
+			elif elevation > 1700.0:
+				terrain_color = Color(0.42, 0.40, 0.36, 1.0)
+			elif elevation > 700.0:
+				terrain_color = Color(0.49, 0.43, 0.32, 1.0)
+
+			# Retain some broad real-world source coloration after the label blur.
+			terrain_color = terrain_color.lerp(base, 0.24)
+			terrain_color.r = clampf(terrain_color.r * shade, 0.0, 1.0)
+			terrain_color.g = clampf(terrain_color.g * shade, 0.0, 1.0)
+			terrain_color.b = clampf(terrain_color.b * shade, 0.0, 1.0)
+			out.set_pixel(px, py, terrain_color)
 
 	return ImageTexture.create_from_image(out)
 
 
+func _sample_dem(image: Image, u: float, v: float) -> float:
+	var px := clampi(int(round(u * float(image.get_width() - 1))), 0, image.get_width() - 1)
+	var py := clampi(int(round(v * float(image.get_height() - 1))), 0, image.get_height() - 1)
+	return _decode_terrarium(image.get_pixel(px, py))
+
+
+func _rts_height_m(real_height_m: float) -> float:
+	# Classic RTS maps use explicit height levels. DAM derives the level from
+	# real elevation instead of an artist painting it by hand.
+	var level := round(real_height_m / RTS_LEVEL_METERS)
+	return level * RTS_LEVEL_METERS * RTS_VERTICAL_EXAGGERATION
+
+
 func _segments_for_zoom(z: int) -> int:
-	if z <= 5:
-		return 64
-	if z <= 7:
-		return 72
-	return 96
+	if z <= 8:
+		return 24
+	if z <= 10:
+		return 32
+	if z == 11:
+		return 40
+	if z == 12:
+		return 48
+	return 64
 
 
 func _decode_terrarium(color: Color) -> float:
@@ -532,38 +608,18 @@ func _decode_terrarium(color: Color) -> float:
 	return float(red * 256 + green) + float(blue) / 256.0 - 32768.0
 
 
-func _geo_to_world(lon_deg: float, lat_deg: float, height_km: float) -> Vector3:
-	var lon := deg_to_rad(lon_deg)
-	var lat := deg_to_rad(lat_deg)
-	var sin_lat := sin(lat)
-	var cos_lat := cos(lat)
-	var radius := WGS84_A / sqrt(1.0 - WGS84_E2 * sin_lat * sin_lat)
-
-	var ecef_x := (radius + height_km) * cos_lat * cos(lon)
-	var ecef_y := (radius + height_km) * cos_lat * sin(lon)
-	var ecef_z := (radius * (1.0 - WGS84_E2) + height_km) * sin_lat
-
-	return Vector3(ecef_x, ecef_z, -ecef_y)
+func _geo_to_local(lon_deg: float, lat_deg: float, height_km: float) -> Vector3:
+	var mean_lat := deg_to_rad((lat_deg + ORIGIN_LAT) * 0.5)
+	var east := EARTH_RADIUS_KM * deg_to_rad(lon_deg - ORIGIN_LON) * cos(mean_lat)
+	var north := EARTH_RADIUS_KM * deg_to_rad(lat_deg - ORIGIN_LAT)
+	return Vector3(east, height_km, -north)
 
 
-func _surface_up(lon_deg: float, lat_deg: float) -> Vector3:
-	var lon := deg_to_rad(lon_deg)
-	var lat := deg_to_rad(lat_deg)
-	return Vector3(
-		cos(lat) * cos(lon),
-		sin(lat),
-		-cos(lat) * sin(lon)
-	).normalized()
-
-
-func _surface_north(lon_deg: float, lat_deg: float) -> Vector3:
-	var lon := deg_to_rad(lon_deg)
-	var lat := deg_to_rad(lat_deg)
-	return Vector3(
-		-sin(lat) * cos(lon),
-		cos(lat),
-		sin(lat) * sin(lon)
-	).normalized()
+func _approx_tile_width_km() -> float:
+	return (
+		TAU * EARTH_RADIUS_KM * maxf(0.15, cos(deg_to_rad(_center_lat)))
+		/ pow(2.0, float(_zoom))
+	)
 
 
 func _lon_lat_to_tile(lon: float, lat: float, z: int) -> Vector2i:
@@ -665,10 +721,10 @@ func _note_failure(kind: String) -> void:
 
 
 func _update_status() -> void:
-	zoom_label.text = "ZOOM %d / %d" % [_zoom, MAX_ZOOM]
+	zoom_label.text = "ZOOM %d / %d" % [_zoom, MAX_ZOOM if _terrain_mode else MAP_MAX_ZOOM]
 	var loading := _active_requests + _pending.size()
+	var mode_text := "RTS TERRAIN" if _terrain_mode else "MAP"
 
-	var mode_text := "TERRAIN" if _terrain_mode else "MAP"
 	if loading > 0:
 		status_label.text = "%s • LOADING %d" % [mode_text, loading]
 	elif _failed_map > 0 or _failed_dem > 0:
@@ -678,18 +734,19 @@ func _update_status() -> void:
 
 
 func _on_mode_pressed() -> void:
-	_terrain_mode = not _terrain_mode
-	mode_button.text = "MAP" if _terrain_mode else "TERRAIN"
+	if _terrain_mode:
+		_terrain_mode = false
+		mode_button.text = "TERRAIN"
+		_zoom = mini(_map_zoom, MAP_MAX_ZOOM)
+	else:
+		_map_zoom = mini(_zoom, MAP_MAX_ZOOM)
+		_terrain_mode = true
+		mode_button.text = "MAP"
+		_zoom = maxi(_zoom, TERRAIN_DEFAULT_ZOOM)
 
-	for state in _tiles.values():
-		var node: MeshInstance3D = state.get("node")
-		if not is_instance_valid(node):
-			continue
-		var map_texture: Texture2D = state.get("map_texture")
-		var relief_texture: Texture2D = state.get("relief_texture")
-		var visible_texture: Texture2D = relief_texture if _terrain_mode and relief_texture != null else map_texture
-		node.material_override = _make_tile_material(visible_texture)
-
+	_clear_visible_tiles()
+	_position_camera()
+	_refresh_tiles()
 	_update_status()
 
 
@@ -702,14 +759,15 @@ func _on_zoom_out_pressed() -> void:
 
 
 func _on_reset_pressed() -> void:
-	_center_lon = 44.25
-	_center_lat = 27.25
-	if _zoom != DEFAULT_ZOOM:
-		_set_zoom(DEFAULT_ZOOM)
-	else:
-		_clear_visible_tiles()
-		_position_camera()
-		_refresh_tiles()
+	_center_lon = ORIGIN_LON
+	_center_lat = ORIGIN_LAT
+	_zoom = TERRAIN_DEFAULT_ZOOM if _terrain_mode else DEFAULT_ZOOM
+	if not _terrain_mode:
+		_map_zoom = _zoom
+	_clear_visible_tiles()
+	_position_camera()
+	_refresh_tiles()
+	_update_status()
 
 
 func _on_back_pressed() -> void:

@@ -41,6 +41,18 @@ Political and control layers are versioned data snapshots with source/date prove
 - retained off-screen tile ring so panning does not immediately punch holes in the map
 - map appears flat/textured first if necessary, then upgrades to real elevation as DEM arrives
 
+### Classic-RTS terrain translation
+DAM does not treat the visible map image as the battlefield. The classic Westwood/Red Alert approach is the design reference: maps are cell/tile based, terrain has explicit height levels, slopes/ramps connect levels, cliffs affect movement, and terrain art is layered separately from gameplay geometry. DAM translates that structure from real geographic evidence instead of hand-painted fictional terrain.
+
+Current prototype translation:
+- WGS84 coordinates provide real horizontal placement.
+- DEM elevation is quantized into RTS-readable height levels.
+- Terrain view uses an isometric/perspective battlefield camera rather than the strategic top-down map camera.
+- Vertical relief is intentionally exaggerated for readability while horizontal geography remains tied to the real source position.
+- The temporary OSM raster is blurred/abstracted in terrain mode so labels and cartographic ink do not become the battlefield art.
+- Later vector layers will generate roads, buildings, bridges, water edges and movement rules from real data, equivalent to how classic RTS terrain tiles carried passability and ramp/cliff meaning.
+- Strategic MAP mode and playable TERRAIN mode are separate presentations of the same geographic state.
+
 ## 3. Current foundation
 The repository already provides basic RTS foundations including resources, terrain/air units, deathmatch, AI, fog of war, minimap, group movement and simple UI. DAM work has added Android-compatible rendering/export, CI APK builds, touch camera pan/pinch zoom, touch unit selection/commands, and DAM identity.
 
