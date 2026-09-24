@@ -82,6 +82,11 @@ var _vector_inflight := false
 var _vector_loaded := false
 var _last_vector_center := Vector2(999.0, 999.0)
 
+var _feature_count := 0
+var _road_feature_count := 0
+var _building_feature_count := 0
+var _water_feature_count := 0
+
 
 func _ready() -> void:
 	_setup_environment()
@@ -182,8 +187,6 @@ func _pan_from_screen_delta(delta: Vector2) -> void:
 
 	_position_camera()
 	_refresh_tiles()
-	if _terrain_mode:
-		_refresh_vector_data(false)
 
 
 func _set_map_zoom(new_zoom: int) -> void:
@@ -605,18 +608,20 @@ func _terrain_color(elevation_m: float) -> Color:
 
 
 func _refresh_vector_data(force: bool) -> void:
-	if not _terrain_mode:
-		return
-	if _vector_inflight:
+	if not _terrain_mode or _vector_inflight:
 		return
 
-	var now_center := Vector2(_center_lon, _center_lat)
-	if _vector_loaded and not force and _last_vector_center.distance_to(now_center) < VECTOR_REFRESH_DISTANCE_DEG:
+	# The bundled Aleppo sector already covers the current test battlefield.
+	# Do not parse/rebuild thousands of real-world features on every pan.
+	if _vector_loaded and not force:
 		return
 
 	_vector_inflight = true
-	_last_vector_center = now_center
-	_clear_vector_nodes()
+	_last_vector_center = Vector2(_center_lon, _center_lat)
+
+	if force:
+		_clear_vector_nodes()
+
 	_update_status()
 
 	if not FileAccess.file_exists(ALEPPO_DATA_PATH):
@@ -635,6 +640,7 @@ func _refresh_vector_data(force: bool) -> void:
 	var raw := file.get_as_text()
 	file.close()
 	var parsed = JSON.parse_string(raw)
+	raw = ""
 
 	if typeof(parsed) == TYPE_DICTIONARY:
 		_build_vector_world(parsed)
@@ -645,7 +651,6 @@ func _refresh_vector_data(force: bool) -> void:
 
 	_vector_inflight = false
 	_update_status()
-
 
 func _add_fallback_aleppo_label() -> void:
 	for child in labels_root.get_children():
@@ -667,7 +672,20 @@ func _add_fallback_aleppo_label() -> void:
 
 func _build_vector_world(data: Dictionary) -> void:
 	var elements: Array = data.get("elements", [])
-	var building_count := 0
+
+	_feature_count = 0
+	_road_feature_count = 0
+	_building_feature_count = 0
+	_water_feature_count = 0
+
+	var roads := SurfaceTool.new()
+	var buildings := SurfaceTool.new()
+	var water := SurfaceTool.new()
+	roads.begin(Mesh.PRIMITIVE_TRIANGLES)
+	buildings.begin(Mesh.PRIMITIVE_TRIANGLES)
+	water.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+	var building_limit := 1200
 
 	for element in elements:
 		if typeof(element) != TYPE_DICTIONARY:
@@ -687,15 +705,29 @@ func _build_vector_world(data: Dictionary) -> void:
 			continue
 
 		if tags.has("highway"):
-			_add_road(geometry, tags)
-		elif tags.has("building") and building_count < 900:
-			_add_building(geometry, tags)
-			building_count += 1
+			if _append_road_geometry(roads, geometry, tags):
+				_road_feature_count += 1
+		elif tags.has("building") and _building_feature_count < building_limit:
+			if _append_building_geometry(buildings, geometry, tags):
+				_building_feature_count += 1
 		elif tags.has("waterway") or tags.get("natural", "") == "water":
-			_add_water(geometry)
+			if _append_water_geometry(water, geometry):
+				_water_feature_count += 1
+
+	_feature_count = _road_feature_count + _building_feature_count + _water_feature_count
+
+	# Thousands of OSM features become only a few draw nodes. This is the key
+	# Android optimization: data count stays high while SceneTree node count
+	# stays tiny.
+	if _road_feature_count > 0:
+		_commit_vector_batch(roads, "RoadBatch", Color(0.24, 0.23, 0.22, 1.0))
+	if _building_feature_count > 0:
+		_commit_vector_batch(buildings, "BuildingBatch", Color(0.78, 0.72, 0.66, 1.0))
+	if _water_feature_count > 0:
+		_commit_vector_batch(water, "WaterBatch", Color(0.10, 0.38, 0.62, 1.0))
 
 
-func _add_road(geometry: Array, tags: Dictionary) -> void:
+func _append_road_geometry(st: SurfaceTool, geometry: Array, tags: Dictionary) -> bool:
 	var highway: String = str(tags.get("highway", "road"))
 	var width_m := 5.0
 	if highway in ["motorway", "trunk"]:
@@ -704,6 +736,8 @@ func _add_road(geometry: Array, tags: Dictionary) -> void:
 		width_m = 12.0
 	elif highway in ["tertiary", "residential"]:
 		width_m = 8.0
+	elif highway in ["service", "living_street"]:
+		width_m = 5.0
 
 	var points: Array[Vector3] = []
 	for p in geometry:
@@ -715,21 +749,35 @@ func _add_road(geometry: Array, tags: Dictionary) -> void:
 		points.append(_geo_to_local(lon, lat, h))
 
 	if points.size() < 2:
-		return
+		return false
 
-	var mesh := _make_ribbon(points, width_m / 1000.0)
-	if mesh == null:
-		return
+	var added := false
+	var width_km := width_m / 1000.0
+	for i in range(points.size() - 1):
+		var a := points[i]
+		var b := points[i + 1]
+		var delta := Vector2(b.x - a.x, b.z - a.z)
+		if delta.length() < 0.0005:
+			continue
+		var direction := delta.normalized()
+		var side := Vector3(-direction.y, 0.0, direction.x) * width_km * 0.5
+		var a0 := a - side
+		var a1 := a + side
+		var b0 := b - side
+		var b1 := b + side
+		st.add_vertex(a0)
+		st.add_vertex(b0)
+		st.add_vertex(a1)
+		st.add_vertex(a1)
+		st.add_vertex(b0)
+		st.add_vertex(b1)
+		added = true
+	return added
 
-	var node := MeshInstance3D.new()
-	node.mesh = mesh
-	node.material_override = _solid_material(Color(0.24, 0.23, 0.22, 1.0))
-	vector_root.add_child(node)
 
-
-func _add_building(geometry: Array, tags: Dictionary) -> void:
+func _append_building_geometry(st: SurfaceTool, geometry: Array, tags: Dictionary) -> bool:
 	if geometry.size() < 4:
-		return
+		return false
 
 	var pts: Array[Vector3] = []
 	for p in geometry:
@@ -741,7 +789,13 @@ func _add_building(geometry: Array, tags: Dictionary) -> void:
 		pts.append(_geo_to_local(lon, lat, h))
 
 	if pts.size() < 4:
-		return
+		return false
+
+	var count := pts.size()
+	if pts[0].distance_to(pts[count - 1]) < 0.001:
+		count -= 1
+	if count < 3:
+		return false
 
 	var height_m := 9.0
 	if tags.has("height"):
@@ -754,17 +808,34 @@ func _add_building(geometry: Array, tags: Dictionary) -> void:
 			height_m = clampf(raw_levels.to_float() * 3.1, 3.0, 120.0)
 
 	var height_km := height_m / 1000.0 * VERTICAL_EXAGGERATION
-	var mesh := _make_building_mesh(pts, height_km)
-	if mesh == null:
-		return
+	var center := Vector3.ZERO
+	for i in range(count):
+		center += pts[i]
+	center /= float(count)
+	var roof_center := center + Vector3.UP * height_km
 
-	var node := MeshInstance3D.new()
-	node.mesh = mesh
-	node.material_override = _solid_material(Color(0.52, 0.47, 0.42, 1.0))
-	vector_root.add_child(node)
+	for i in range(count):
+		var j := (i + 1) % count
+		var a := pts[i]
+		var b := pts[j]
+		var at := a + Vector3.UP * height_km
+		var bt := b + Vector3.UP * height_km
+
+		st.add_vertex(a)
+		st.add_vertex(b)
+		st.add_vertex(at)
+		st.add_vertex(at)
+		st.add_vertex(b)
+		st.add_vertex(bt)
+
+		st.add_vertex(roof_center)
+		st.add_vertex(at)
+		st.add_vertex(bt)
+
+	return true
 
 
-func _add_water(geometry: Array) -> void:
+func _append_water_geometry(st: SurfaceTool, geometry: Array) -> bool:
 	var points: Array[Vector3] = []
 	for p in geometry:
 		if typeof(p) != TYPE_DICTIONARY:
@@ -775,17 +846,42 @@ func _add_water(geometry: Array) -> void:
 		points.append(_geo_to_local(lon, lat, h))
 
 	if points.size() < 2:
-		return
+		return false
 
-	var mesh := _make_ribbon(points, 0.018)
+	var added := false
+	var width_km := 0.018
+	for i in range(points.size() - 1):
+		var a := points[i]
+		var b := points[i + 1]
+		var delta := Vector2(b.x - a.x, b.z - a.z)
+		if delta.length() < 0.0005:
+			continue
+		var direction := delta.normalized()
+		var side := Vector3(-direction.y, 0.0, direction.x) * width_km * 0.5
+		var a0 := a - side
+		var a1 := a + side
+		var b0 := b - side
+		var b1 := b + side
+		st.add_vertex(a0)
+		st.add_vertex(b0)
+		st.add_vertex(a1)
+		st.add_vertex(a1)
+		st.add_vertex(b0)
+		st.add_vertex(b1)
+		added = true
+	return added
+
+
+func _commit_vector_batch(st: SurfaceTool, node_name: String, color: Color) -> void:
+	st.generate_normals()
+	var mesh := st.commit()
 	if mesh == null:
 		return
-
 	var node := MeshInstance3D.new()
+	node.name = node_name
 	node.mesh = mesh
-	node.material_override = _solid_material(Color(0.10, 0.32, 0.50, 1.0))
+	node.material_override = _solid_material(color)
 	vector_root.add_child(node)
-
 
 func _add_place_label(element: Dictionary, tags: Dictionary) -> void:
 	var text := str(tags.get("name:ar", tags.get("name", "")))
@@ -1062,9 +1158,13 @@ func _clear_tiles() -> void:
 
 func _clear_vector_nodes() -> void:
 	for child in vector_root.get_children():
-		child.queue_free()
+		child.free()
 	for child in labels_root.get_children():
-		child.queue_free()
+		child.free()
+	_feature_count = 0
+	_road_feature_count = 0
+	_building_feature_count = 0
+	_water_feature_count = 0
 
 
 func _clear_all_world_nodes() -> void:
@@ -1095,7 +1195,12 @@ func _update_status() -> void:
 		status_label.text = ("ALEPPO TERRAIN" if _terrain_mode else "ALEPPO MAP") + " • LOADING %d" % loading
 	else:
 		if _terrain_mode:
-			status_label.text = "ALEPPO • %d OBJECTS" % (vector_root.get_child_count() + labels_root.get_child_count())
+			status_label.text = "ALEPPO • R%d B%d W%d • %d NODES" % [
+				_road_feature_count,
+				_building_feature_count,
+				_water_feature_count,
+				vector_root.get_child_count() + labels_root.get_child_count()
+			]
 		else:
 			status_label.text = "ALEPPO MAP READY"
 

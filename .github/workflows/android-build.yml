@@ -69,6 +69,17 @@ jobs:
           test "$(wc -c < source/world/data/aleppo_osm.json)" -gt 1000000
           echo "Recovered Aleppo OSM bytes: $(wc -c < source/world/data/aleppo_osm.json)"
 
+      - name: Compact Aleppo runtime dataset
+        shell: bash
+        run: |
+          if ! command -v python3 >/dev/null 2>&1; then
+            apt-get update -qq
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3
+          fi
+          python3 source/world/CompactAleppo.py source/world/data/aleppo_osm.json
+          echo "Compact Aleppo bytes: $(wc -c < source/world/data/aleppo_osm.json)"
+          test "$(wc -c < source/world/data/aleppo_osm.json)" -lt 15000000
+
       - name: Import project
         shell: bash
         run: |
