@@ -537,11 +537,13 @@ func _add_fallback_aleppo_label() -> void:
 	label.text = "حلب"
 	label.position = _geo_to_local(ALEPPO_LON, ALEPPO_LAT, _height_at_geo(ALEPPO_LON, ALEPPO_LAT) + 0.18)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.fixed_size = true
-	label.font_size = 44
-	label.outline_size = 10
-	label.modulate = Color(0.98, 0.95, 0.82, 1.0)
-	label.outline_modulate = Color(0.06, 0.06, 0.06, 1.0)
+	label.fixed_size = false
+	label.font_size = 36
+	label.pixel_size = 0.0021
+	label.outline_size = 4
+	label.visibility_range_end = 45.0
+	label.modulate = Color(0.98, 0.95, 0.82, 0.94)
+	label.outline_modulate = Color(0.06, 0.06, 0.06, 0.94)
 	labels_root.add_child(label)
 
 func _build_vector_world(data: Dictionary) -> void:
@@ -669,20 +671,57 @@ func _add_place_label(element: Dictionary, tags: Dictionary) -> void:
 	if text.is_empty():
 		return
 
+	var place_type := str(tags.get("place", ""))
 	var lon := float(element.get("lon", 0.0))
 	var lat := float(element.get("lat", 0.0))
-	var h := _height_at_geo(lon, lat) + 0.10
+	var h := _height_at_geo(lon, lat) + 0.035
+
 	var label := Label3D.new()
 	label.text = text
 	label.position = _geo_to_local(lon, lat, h)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.fixed_size = true
-	label.font_size = 32
-	label.outline_size = 8
-	label.modulate = Color(0.96, 0.93, 0.82, 1.0)
-	label.outline_modulate = Color(0.08, 0.08, 0.08, 1.0)
-	labels_root.add_child(label)
 
+	# Never use fixed-size labels in the RTS battlefield. Fixed-size text stays
+	# the same number of screen pixels at every distance and caused the giant
+	# overlapping Arabic words seen on Android.
+	label.fixed_size = false
+	label.pixel_size = 0.0016
+	label.outline_size = 3
+	label.modulate = Color(0.96, 0.94, 0.84, 0.92)
+	label.outline_modulate = Color(0.06, 0.06, 0.06, 0.92)
+
+	# Map-like label hierarchy: important places remain readable from farther
+	# away; local names become small and disappear sooner.
+	match place_type:
+		"city":
+			label.font_size = 34
+			label.pixel_size = 0.0020
+			label.visibility_range_end = 40.0
+		"town":
+			label.font_size = 28
+			label.pixel_size = 0.0018
+			label.visibility_range_end = 25.0
+		"village":
+			label.font_size = 22
+			label.pixel_size = 0.0016
+			label.visibility_range_end = 14.0
+		"suburb":
+			label.font_size = 18
+			label.pixel_size = 0.0015
+			label.visibility_range_end = 8.0
+		"neighbourhood":
+			label.font_size = 16
+			label.pixel_size = 0.0014
+			label.visibility_range_end = 5.0
+		"hamlet":
+			label.font_size = 14
+			label.pixel_size = 0.0013
+			label.visibility_range_end = 4.0
+		_:
+			label.font_size = 18
+			label.visibility_range_end = 8.0
+
+	labels_root.add_child(label)
 
 func _make_ribbon(points: Array[Vector3], width_km: float) -> ArrayMesh:
 	if points.size() < 2:
