@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   android:
@@ -43,29 +44,30 @@ jobs:
         run: |
           rm -rf .godot
 
-      - name: Fetch Aleppo real-world vector data
+      - name: Recover verified Aleppo data snapshot
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           if ! command -v curl >/dev/null 2>&1; then
             apt-get update -qq
-            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq curl ca-certificates
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq curl ca-certificates unzip
           fi
-          mkdir -p source/world/data
-          cat > /tmp/aleppo.overpass <<'EOF'
-          [out:json][timeout:45];
-          (
-            way["highway"](36.190,37.145,36.212,37.180);
-            way["waterway"](36.190,37.145,36.212,37.180);
-            way["natural"="water"](36.190,37.145,36.212,37.180);
-            node["place"~"city|town|village|hamlet|suburb|neighbourhood"](36.190,37.145,36.212,37.180);
-            way["building"](36.195,37.150,36.207,37.172);
-          );
-          out geom 3500;
-          EOF
-          curl --fail --retry 1 --connect-timeout 12 --max-time 60             --data-urlencode "data@/tmp/aleppo.overpass"             https://overpass-api.de/api/interpreter             -o source/world/data/aleppo_osm.json           || curl --fail --retry 1 --connect-timeout 12 --max-time 60             --data-urlencode "data@/tmp/aleppo.overpass"             https://overpass.kumi.systems/api/interpreter             -o source/world/data/aleppo_osm.json
+          mkdir -p source/world/data /tmp/aleppo-artifact
+          curl --fail --location --retry 2 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/10837687351/zip" \
+            -o /tmp/aleppo-build21.zip
+          unzip -q /tmp/aleppo-build21.zip -d /tmp/aleppo-artifact
+          test -s /tmp/aleppo-artifact/DAM.apk
+          unzip -p /tmp/aleppo-artifact/DAM.apk \
+            assets/source/world/data/aleppo_osm.json \
+            > source/world/data/aleppo_osm.json
           test -s source/world/data/aleppo_osm.json
-          test "$(wc -c < source/world/data/aleppo_osm.json)" -gt 5000
-          echo "Aleppo OSM bytes: $(wc -c < source/world/data/aleppo_osm.json)"
+          test "$(wc -c < source/world/data/aleppo_osm.json)" -gt 1000000
+          echo "Recovered Aleppo OSM bytes: $(wc -c < source/world/data/aleppo_osm.json)"
 
       - name: Import project
         shell: bash
