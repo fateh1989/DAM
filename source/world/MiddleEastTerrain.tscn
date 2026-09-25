@@ -150,12 +150,12 @@ text = "CLEAR"
 
 
 [node name="PreviousUnitButton" type="Button" parent="HUD/CommandBar/Row"]
-custom_minimum_size = Vector2(54, 46)
+custom_minimum_size = Vector2(78, 56)
 layout_mode = 2
 text = "< UNIT"
 
 [node name="NextUnitButton" type="Button" parent="HUD/CommandBar/Row"]
-custom_minimum_size = Vector2(54, 46)
+custom_minimum_size = Vector2(78, 56)
 layout_mode = 2
 text = "UNIT >"
 
