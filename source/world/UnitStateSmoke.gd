@@ -71,7 +71,8 @@ func _run() -> void:
 	var first_start := Vector2(float(first_before["lon"]), float(first_before["lat"]))
 	var second_start := Vector2(float(second_before["lon"]), float(second_before["lat"]))
 
-	scene._selected_unit_indices = [0, 1]
+	var selected_indices: Array[int] = [0, 1]
+	scene._selected_unit_indices = selected_indices
 	scene._selected_unit_index = 1
 	scene._issue_group_move_order(scene._selected_unit_indices, Vector2(first_start.x + 0.08, first_start.y))
 	scene._process(1.0)
