@@ -53,6 +53,10 @@ func _run() -> void:
 	if scene.get_selected_unit_count() != 0:
 		_fail(13, "Strategic unit smoke: clear selection control failed")
 		return
+	scene.select_all_units()
+	if scene.get_selected_unit_count() != 14:
+		_fail(14, "Strategic unit smoke: select all control failed")
+		return
 	scene.select_units(selected_indices)
 	scene.issue_selected_group_move(Vector2(first_start.x + 0.08, first_start.y))
 	scene._process(1.0)

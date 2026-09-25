@@ -2140,6 +2140,14 @@ func select_units(indices: Array[int]) -> void:
 	_sync_unit_visuals()
 
 
+func select_all_units() -> void:
+	var indices: Array[int] = []
+	for i in range(_units.size()):
+		if bool(_units[i].get("alive", true)):
+			indices.append(i)
+	select_units(indices)
+
+
 func clear_selected_units() -> void:
 	_selected_unit_indices.clear()
 	_selected_unit_index = -1
