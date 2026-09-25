@@ -2503,6 +2503,13 @@ func _update_governorate_ui() -> void:
 	]
 
 
+func focus_governorate_from_clock(index: int) -> bool:
+	if index < 0 or index >= GOVERNORATES.size():
+		return false
+	_select_governorate(index)
+	return true
+
+
 func _select_governorate(index: int) -> void:
 	_governorate_index = posmod(index, GOVERNORATES.size())
 	var gov := _governorate()
