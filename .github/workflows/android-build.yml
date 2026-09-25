@@ -19,26 +19,66 @@ jobs:
   android:
     runs-on: ubuntu-latest
     container:
-      image: barichello/godot-ci:4.3
+      image: barichello/godot-ci:4.3@sha256:8d3a9fc683fcaa5b7d8b1c90fa94318402ebb00edeb5f6e2df4bac46665b98ff
     steps:
       - name: Checkout DAM
         uses: actions/checkout@v4
 
-      - name: Restore Godot Android environment
+      - name: Upgrade DAM engine to Godot 4.7.2
+        shell: bash
         run: |
-          mkdir -p /github/home/.local/share/godot/export_templates
-          cp -a /root/.local/share/godot/export_templates/4.3.stable /github/home/.local/share/godot/export_templates/
+          set -euo pipefail
+
+          # Keep the exact debug signing identity used by the existing DAM builds.
+          # Only the engine binary/templates are upgraded.
+          test -f /root/debug.keystore
           mkdir -p /github/home/.config/godot
-          cp /root/.config/godot/editor_settings-4.3.tres /github/home/.config/godot/editor_settings-4.3.tres
           cp /root/debug.keystore /github/home/debug.keystore
-          sed -i 's#/root/debug.keystore#/github/home/debug.keystore#g' /github/home/.config/godot/editor_settings-4.3.tres
+
+          # Install the official Godot 4.7.2 stable editor binary.
+          cd /tmp
+          wget -q --show-progress             https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip             -O godot-4.7.2.zip
+          unzip -q -o godot-4.7.2.zip
+          install -m 0755 Godot_v4.7.2-stable_linux.x86_64 /usr/local/bin/godot
+
+          # Install matching 4.7.2 export templates.
+          wget -q --show-progress             https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz             -O godot-4.7.2-templates.tpz
+          rm -rf /tmp/godot-templates
+          mkdir -p /tmp/godot-templates
+          unzip -q -o godot-4.7.2-templates.tpz -d /tmp/godot-templates
+          mkdir -p /github/home/.local/share/godot/export_templates/4.7.2.stable
+          cp -a /tmp/godot-templates/templates/.             /github/home/.local/share/godot/export_templates/4.7.2.stable/
+
+          # Godot 4.7 Android environment.
+          cat > /github/home/.config/godot/editor_settings-4.7.tres <<'EOF'
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/java_sdk_path = "/usr/lib/jvm/java-17-openjdk-amd64"
+          export/android/android_sdk_path = "/usr/lib/android-sdk"
+          export/android/debug_keystore = "/github/home/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          export/android/force_system_user = false
+          export/android/timestamping_authority_url = ""
+          export/android/shutdown_adb_on_exit = true
+          EOF
+
           mkdir -p build
           echo "HOME=$HOME"
+          godot --version
+          godot --version | grep -q '^4\.7\.2'
           java -version
+
+          # Godot 4.7 recommended Android SDK generation.
           test -d /usr/lib/android-sdk
-          yes | sdkmanager "platforms;android-34" "build-tools;34.0.0"
-          test -x /usr/lib/android-sdk/build-tools/34.0.0/apksigner
+          yes | sdkmanager             "platform-tools"             "platforms;android-35"             "build-tools;35.0.1"
+          test -x /usr/lib/android-sdk/build-tools/35.0.1/apksigner
           test -f /github/home/debug.keystore
+
+      - name: DAM Engine v2 smoke
+        run: |
+          godot --headless --path . --script source/EngineV2Smoke.gd
 
       - name: Clean generated Godot cache
         run: |

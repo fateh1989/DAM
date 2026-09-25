@@ -365,3 +365,10 @@ The geographic source remains real: DEM elevation, OpenStreetMap roads/buildings
 Individual procedural tree positions are visual fill inside a real mapped vegetation polygon and are not claimed to be survey-accurate tree coordinates. This distinction must remain explicit as the project adds higher-quality land-cover sources.
 
 The goal is the readability and visual composition of a classic isometric RTS without copying any proprietary Red Alert art assets, textures, maps, or models.
+
+
+## DAM Engine v2
+
+DAM now targets Godot 4.7.2 stable and the Mobile/Vulkan renderer for the Android build. The CI intentionally keeps the previously used pinned godot-ci 4.3 container only as the source of the existing debug signing identity, then replaces the engine binary and export templates with official Godot 4.7.2 files. This prevents an engine upgrade from silently changing the APK signing key.
+
+Engine-v2 migration is staged: first upgrade the engine/runtime/renderer and keep the existing Syria terrain pipeline working; after that is proven on-device, move the heavy simulation and world-processing hot paths toward a native C++ GDExtension core rather than mixing that migration into the renderer upgrade.
