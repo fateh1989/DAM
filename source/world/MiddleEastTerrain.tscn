@@ -161,7 +161,7 @@ text = "UNIT >"
 
 
 [node name="FocusUnitsButton" type="Button" parent="HUD/CommandBar/Row"]
-custom_minimum_size = Vector2(94, 46)
+custom_minimum_size = Vector2(108, 56)
 layout_mode = 2
 text = "FOCUS"
 

@@ -3323,6 +3323,19 @@ func _note_failure(kind: String) -> void:
 		_failed_dem += 1
 
 
+func _update_command_buttons_state() -> void:
+	var has_selection := not _selected_unit_indices.is_empty()
+	var clear_button := get_node_or_null("HUD/CommandBar/Row/ClearSelectionButton") as Button
+	var focus_button := get_node_or_null("HUD/CommandBar/Row/FocusUnitsButton") as Button
+	var stop_button := get_node_or_null("HUD/CommandBar/Row/StopUnitsButton") as Button
+	if clear_button != null:
+		clear_button.disabled = not has_selection
+	if focus_button != null:
+		focus_button.disabled = not has_selection
+	if stop_button != null:
+		stop_button.disabled = not has_selection
+
+
 func _update_status() -> void:
 	if _terrain_mode:
 		zoom_label.text = "RTS CAMERA • %dX" % _rts_zoom_level
@@ -3352,6 +3365,7 @@ func _update_status() -> void:
 
 	if not _selected_unit_indices.is_empty():
 		status_label.text += " • SELECTED %d" % _selected_unit_indices.size()
+	_update_command_buttons_state()
 
 
 func _on_battle_pressed() -> void:
