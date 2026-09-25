@@ -549,6 +549,16 @@ func _on_select_all_pressed() -> void:
 	select_units(indices)
 
 
+func are_selected_units_stopped() -> bool:
+	for index in _selected:
+		if index < 0 or index >= _units.size():
+			continue
+		var unit: Dictionary = _units[index]
+		if bool(unit.get("moving", false)) or int(unit.get("attack_target", -1)) >= 0:
+			return false
+	return true
+
+
 func _on_stop_pressed() -> void:
 	for index in _selected:
 		if index < 0 or index >= _units.size():

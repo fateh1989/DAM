@@ -156,6 +156,19 @@ func _run() -> void:
 		return
 
 	print("SMOKE checkpoint 8: radar moved")
+	battle._on_select_all_pressed()
+	if battle.get_selected_count() != 6:
+		_fail(29, "Strategic/tactical smoke: SELECT ALL did not select every friendly unit")
+		return
+	battle.issue_group_move(Vector3(260.0, 0.0, 180.0))
+	if battle.are_selected_units_stopped():
+		_fail(30, "Strategic/tactical smoke: group move did not arm movement before STOP")
+		return
+	battle._on_stop_pressed()
+	if not battle.are_selected_units_stopped():
+		_fail(31, "Strategic/tactical smoke: STOP did not clear movement and attack orders")
+		return
+
 	game_state.call("finish_battle", {"result": "test"})
 	var active_battle: Dictionary = game_state.get("active_battle")
 	if not active_battle.is_empty():
