@@ -109,6 +109,12 @@ jobs:
           godot --headless --path . --script source/battle/StrategicTacticalSmoke.gd --check-only
           godot --headless --path . --script source/economy/EconomySmoke.gd --check-only
 
+      - name: Strategic unit control preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 30s godot --headless --path . --script source/world/UnitStateSmoke.gd
+
       - name: Build DAM native C++ core
         shell: bash
         run: |
@@ -218,12 +224,6 @@ jobs:
 
       - name: Aleppo terrain runtime smoke
         run: godot --headless --path . --script source/world/AleppoSmoke.gd
-
-      - name: Persistent units and RTS/map view smoke
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 60s godot --headless --path . --script source/world/UnitStateSmoke.gd
 
       - name: Export APK
         shell: bash
