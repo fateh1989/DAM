@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode blend_mix, depth_draw_opaque, cull_back;
+render_mode blend_mix, depth_draw_opaque, cull_disabled;
 
 uniform sampler2D global_macro_tex : source_color, filter_linear_mipmap;
 uniform vec3 grass_color : source_color = vec3(0.20, 0.38, 0.12);
