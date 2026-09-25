@@ -63,3 +63,21 @@ func _draw() -> void:
 	draw_circle(center, CLOCK_RADIUS + 4.0, Color(0.25, 0.18, 0.08, 1.0))
 	draw_circle(center, CLOCK_RADIUS + 1.5, Color(0.67, 0.50, 0.22, 1.0))
 	draw_circle(center, CLOCK_RADIUS - 2.0, Color(0.91, 0.87, 0.73, 1.0))
+	_draw_station_ticks(center)
+	_draw_status_hands(center)
+
+
+func _draw_station_ticks(center: Vector2) -> void:
+	for tick in range(12):
+		var angle := -PI * 0.5 + TAU * float(tick) / 12.0
+		var outer := center + Vector2(cos(angle), sin(angle)) * (CLOCK_RADIUS - 4.0)
+		var inner := center + Vector2(cos(angle), sin(angle)) * (CLOCK_RADIUS - (8.5 if tick % 3 == 0 else 6.5))
+		draw_line(inner, outer, Color(0.16, 0.13, 0.08, 0.92), 1.6 if tick % 3 == 0 else 1.0)
+
+
+func _draw_status_hands(center: Vector2) -> void:
+	var strength_angle := -PI * 0.75 + clampf(strength, 0.0, 1.0) * PI * 1.5
+	var readiness_angle := -PI * 0.75 + clampf(readiness, 0.0, 1.0) * PI * 1.5
+	draw_line(center, center + Vector2(cos(strength_angle), sin(strength_angle)) * 20.0, Color(0.16, 0.12, 0.08, 1.0), 2.2)
+	draw_line(center, center + Vector2(cos(readiness_angle), sin(readiness_angle)) * 16.0, Color(0.48, 0.10, 0.07, 1.0), 1.7)
+	draw_circle(center, 2.5, Color(0.20, 0.15, 0.08, 1.0))
