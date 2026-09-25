@@ -39,6 +39,16 @@ func _point_to_uv(point: Vector2) -> Vector2:
 	)
 
 
+func get_blip_style(item: Dictionary) -> Dictionary:
+	var selected := bool(item.get("selected", false))
+	var primary := bool(item.get("primary", false))
+	return {
+		"radius": 6.5 if primary else (5.0 if selected else 3.5),
+		"ring_radius": 9.0 if primary else 7.5,
+		"ring_width": 2.2 if primary else 1.5,
+	}
+
+
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.025, 0.045, 0.045, 0.92), true)
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.58, 0.72, 0.57, 0.95), false, 2.0)
@@ -59,9 +69,18 @@ func _draw() -> void:
 		var point := _uv_to_point(item.get("uv", Vector2.ZERO))
 		var color: Color = item.get("color", Color.WHITE)
 		var selected := bool(item.get("selected", false))
-		draw_circle(point, 5.0 if selected else 3.5, color)
+		var style := get_blip_style(item)
+		draw_circle(point, float(style.get("radius", 3.5)), color)
 		if selected:
-			draw_arc(point, 7.5, 0.0, TAU, 18, Color(1.0, 0.92, 0.20, 1.0), 1.5)
+			draw_arc(
+				point,
+				float(style.get("ring_radius", 7.5)),
+				0.0,
+				TAU,
+				18,
+				Color(1.0, 0.92, 0.20, 1.0),
+				float(style.get("ring_width", 1.5))
+			)
 
 	if _world.has_method("get_radar_camera_uv"):
 		var center := _uv_to_point(_world.get_radar_camera_uv())
