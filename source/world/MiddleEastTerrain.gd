@@ -2349,6 +2349,16 @@ func issue_selected_group_move_uv(uv: Vector2) -> bool:
 	return _issue_group_move_order(_selected_unit_indices, destination)
 
 
+func get_selected_move_targets() -> Array[Vector2]:
+	var targets: Array[Vector2] = []
+	for index in _selected_unit_indices:
+		if index < 0 or index >= _units.size():
+			continue
+		var unit: Dictionary = _units[index]
+		targets.append(Vector2(float(unit.get("target_lon", unit["lon"])), float(unit.get("target_lat", unit["lat"]))))
+	return targets
+
+
 func stop_selected_units() -> void:
 	for index in _selected_unit_indices:
 		if index < 0 or index >= _units.size():
