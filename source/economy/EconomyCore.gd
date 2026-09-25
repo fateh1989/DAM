@@ -115,6 +115,23 @@ func _advance_recovery(node_id: String, hours: float) -> void:
 	nodes[node_id] = node
 
 
+func _auto_sell_livestock(node_id: String, hours: float) -> float:
+	var node: Dictionary = nodes[node_id]
+	if str(node.get("kind", "")) != "sheep":
+		return 0.0
+	var head_count := maxf(0.0, float(node.get("head_count", 0.0)))
+	var sale_rate := clampf(float(node.get("market_sale_rate", 0.0)), 0.0, 1.0)
+	var sale_count := minf(head_count, head_count * sale_rate * hours / 24.0 * get_node_throughput(node_id))
+	if sale_count <= 0.0:
+		return 0.0
+	var unit_value := float((RESOURCE_CATALOG["sheep"] as Dictionary).get("unit_value", 0.0))
+	var income := sale_count * unit_value
+	node["head_count"] = head_count - sale_count
+	node["revenue_total"] = float(node.get("revenue_total", 0.0)) + income
+	nodes[node_id] = node
+	return income
+
+
 func tick(hours: float) -> Dictionary:
 	hours = maxf(0.0, hours)
 	if hours <= 0.0:
@@ -134,9 +151,10 @@ func tick(hours: float) -> Dictionary:
 		var production := float(catalog.get("base_output", 0.0)) * get_node_throughput(str(node_id)) * hours
 		node["stored_output"] = float(node.get("stored_output", 0.0)) + production
 		nodes[node_id] = node
-			produced_total += production
+		produced_total += production
 	var income_total := 0.0
 	for node_id in nodes.keys():
+		income_total += _auto_sell_livestock(str(node_id), hours)
 		income_total += _auto_sell_node(str(node_id))
 	treasury_income += income_total
 	elapsed_hours += hours
@@ -182,5 +200,16 @@ func configure_livestock(node_id: String, head_count: float, daily_growth_rate: 
 		return false
 	node["head_count"] = maxf(0.0, head_count)
 	node["growth_rate"] = maxf(0.0, daily_growth_rate)
+	nodes[node_id] = node
+	return true
+
+
+func configure_livestock_market(node_id: String, daily_sale_rate: float) -> bool:
+	if not nodes.has(node_id):
+		return false
+	var node: Dictionary = nodes[node_id]
+	if str(node.get("kind", "")) != "sheep":
+		return false
+	node["market_sale_rate"] = clampf(daily_sale_rate, 0.0, 1.0)
 	nodes[node_id] = node
 	return true
