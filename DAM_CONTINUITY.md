@@ -407,3 +407,22 @@ RTS Terrain + Cliffs + Roads + Vegetation + Lighting
 - AleppoSmoke يتحقق الآن أن Shader الأرض التكتيكية مفعّل فعلاً.
 
 المرجع البصري المستهدف: أرض RTS غنية ومتصلة، عشب/تراب/صخور/طرق مدمجة، مع DEM كهيكل تحت الأرض وليس كمربعات مرئية.
+
+
+## New DAM direction — Syria RTS, no real terrain requirement
+
+User explicitly reduced the geographic requirement:
+- Keep Syria strategic geography and governorate/city anchors accurate.
+- Real DEM/topography is NOT required.
+- Local roads, hills, forests, villages and battlefield terrain may be fully art-directed for gameplay and visual quality.
+- Visual terrain should be substantially prettier than classic Red Alert-era terrain.
+- Armies/vehicles should later use a more realistic visual language.
+
+First implementation of this direction:
+- Tactical mode no longer downloads Terrarium DEM.
+- Tactical terrain height is deterministic fictional rolling terrain, seamless across local tiles.
+- Tactical shader no longer samples the real Syria macro texture.
+- OSM local roads/buildings/landcover are no longer required for battlefield rendering.
+- Added designed dirt roads, road shoulders, creek, compact settlement and vegetation clusters.
+- Governorate/city anchors were refreshed from GeoNames coordinates where available; Rif Dimashq uses Douma as the displayed anchor.
+- HUD now calls the mode RTS TERRAIN rather than REAL TERRAIN.

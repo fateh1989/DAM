@@ -1,12 +1,10 @@
 extends Node3D
 
 # DAM world prototype:
-# MAP = strategic cartographic view.
-# TERRAIN = playable Red-Alert-like isometric battlefield generated from
-# real DEM + real OpenStreetMap vectors (roads, buildings, water, place names).
-#
-# Important: geographic data stays real. Only the visual vertical scale is
-# exaggerated so terrain is readable in an RTS camera.
+# MAP = Syria strategic geography with accurate governorate/city anchors.
+# TERRAIN = an art-directed RTS battlefield. Real DEM/OSM terrain is no longer
+# a requirement. Terrain, roads, vegetation and local settlements are designed
+# for gameplay and visual quality; only strategic locations/distances stay real.
 
 const MIN_MAP_ZOOM := 4
 const MAX_MAP_ZOOM := 10
@@ -23,7 +21,10 @@ const STRATEGIC_VARIATION_PATH := "res://source/world/generated/syria_macro_vari
 const STRATEGIC_HEIGHT_PATH := "res://source/world/generated/syria_macro_height.png"
 const STRATEGIC_SHADER_PATH := "res://source/world/shaders/StrategicMacro.gdshader"
 const TACTICAL_SHADER_PATH := "res://source/world/shaders/TacticalGround.gdshader"
-const TACTICAL_RELIEF_EXAGGERATION := 1.45
+const TACTICAL_RELIEF_EXAGGERATION := 1.0
+const ART_ROAD_WIDTH_KM := 0.090
+const ART_ROAD_SHOULDER_KM := 0.145
+const ART_CREEK_WIDTH_KM := 0.060
 
 const TERRAIN_ZOOM := 13
 const TERRAIN_TILE_RADIUS := 1
@@ -34,20 +35,20 @@ const MAX_PARALLEL_REQUESTS := 5
 const MAP_TILE_URL := "https://tile.openstreetmap.org/%d/%d/%d.png"
 const DEM_TILE_URL := "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/%d/%d/%d.png"
 const GOVERNORATES := [
-	{"slug":"damascus","name_ar":"دمشق","name_en":"Damascus","lat":33.5138,"lon":36.2765},
-	{"slug":"rif_dimashq","name_ar":"ريف دمشق","name_en":"Rif Dimashq","lat":33.5723,"lon":36.4027},
+	{"slug":"damascus","name_ar":"دمشق","name_en":"Damascus","lat":33.51019814679501,"lon":36.29127502441406},
+	{"slug":"rif_dimashq","name_ar":"ريف دمشق / دوما","name_en":"Rif Dimashq / Douma","lat":33.571747,"lon":36.402701},
 	{"slug":"aleppo","name_ar":"حلب","name_en":"Aleppo","lat":36.201241,"lon":37.161173},
-	{"slug":"homs","name_ar":"حمص","name_en":"Homs","lat":34.7324,"lon":36.7137},
-	{"slug":"hama","name_ar":"حماة","name_en":"Hama","lat":35.1318,"lon":36.7578},
-	{"slug":"latakia","name_ar":"اللاذقية","name_en":"Latakia","lat":35.5317,"lon":35.7901},
-	{"slug":"tartus","name_ar":"طرطوس","name_en":"Tartus","lat":34.8959,"lon":35.8867},
-	{"slug":"idlib","name_ar":"إدلب","name_en":"Idlib","lat":35.9306,"lon":36.6339},
-	{"slug":"raqqa","name_ar":"الرقة","name_en":"Raqqa","lat":35.9594,"lon":39.0079},
-	{"slug":"deir_ez_zor","name_ar":"دير الزور","name_en":"Deir ez-Zor","lat":35.3359,"lon":40.1408},
-	{"slug":"hasakah","name_ar":"الحسكة","name_en":"Al-Hasakah","lat":36.5024,"lon":40.7477},
-	{"slug":"daraa","name_ar":"درعا","name_en":"Daraa","lat":32.6189,"lon":36.1021},
-	{"slug":"suwayda","name_ar":"السويداء","name_en":"As-Suwayda","lat":32.7089,"lon":36.5695},
-	{"slug":"quneitra","name_ar":"القنيطرة","name_en":"Quneitra","lat":33.1259,"lon":35.8246},
+	{"slug":"homs","name_ar":"حمص","name_en":"Homs","lat":34.72405042,"lon":36.72558878},
+	{"slug":"hama","name_ar":"حماة","name_en":"Hama","lat":35.13179,"lon":36.757834},
+	{"slug":"latakia","name_ar":"اللاذقية","name_en":"Latakia","lat":35.53124956,"lon":35.79088351},
+	{"slug":"tartus","name_ar":"طرطوس","name_en":"Tartus","lat":34.889022,"lon":35.886586},
+	{"slug":"idlib","name_ar":"إدلب","name_en":"Idlib","lat":35.930616,"lon":36.63393},
+	{"slug":"raqqa","name_ar":"الرقة","name_en":"Raqqa","lat":35.952829,"lon":39.007879},
+	{"slug":"deir_ez_zor","name_ar":"دير الزور","name_en":"Deir ez-Zor","lat":35.335876,"lon":40.140844},
+	{"slug":"hasakah","name_ar":"الحسكة","name_en":"Al-Hasakah","lat":36.502368,"lon":40.747716},
+	{"slug":"daraa","name_ar":"درعا","name_en":"Daraa","lat":32.618889,"lon":36.102134},
+	{"slug":"suwayda","name_ar":"السويداء","name_en":"As-Suwayda","lat":32.708958,"lon":36.569513},
+	{"slug":"quneitra","name_ar":"القنيطرة","name_en":"Quneitra","lat":33.125945,"lon":35.824613},
 ]
 const DEFAULT_GOVERNORATE_INDEX := 2
 
@@ -346,23 +347,19 @@ func _begin_tile(z: int, x: int, y: int, key: String) -> void:
 		"cell_levels": PackedInt32Array(),
 	}
 
-	# Always draw a placeholder immediately so terrain mode is never blank.
+	# Draw immediately. Tactical terrain is generated locally and requires no
+	# DEM or OSM network request. Map mode may still use cartographic tiles.
 	_rebuild_tile(key)
 
 	if _terrain_mode:
-		var dem_cache := _dem_cache_path(z, x, y)
-		if FileAccess.file_exists(dem_cache):
-			var bytes := _read_bytes(dem_cache)
-			if not bytes.is_empty() and _apply_dem_bytes(key, bytes):
-				return
-		_queue_request("dem", z, x, y, key, dem_cache)
-	else:
-		var map_cache := _map_cache_path(z, x, y)
-		if _cache_is_fresh(map_cache, MAP_CACHE_MAX_AGE_SEC):
-			var map_bytes := _read_bytes(map_cache)
-			if not map_bytes.is_empty() and _apply_map_bytes(key, map_bytes):
-				return
-		_queue_request("map", z, x, y, key, map_cache)
+		return
+
+	var map_cache := _map_cache_path(z, x, y)
+	if _cache_is_fresh(map_cache, MAP_CACHE_MAX_AGE_SEC):
+		var map_bytes := _read_bytes(map_cache)
+		if not map_bytes.is_empty() and _apply_map_bytes(key, map_bytes):
+			return
+	_queue_request("map", z, x, y, key, map_cache)
 
 
 func _queue_request(kind: String, z: int, x: int, y: int, key: String, cache_path: String) -> void:
@@ -485,6 +482,30 @@ func _global_terrain_uv(lon: float, lat: float) -> Vector2:
 	)
 
 
+func _designed_height_m(lon: float, lat: float) -> float:
+	# Gameplay terrain, intentionally NOT real topography.
+	# Geographic coordinates only keep the field deterministic and seamless.
+	var x := lon * 18.0
+	var y := lat * 18.0
+	var broad := sin(x * 0.53 + y * 0.27) * 18.0
+	broad += sin(x * 0.21 - y * 0.46 + 1.7) * 13.0
+	var medium := sin(x * 1.23 + y * 0.91 + 0.8) * 7.0
+	medium += sin(x * 1.77 - y * 1.31) * 5.0
+	var basin := sin((x + y) * 0.10) * 8.0
+	return maxf(2.0, 30.0 + broad + medium + basin)
+
+
+func _designed_height_local(x_km: float, z_km: float) -> float:
+	var lat := _origin_lat - rad_to_deg(z_km / EARTH_RADIUS_KM)
+	var lon_radius := EARTH_RADIUS_KM * maxf(0.15, cos(deg_to_rad(_origin_lat)))
+	var lon := _origin_lon + rad_to_deg(x_km / lon_radius)
+	return _designed_height_m(lon, lat) / 1000.0
+
+
+func _art_point(x_km: float, z_km: float, y_offset: float = 0.0) -> Vector3:
+	return Vector3(x_km, _designed_height_local(x_km, z_km) + y_offset, z_km)
+
+
 func _cell_vertex_height(
 	z: int,
 	x: int,
@@ -540,14 +561,12 @@ func _get_tactical_ground_material() -> ShaderMaterial:
 		return _tactical_ground_material
 
 	var shader := load(TACTICAL_SHADER_PATH) as Shader
-	var macro_texture := load(STRATEGIC_MACRO_PATH) as Texture2D
-	if shader == null or macro_texture == null:
-		push_error("DAM Tactical: ground shader or macro texture is missing")
+	if shader == null:
+		push_error("DAM Tactical: art-directed ground shader is missing")
 		return null
 
 	_tactical_ground_material = ShaderMaterial.new()
 	_tactical_ground_material.shader = shader
-	_tactical_ground_material.set_shader_parameter("global_macro_tex", macro_texture)
 	return _tactical_ground_material
 
 
@@ -577,9 +596,8 @@ func _rebuild_tile(key: String) -> void:
 		var v := float(gy) / float(CELL_GRID)
 		for gx in range(CELL_GRID + 1):
 			var u := float(gx) / float(CELL_GRID)
-			var elevation_m := 0.0
-			if dem_image != null:
-				elevation_m = _sample_dem(dem_image, u, v)
+			var geo := _tile_fraction_to_lon_lat(z, x, y, u, v)
+			var elevation_m := _designed_height_m(geo.x, geo.y)
 			var sample_index := gy * (CELL_GRID + 1) + gx
 			raw_heights[sample_index] = elevation_m
 			levels[sample_index] = int(round(elevation_m / CELL_HEIGHT_STEP_M))
@@ -994,49 +1012,138 @@ func _terrain_color(elevation_m: float) -> Color:
 	return Color(0.54, 0.53, 0.50, 1.0)
 
 
+func _append_art_box(
+	st: SurfaceTool,
+	center: Vector3,
+	size_x: float,
+	size_z: float,
+	height: float
+) -> void:
+	var x0 := center.x - size_x * 0.5
+	var x1 := center.x + size_x * 0.5
+	var z0 := center.z - size_z * 0.5
+	var z1 := center.z + size_z * 0.5
+	var y0 := center.y
+	var y1 := center.y + height
+	var b0 := Vector3(x0, y0, z0)
+	var b1 := Vector3(x1, y0, z0)
+	var b2 := Vector3(x1, y0, z1)
+	var b3 := Vector3(x0, y0, z1)
+	var t0 := Vector3(x0, y1, z0)
+	var t1 := Vector3(x1, y1, z0)
+	var t2 := Vector3(x1, y1, z1)
+	var t3 := Vector3(x0, y1, z1)
+
+	# Four walls + flat roof.
+	st.add_vertex(b0); st.add_vertex(b1); st.add_vertex(t0)
+	st.add_vertex(t0); st.add_vertex(b1); st.add_vertex(t1)
+	st.add_vertex(b1); st.add_vertex(b2); st.add_vertex(t1)
+	st.add_vertex(t1); st.add_vertex(b2); st.add_vertex(t2)
+	st.add_vertex(b2); st.add_vertex(b3); st.add_vertex(t2)
+	st.add_vertex(t2); st.add_vertex(b3); st.add_vertex(t3)
+	st.add_vertex(b3); st.add_vertex(b0); st.add_vertex(t3)
+	st.add_vertex(t3); st.add_vertex(b0); st.add_vertex(t0)
+	st.add_vertex(t0); st.add_vertex(t1); st.add_vertex(t2)
+	st.add_vertex(t0); st.add_vertex(t2); st.add_vertex(t3)
+
+
+func _build_art_directed_battlefield() -> void:
+	_clear_vector_nodes()
+
+	var shoulders := SurfaceTool.new()
+	var roads := SurfaceTool.new()
+	var creek_bank := SurfaceTool.new()
+	var creek := SurfaceTool.new()
+	var buildings := SurfaceTool.new()
+	shoulders.begin(Mesh.PRIMITIVE_TRIANGLES)
+	roads.begin(Mesh.PRIMITIVE_TRIANGLES)
+	creek_bank.begin(Mesh.PRIMITIVE_TRIANGLES)
+	creek.begin(Mesh.PRIMITIVE_TRIANGLES)
+	buildings.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+	var main_road: Array[Vector3] = []
+	var cross_road: Array[Vector3] = []
+	var river: Array[Vector3] = []
+
+	for i in range(19):
+		var x := -6.3 + float(i) * 0.70
+		main_road.append(_art_point(x, sin(x * 0.55) * 0.90 - 0.35, 0.018))
+		var z := -5.5 + float(i) * 0.62
+		cross_road.append(_art_point(sin(z * 0.46 + 0.8) * 1.25 + 0.65, z, 0.020))
+		river.append(_art_point(x, 2.25 + sin(x * 0.38 + 1.2) * 0.55, 0.010))
+
+	_append_ribbon_geometry(shoulders, main_road, ART_ROAD_SHOULDER_KM, 0.0)
+	_append_ribbon_geometry(roads, main_road, ART_ROAD_WIDTH_KM, 0.004)
+	_append_ribbon_geometry(shoulders, cross_road, ART_ROAD_SHOULDER_KM * 0.82, 0.0)
+	_append_ribbon_geometry(roads, cross_road, ART_ROAD_WIDTH_KM * 0.72, 0.004)
+	_append_ribbon_geometry(creek_bank, river, ART_CREEK_WIDTH_KM * 2.2, 0.002)
+	_append_ribbon_geometry(creek, river, ART_CREEK_WIDTH_KM, 0.004)
+
+	# Compact Syrian-inspired settlement block around the road junction.
+	var building_count := 0
+	for rz in range(-3, 4):
+		for rx in range(-4, 5):
+			if (rx + rz) % 3 == 0:
+				continue
+			var x := float(rx) * 0.26 + 0.85
+			var z := float(rz) * 0.22 - 0.20
+			if abs(x) < 0.20 or abs(z) < 0.18:
+				continue
+			var base := _art_point(x, z, 0.012)
+			var sx := 0.11 + 0.025 * float(abs(rx) % 2)
+			var sz := 0.09 + 0.020 * float(abs(rz) % 2)
+			var h := 0.045 + 0.012 * float((abs(rx + rz) % 3))
+			_append_art_box(buildings, base, sx, sz, h)
+			building_count += 1
+
+	_commit_vector_batch(shoulders, "ArtRoadShoulders", Color(0.37, 0.28, 0.17, 1.0))
+	_commit_vector_batch(roads, "ArtDirtRoads", Color(0.70, 0.58, 0.38, 1.0))
+	_commit_vector_batch(creek_bank, "ArtCreekBank", Color(0.42, 0.34, 0.20, 1.0))
+	_commit_vector_batch(creek, "ArtCreek", Color(0.08, 0.34, 0.39, 1.0))
+	_commit_vector_batch(buildings, "ArtSettlement", Color(0.72, 0.62, 0.50, 1.0))
+
+	var grove: Array[Transform3D] = []
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 91001 + _governorate_index * 1009
+	for i in range(170):
+		var side := -1.0 if i % 2 == 0 else 1.0
+		var x := rng.randf_range(-5.8, 5.8)
+		var z := rng.randf_range(-4.7, 4.7)
+		if abs(z - (sin(x * 0.55) * 0.90 - 0.35)) < 0.45:
+			continue
+		if abs(z - 2.25) < 0.38:
+			continue
+		if abs(x - 0.85) < 1.55 and abs(z + 0.20) < 1.20:
+			continue
+		z += side * 0.20
+		var origin := _art_point(x, z, 0.008)
+		var s := rng.randf_range(0.82, 1.22)
+		var basis := Basis(Vector3.UP, rng.randf_range(0.0, TAU)).scaled(
+			Vector3(0.010 * s, 0.019 * s, 0.010 * s)
+		)
+		grove.append(Transform3D(basis, origin))
+
+	_commit_tree_multimesh(grove, "ArtTrees", Color(0.20, 0.38, 0.10, 1.0))
+
+	_road_feature_count = 2
+	_building_feature_count = building_count
+	_water_feature_count = 1
+	_landcover_feature_count = 1
+	_tree_instance_count = grove.size()
+	_feature_count = _road_feature_count + _building_feature_count + _water_feature_count + _landcover_feature_count
+	_add_fallback_governorate_label()
+
+
 func _refresh_vector_data(force: bool) -> void:
 	if not _terrain_mode or _vector_inflight:
 		return
-
-	# The bundled Aleppo sector already covers the current test battlefield.
-	# Do not parse/rebuild thousands of real-world features on every pan.
 	if _vector_loaded and not force:
 		return
 
 	_vector_inflight = true
 	_last_vector_center = Vector2(_center_lon, _center_lat)
-
-	if force:
-		_clear_vector_nodes()
-
-	_update_status()
-
-	var data_path := _governorate_data_path()
-	if not FileAccess.file_exists(data_path):
-		_vector_inflight = false
-		_vector_loaded = false
-		status_label.text = "%s DATA MISSING" % _governorate_name()
-		return
-
-	var file := FileAccess.open(data_path, FileAccess.READ)
-	if file == null:
-		_vector_inflight = false
-		_vector_loaded = false
-		status_label.text = "%s DATA ERROR" % _governorate_name()
-		return
-
-	var raw := file.get_as_text()
-	file.close()
-	var parsed = JSON.parse_string(raw)
-	raw = ""
-
-	if typeof(parsed) == TYPE_DICTIONARY:
-		_build_vector_world(parsed)
-		_vector_loaded = true
-		_add_fallback_governorate_label()
-	else:
-		_vector_loaded = false
-
+	_build_art_directed_battlefield()
+	_vector_loaded = true
 	_vector_inflight = false
 	_update_status()
 
@@ -1711,20 +1818,7 @@ func _solid_material(color: Color) -> StandardMaterial3D:
 func _height_at_geo(lon: float, lat: float) -> float:
 	if not _terrain_mode:
 		return 0.0
-
-	var tile := _lon_lat_to_tile(lon, lat, TERRAIN_ZOOM)
-	var key := _tile_key(TERRAIN_ZOOM, tile.x, tile.y)
-	if not _tiles.has(key):
-		return 0.0
-
-	var state: Dictionary = _tiles[key]
-	var image: Image = state.get("dem_image")
-	if image == null:
-		return 0.0
-
-	var uv := _lon_lat_to_tile_uv(lon, lat, TERRAIN_ZOOM, tile.x, tile.y)
-	var meters := _sample_dem(image, uv.x, uv.y)
-	return meters / 1000.0 * VERTICAL_EXAGGERATION
+	return _designed_height_m(lon, lat) / 1000.0
 
 
 func _sample_dem(image: Image, u: float, v: float) -> float:
@@ -1872,7 +1966,7 @@ func _note_failure(kind: String) -> void:
 
 func _update_status() -> void:
 	if _terrain_mode:
-		zoom_label.text = "REAL TERRAIN"
+		zoom_label.text = "RTS TERRAIN"
 	else:
 		if _map_zoom <= SYRIA_OVERVIEW_ZOOM:
 			zoom_label.text = "SYRIA • STRATEGIC"

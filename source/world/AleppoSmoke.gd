@@ -52,18 +52,23 @@ func _run() -> void:
 	print("Aleppo smoke draw_nodes=", vector_count, " features=", feature_count, " labels=", label_count, " cell_levels=", cell_level_count, " trees=", scene._tree_instance_count, " cliffs=", scene._cliff_face_count)
 
 	if cell_level_count < 100:
-		push_error("Aleppo smoke: cell engine did not compile terrain cells")
+		push_error("Aleppo smoke: designed terrain cell mesh was not generated")
 		quit(6)
 		return
 
-	if feature_count < 100:
-		push_error("Aleppo smoke: real vector features were not generated")
+	if feature_count < 20:
+		push_error("Aleppo smoke: art-directed battlefield features were not generated")
 		quit(4)
 		return
 
-	if vector_count > 8:
-		push_error("Aleppo smoke: vector features were not batched")
+	if vector_count < 5 or vector_count > 8:
+		push_error("Aleppo smoke: art-directed battlefield batches are missing")
 		quit(7)
+		return
+
+	if scene._tree_instance_count < 80:
+		push_error("Aleppo smoke: art-directed vegetation is missing")
+		quit(10)
 		return
 
 	if label_count < 1:

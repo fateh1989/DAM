@@ -1,11 +1,12 @@
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_disabled;
 
-uniform sampler2D global_macro_tex : source_color, filter_linear_mipmap;
-uniform vec3 grass_color : source_color = vec3(0.20, 0.38, 0.12);
-uniform vec3 dry_grass_color : source_color = vec3(0.60, 0.50, 0.27);
-uniform vec3 soil_color : source_color = vec3(0.36, 0.25, 0.16);
-uniform vec3 rock_color : source_color = vec3(0.35, 0.38, 0.40);
+uniform vec3 grass_deep : source_color = vec3(0.16, 0.31, 0.09);
+uniform vec3 grass_mid : source_color = vec3(0.29, 0.47, 0.16);
+uniform vec3 dry_grass : source_color = vec3(0.60, 0.51, 0.28);
+uniform vec3 warm_soil : source_color = vec3(0.39, 0.27, 0.16);
+uniform vec3 pale_soil : source_color = vec3(0.58, 0.45, 0.27);
+uniform vec3 rock : source_color = vec3(0.37, 0.36, 0.31);
 
 varying vec3 world_normal;
 
@@ -15,24 +16,23 @@ float hash21(vec2 p) {
 	return fract(p.x * p.y);
 }
 
-float value_noise(vec2 p) {
+float noise2(vec2 p) {
 	vec2 i = floor(p);
 	vec2 f = fract(p);
 	vec2 u = f * f * (3.0 - 2.0 * f);
-
 	float a = hash21(i);
 	float b = hash21(i + vec2(1.0, 0.0));
 	float c = hash21(i + vec2(0.0, 1.0));
 	float d = hash21(i + vec2(1.0, 1.0));
-
 	return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
 }
 
-float fbm2(vec2 p) {
-	float n = value_noise(p);
-	n += value_noise(p * 2.03 + vec2(11.7, 7.3)) * 0.50;
-	n += value_noise(p * 4.07 + vec2(4.1, 19.2)) * 0.25;
-	return n / 1.75;
+float fbm(vec2 p) {
+	float n = noise2(p) * 0.56;
+	n += noise2(p * 2.03 + vec2(13.2, 7.7)) * 0.27;
+	n += noise2(p * 4.11 + vec2(4.9, 21.1)) * 0.12;
+	n += noise2(p * 8.07 + vec2(31.4, 2.6)) * 0.05;
+	return n;
 }
 
 void vertex() {
@@ -40,28 +40,27 @@ void vertex() {
 }
 
 void fragment() {
-	// UV is geographic and continuous across every terrain tile.
-	vec3 macro_color = texture(global_macro_tex, UV).rgb;
+	// UV spans Syria, but only provides deterministic continuity. The visual
+	// terrain itself is deliberately fictional/art-directed.
+	float macro = fbm(UV * 650.0);
+	float broad = fbm(UV * 1850.0 + vec2(17.0, 8.0));
+	float detail = fbm(UV * 7200.0 + vec2(4.0, 29.0));
 
-	float broad = fbm2(UV * 92.0);
-	float detail = fbm2(UV * 390.0 + vec2(17.0, 9.0));
+	float green = smoothstep(0.36, 0.69, macro + broad * 0.28);
+	float dry = smoothstep(0.48, 0.78, broad);
+	float soil_patch = smoothstep(0.64, 0.88, detail + broad * 0.16);
 
-	float grass_mask = smoothstep(0.43, 0.67, broad);
-	float dirt_mask = smoothstep(0.69, 0.88, detail) * (1.0 - grass_mask * 0.55);
-
-	vec3 ground = mix(dry_grass_color, grass_color, grass_mask);
-	ground = mix(ground, soil_color, dirt_mask * 0.55);
-
-	// The country-scale macro image carries real broad landcover/geographic color
-	// without exposing pixels or tile boundaries at tactical distance.
-	ground = mix(ground, macro_color, 0.32);
+	vec3 ground = mix(dry_grass, grass_mid, green);
+	ground = mix(ground, grass_deep, smoothstep(0.62, 0.84, macro) * 0.55);
+	ground = mix(ground, pale_soil, dry * (1.0 - green) * 0.42);
+	ground = mix(ground, warm_soil, soil_patch * 0.46);
 
 	float slope = 1.0 - clamp(abs(world_normal.y), 0.0, 1.0);
-	float rock_mask = smoothstep(0.20, 0.52, slope);
-	ground = mix(ground, rock_color, rock_mask * 0.82);
+	float rock_mask = smoothstep(0.18, 0.48, slope);
+	ground = mix(ground, rock, rock_mask * 0.68);
 
-	float brightness = 0.90 + detail * 0.16;
-	ALBEDO = ground * brightness;
-	ROUGHNESS = 0.94;
-	SPECULAR = 0.18;
+	float micro = 0.92 + detail * 0.16;
+	ALBEDO = ground * micro;
+	ROUGHNESS = 0.96;
+	SPECULAR = 0.12;
 }
