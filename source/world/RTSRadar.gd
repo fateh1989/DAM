@@ -39,6 +39,26 @@ func _point_to_uv(point: Vector2) -> Vector2:
 	)
 
 
+func _uv_rect_to_rect(uv_rect: Rect2) -> Rect2:
+	var inner := _inner_rect()
+	return Rect2(
+		inner.position + Vector2(uv_rect.position.x * inner.size.x, uv_rect.position.y * inner.size.y),
+		Vector2(uv_rect.size.x * inner.size.x, uv_rect.size.y * inner.size.y)
+	)
+
+
+func get_camera_indicator_rect() -> Rect2:
+	if _world == null or not is_instance_valid(_world):
+		return Rect2()
+	if _world.has_method("get_radar_camera_rect_uv"):
+		var uv_rect: Rect2 = _world.call("get_radar_camera_rect_uv")
+		return _uv_rect_to_rect(uv_rect)
+	if _world.has_method("get_radar_camera_uv"):
+		var center := _uv_to_point(_world.call("get_radar_camera_uv"))
+		return Rect2(center - Vector2(21.0, 15.0), Vector2(42.0, 30.0))
+	return Rect2()
+
+
 func get_blip_style(item: Dictionary) -> Dictionary:
 	var selected := bool(item.get("selected", false))
 	var primary := bool(item.get("primary", false))
@@ -82,13 +102,9 @@ func _draw() -> void:
 				float(style.get("ring_width", 1.5))
 			)
 
-	if _world.has_method("get_radar_camera_uv"):
-		var center := _uv_to_point(_world.get_radar_camera_uv())
-		var zoom_level := 1
-		if _world.has_method("get_rts_zoom_level"):
-			zoom_level = int(_world.get_rts_zoom_level())
-		var indicator_size := Vector2(42.0, 30.0) if zoom_level <= 1 else Vector2(22.0, 16.0)
-		draw_rect(Rect2(center - indicator_size * 0.5, indicator_size), Color(0.95, 0.95, 0.80, 0.95), false, 2.0)
+	var indicator := get_camera_indicator_rect()
+	if indicator.size.x > 0.0 and indicator.size.y > 0.0:
+		draw_rect(indicator, Color(0.95, 0.95, 0.80, 0.95), false, 2.0)
 
 
 func apply_action_uv(uv: Vector2) -> void:

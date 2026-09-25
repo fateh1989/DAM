@@ -20,8 +20,11 @@ func run(scene: Node) -> String:
 		return "radar camera viewport has zero size"
 	if camera_rect.position.x < 0.0 or camera_rect.position.y < 0.0 or camera_rect.end.x > 1.0001 or camera_rect.end.y > 1.0001:
 		return "radar camera viewport escaped normalized bounds"
-	var center: Vector2 = scene.call("get_radar_camera_uv")
-	if not camera_rect.has_point(center):
-		return "radar camera viewport does not contain camera center"
+	var indicator: Rect2 = radar.call("get_camera_indicator_rect")
+	if indicator.size.x <= 0.0 or indicator.size.y <= 0.0:
+		return "radar camera indicator was not generated"
+	var inner: Rect2 = radar.call("_inner_rect")
+	if indicator.position.x < inner.position.x - 0.1 or indicator.position.y < inner.position.y - 0.1 or indicator.end.x > inner.end.x + 0.1 or indicator.end.y > inner.end.y + 0.1:
+		return "radar camera indicator escaped radar bounds"
 	scene.call("clear_selected_units")
 	return ""
