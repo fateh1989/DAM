@@ -90,7 +90,8 @@ func _run() -> void:
 		return
 
 	print("SMOKE checkpoint 6: camera/radar basic checks")
-	battle.select_units([0, 1])
+	var selected_indices: Array[int] = [0, 1]
+	battle.select_units(selected_indices)
 	if battle.get_selected_count() != 2:
 		_fail(13, "Strategic/tactical smoke: multi-select failed")
 		return
