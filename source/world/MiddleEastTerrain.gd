@@ -167,7 +167,6 @@ func _ready() -> void:
 	_position_camera()
 	_refresh_tiles()
 	_sync_unit_visuals()
-	_refresh_geo_overlay(false)
 	_refresh_geo_overlay(true)
 	_update_status()
 
@@ -284,6 +283,7 @@ func _pan_from_screen_delta(delta: Vector2) -> void:
 	_position_camera()
 	_refresh_tiles()
 	_sync_unit_visuals()
+	_refresh_geo_overlay(false)
 
 func _set_map_zoom(new_zoom: int, center_syria_at_overview: bool = false) -> void:
 	new_zoom = clampi(new_zoom, MIN_MAP_ZOOM, MAX_MAP_ZOOM)
@@ -1282,7 +1282,7 @@ func _load_geo_overlay_data() -> void:
 func _update_geo_overlay_button() -> void:
 	if geo_overlay_button == null:
 		return
-	geo_overlay_button.text = "الحدود والأسماء: تشغيل" if _geo_overlay_enabled else "الحدود والأسماء: إخفاء"
+	geo_overlay_button.text = "الحدود والأسماء: ظاهرة" if _geo_overlay_enabled else "الحدود والأسماء: مخفية"
 
 
 func _on_geo_overlay_pressed() -> void:
