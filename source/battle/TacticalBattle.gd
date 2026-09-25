@@ -273,6 +273,14 @@ func get_alive_enemy_count() -> int:
 	return count
 
 
+func get_alive_friendly_count() -> int:
+	var count := 0
+	for unit in _units:
+		if bool(unit.get("alive", true)):
+			count += 1
+	return count
+
+
 func get_selected_count() -> int:
 	return _selected.size()
 
@@ -349,8 +357,29 @@ func _toggle_selection(index: int) -> void:
 func select_units(indices: Array[int]) -> void:
 	_selected.clear()
 	for index in indices:
-		if index >= 0 and index < _units.size():
+		if index < 0 or index >= _units.size():
+			continue
+		if not bool(_units[index].get("alive", true)):
+			continue
+		if index not in _selected:
 			_selected.append(index)
+	_refresh_selection_visuals()
+
+
+func clear_selection() -> void:
+	_selected.clear()
+	_refresh_selection_visuals()
+
+
+func select_all_units() -> void:
+	var indices: Array[int] = []
+	for i in range(_units.size()):
+		if bool(_units[i].get("alive", true)):
+			indices.append(i)
+	select_units(indices)
+
+
+func _refresh_selection_visuals() -> void:
 	for i in range(_units.size()):
 		var ring := (_units[i]["node"] as Node3D).get_node_or_null("Selection")
 		if ring != null:
@@ -416,7 +445,11 @@ func issue_attack_order(enemy_index: int) -> void:
 	if not bool(_enemies[enemy_index].get("alive", false)):
 		return
 	for index in _selected:
+		if index < 0 or index >= _units.size():
+			continue
 		var unit: Dictionary = _units[index]
+		if not bool(unit.get("alive", true)):
+			continue
 		unit["attack_target"] = enemy_index
 		unit["moving"] = false
 		_units[index] = unit
@@ -427,9 +460,15 @@ func issue_group_move(center: Vector3) -> void:
 
 
 func _issue_group_move(center: Vector3) -> void:
+	var movable: Array[int] = []
+	for index in _selected:
+		if index >= 0 and index < _units.size() and bool(_units[index].get("alive", true)):
+			movable.append(index)
+	if movable.is_empty():
+		return
 	var spacing := 95.0
-	var columns := maxi(1, int(ceil(sqrt(float(_selected.size())))))
-	for order_index in range(_selected.size()):
+	var columns := maxi(1, int(ceil(sqrt(float(movable.size())))))
+	for order_index in range(movable.size()):
 		var row := int(order_index / columns)
 		var column := order_index % columns
 		var offset := Vector3(
@@ -440,7 +479,7 @@ func _issue_group_move(center: Vector3) -> void:
 		var target := center + offset
 		target.x = clampf(target.x, -BATTLEFIELD_SIZE * 0.48, BATTLEFIELD_SIZE * 0.48)
 		target.z = clampf(target.z, -BATTLEFIELD_SIZE * 0.48, BATTLEFIELD_SIZE * 0.48)
-		var index := _selected[order_index]
+		var index := movable[order_index]
 		var unit: Dictionary = _units[index]
 		unit["target"] = target
 		unit["moving"] = true
@@ -542,11 +581,7 @@ func _on_zoom_pressed() -> void:
 
 
 func _on_select_all_pressed() -> void:
-	var indices: Array[int] = []
-	for i in range(_units.size()):
-		if bool(_units[i].get("alive", true)):
-			indices.append(i)
-	select_units(indices)
+	select_all_units()
 
 
 func are_selected_units_stopped() -> bool:
@@ -559,7 +594,7 @@ func are_selected_units_stopped() -> bool:
 	return true
 
 
-func _on_stop_pressed() -> void:
+func stop_selected_units() -> void:
 	for index in _selected:
 		if index < 0 or index >= _units.size():
 			continue
@@ -570,12 +605,16 @@ func _on_stop_pressed() -> void:
 		_units[index] = unit
 
 
+func _on_stop_pressed() -> void:
+	stop_selected_units()
+
+
 func _on_back_pressed() -> void:
 	var game_state := _game_state_node()
 	if game_state != null:
 		game_state.call("finish_battle", {
 			"result": "retreat" if get_alive_enemy_count() > 0 else "victory",
-			"friendly_survivors": _units.size(),
+			"friendly_survivors": get_alive_friendly_count(),
 			"enemy_survivors": get_alive_enemy_count(),
 		})
 	get_tree().change_scene_to_file("res://source/world/MiddleEastTerrain.tscn")
