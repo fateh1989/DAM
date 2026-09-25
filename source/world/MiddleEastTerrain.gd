@@ -2144,6 +2144,10 @@ func get_selected_unit_indices() -> Array[int]:
 	return _selected_unit_indices.duplicate()
 
 
+func get_selected_unit_count() -> int:
+	return _selected_unit_indices.size()
+
+
 func issue_selected_group_move(destination: Vector2) -> void:
 	_issue_group_move_order(_selected_unit_indices, destination)
 
