@@ -138,13 +138,13 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="SelectAllUnitsButton" type="Button" parent="HUD/CommandBar/Row"]
-custom_minimum_size = Vector2(112, 46)
+custom_minimum_size = Vector2(124, 56)
 layout_mode = 2
 text = "SELECT ALL"
 
 
 [node name="ClearSelectionButton" type="Button" parent="HUD/CommandBar/Row"]
-custom_minimum_size = Vector2(96, 46)
+custom_minimum_size = Vector2(104, 56)
 layout_mode = 2
 text = "CLEAR"
 
@@ -167,7 +167,7 @@ text = "FOCUS"
 
 
 [node name="StopUnitsButton" type="Button" parent="HUD/CommandBar/Row"]
-custom_minimum_size = Vector2(84, 46)
+custom_minimum_size = Vector2(94, 56)
 layout_mode = 2
 text = "STOP"
 

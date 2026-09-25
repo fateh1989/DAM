@@ -49,6 +49,16 @@ func _run() -> void:
 		_fail(57, "Movement core smoke: " + movement_error)
 		return
 
+	var mobile_contract_script := load("res://source/world/MobileControlSmoke.gd") as Script
+	if mobile_contract_script == null:
+		_fail(58, "Mobile control smoke: contract script missing")
+		return
+	var mobile_contract = mobile_contract_script.new()
+	var mobile_error := str(mobile_contract.call("run", scene))
+	if not mobile_error.is_empty():
+		_fail(59, "Mobile control smoke: " + mobile_error)
+		return
+
 	if scene._units.size() != scene.GOVERNORATES.size() or scene._units.size() != 14:
 		_fail(3, "Strategic unit smoke: expected one persistent tank per governorate")
 		return
