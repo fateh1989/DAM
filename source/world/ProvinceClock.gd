@@ -61,6 +61,27 @@ func _ensure_name_label() -> void:
 	add_child(_name_label)
 
 
+func set_military_status(new_strength: float, new_readiness: float) -> void:
+	strength = clampf(new_strength, 0.0, 1.0)
+	readiness = clampf(new_readiness, 0.0, 1.0)
+	queue_redraw()
+
+
+func get_status_score() -> float:
+	return clampf(strength * 0.55 + readiness * 0.45, 0.0, 1.0)
+
+
+func get_status_color() -> Color:
+	var score := get_status_score()
+	if score >= 0.75:
+		return Color(0.20, 0.66, 0.30, 1.0)
+	if score >= 0.50:
+		return Color(0.82, 0.68, 0.18, 1.0)
+	if score >= 0.30:
+		return Color(0.86, 0.42, 0.12, 1.0)
+	return Color(0.72, 0.16, 0.13, 1.0)
+
+
 func _on_pressed() -> void:
 	province_requested.emit(province_index)
 
@@ -69,6 +90,7 @@ func _draw() -> void:
 	var center := Vector2(size.x * 0.5, 37.0)
 	draw_circle(center, CLOCK_RADIUS + 4.0, Color(0.25, 0.18, 0.08, 1.0))
 	draw_circle(center, CLOCK_RADIUS + 1.5, Color(0.67, 0.50, 0.22, 1.0))
+	draw_arc(center, CLOCK_RADIUS + 0.2, -PI * 0.75, -PI * 0.75 + PI * 1.5 * get_status_score(), 48, get_status_color(), 3.0)
 	draw_circle(center, CLOCK_RADIUS - 2.0, Color(0.91, 0.87, 0.73, 1.0))
 	_draw_station_ticks(center)
 	_draw_status_hands(center)
