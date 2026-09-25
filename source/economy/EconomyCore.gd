@@ -29,3 +29,41 @@ func has_resource_kind(kind: String) -> bool:
 
 func get_resource_catalog() -> Dictionary:
 	return RESOURCE_CATALOG.duplicate(true)
+
+
+func create_node(
+	node_id: String,
+	kind: String,
+	governorate_id: String,
+	capacity: float = 1.0
+) -> bool:
+	if node_id.is_empty() or nodes.has(node_id) or not has_resource_kind(kind):
+		return false
+	nodes[node_id] = {
+		"id": node_id,
+		"kind": kind,
+		"governorate_id": governorate_id,
+		"capacity": maxf(0.0, capacity),
+		"state": STATE_HEALTHY,
+		"damage_ratio": 0.0,
+		"recovery_rate": 0.025,
+		"logistics_ratio": 1.0,
+		"route_security": 1.0,
+		"power_ratio": 1.0,
+		"water_ratio": 1.0,
+		"stored_output": 0.0,
+		"revenue_total": 0.0,
+		"head_count": 0.0,
+		"growth_rate": 0.0,
+	}
+	return true
+
+
+func has_node(node_id: String) -> bool:
+	return nodes.has(node_id)
+
+
+func get_node_snapshot(node_id: String) -> Dictionary:
+	if not nodes.has(node_id):
+		return {}
+	return (nodes[node_id] as Dictionary).duplicate(true)
