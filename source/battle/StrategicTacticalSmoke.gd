@@ -122,6 +122,14 @@ func _run() -> void:
 	if battle.get_selected_count() != 2:
 		_fail(13, "Strategic/tactical smoke: multi-select failed")
 		return
+	var before_move: Vector3 = battle.get_friendly_positions()[0]
+	battle.issue_group_move(Vector3(-50.0, 0.0, 80.0))
+	for _move_step in range(5):
+		battle._process(0.1)
+	var after_move: Vector3 = battle.get_friendly_positions()[0]
+	if before_move.distance_to(after_move) < 1.0:
+		_fail(26, "Strategic/tactical smoke: selected group did not move")
+		return
 	battle.issue_attack_order(0)
 	for _i in range(100):
 		battle._process(0.1)

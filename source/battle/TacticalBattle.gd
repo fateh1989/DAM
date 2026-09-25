@@ -416,6 +416,10 @@ func issue_attack_order(enemy_index: int) -> void:
 		_units[index] = unit
 
 
+func issue_group_move(center: Vector3) -> void:
+	_issue_group_move(center)
+
+
 func _issue_group_move(center: Vector3) -> void:
 	var spacing := 95.0
 	var columns := maxi(1, int(ceil(sqrt(float(_selected.size())))))
