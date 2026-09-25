@@ -316,3 +316,29 @@ func apply_area_damage(governorate_id: String, severity: float, kind_filter: Str
 		if apply_damage(str(node_id), severity):
 			affected += 1
 	return affected
+
+
+func get_state_counts() -> Dictionary:
+	var counts := {
+		STATE_HEALTHY: 0,
+		STATE_DAMAGED: 0,
+		STATE_DISABLED: 0,
+		STATE_RECOVERING: 0,
+	}
+	for node in nodes.values():
+		var state := str((node as Dictionary).get("state", STATE_HEALTHY))
+		counts[state] = int(counts.get(state, 0)) + 1
+	return counts
+
+
+func get_snapshot() -> Dictionary:
+	var node_copy: Dictionary = {}
+	for node_id in nodes.keys():
+		node_copy[str(node_id)] = (nodes[node_id] as Dictionary).duplicate(true)
+	return {
+		"elapsed_hours": elapsed_hours,
+		"treasury_income": treasury_income,
+		"node_count": nodes.size(),
+		"state_counts": get_state_counts(),
+		"nodes": node_copy,
+	}
