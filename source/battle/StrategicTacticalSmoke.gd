@@ -149,6 +149,11 @@ func _run() -> void:
 	if before_uv.distance_to(after_uv) < 0.0001:
 		_fail(15, "Strategic/tactical smoke: radar camera jump failed")
 		return
+	battle.radar_center_on_uv(Vector2(2.0, -1.0))
+	var clamped_uv: Vector2 = battle.get_radar_camera_uv()
+	if clamped_uv.x < 0.0 or clamped_uv.x > 1.0 or clamped_uv.y < 0.0 or clamped_uv.y > 1.0:
+		_fail(28, "Strategic/tactical smoke: radar recenter escaped battlefield bounds")
+		return
 
 	print("SMOKE checkpoint 8: radar moved")
 	game_state.call("finish_battle", {"result": "test"})
