@@ -22,6 +22,11 @@ const STRATEGIC_HEIGHT_PATH := "res://source/world/generated/syria_macro_height.
 const STRATEGIC_SHADER_PATH := "res://source/world/shaders/StrategicMacro.gdshader"
 const TACTICAL_SHADER_PATH := "res://source/world/shaders/TacticalGround.gdshader"
 const TACTICAL_RELIEF_EXAGGERATION := 1.0
+const TACTICAL_OVERVIEW_ZOOM := 8
+const TACTICAL_OVERVIEW_RELIEF_EXAGGERATION := 60.0
+const UNIT_SPEED_KM_PER_SEC := 0.60
+const UNIT_SELECT_RADIUS_PX := 54.0
+const TAP_MAX_DRAG_PX := 18.0
 const ART_ROAD_WIDTH_KM := 0.090
 const ART_ROAD_SHOULDER_KM := 0.145
 const ART_CREEK_WIDTH_KM := 0.060
@@ -129,6 +134,14 @@ var _strategic_node: MeshInstance3D = null
 var _strategic_material: ShaderMaterial = null
 var _tactical_ground_material: ShaderMaterial = null
 
+var _unit_root: Node3D = null
+var _units: Array = []
+var _selected_unit_index := -1
+var _touch_press_positions := {}
+var _touch_drag_distance := {}
+var _mouse_press_position := Vector2.ZERO
+var _mouse_drag_distance := 0.0
+
 
 func _ready() -> void:
 	if ClassDB.class_exists("DAMNativeCore"):
@@ -138,8 +151,10 @@ func _ready() -> void:
 	_origin_lat = _center_lat
 	_update_governorate_ui()
 	zoom_wheel.set_value_no_signal(float(_map_zoom))
+	_setup_unit_layer()
 	_position_camera()
 	_refresh_tiles()
+	_sync_unit_visuals()
 	_update_status()
 
 
@@ -162,8 +177,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			_touches[event.index] = event.position
+			_touch_press_positions[event.index] = event.position
+			_touch_drag_distance[event.index] = 0.0
 		else:
+			var was_single_touch := _touches.size() == 1
+			var drag_distance := float(_touch_drag_distance.get(event.index, 9999.0))
+			if was_single_touch and drag_distance <= TAP_MAX_DRAG_PX:
+				_handle_world_tap(event.position)
 			_touches.erase(event.index)
+			_touch_press_positions.erase(event.index)
+			_touch_drag_distance.erase(event.index)
 		_pinch_accumulator = 0.0
 		get_viewport().set_input_as_handled()
 		return
@@ -171,6 +194,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventScreenDrag:
 		if not _touches.has(event.index):
 			_touches[event.index] = event.position - event.relative
+			_touch_press_positions[event.index] = event.position - event.relative
+			_touch_drag_distance[event.index] = 0.0
+
+		_touch_drag_distance[event.index] = float(_touch_drag_distance.get(event.index, 0.0)) + event.relative.length()
 
 		if _touches.size() == 1:
 			_touches[event.index] = event.position
@@ -189,8 +216,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_pinch_accumulator += new_distance - old_distance
 
 			if abs(_pinch_accumulator) >= 42.0:
-				if not _terrain_mode:
-					_set_map_zoom(_map_zoom + (1 if _pinch_accumulator > 0.0 else -1))
+				_set_map_zoom(_map_zoom + (1 if _pinch_accumulator > 0.0 else -1), _map_zoom - 1 <= SYRIA_OVERVIEW_ZOOM)
 				_pinch_accumulator = 0.0
 
 		get_viewport().set_input_as_handled()
@@ -198,25 +224,32 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
-			_mouse_dragging = event.pressed
-		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP and not _terrain_mode:
+			if event.pressed:
+				_mouse_dragging = true
+				_mouse_press_position = event.position
+				_mouse_drag_distance = 0.0
+			else:
+				_mouse_dragging = false
+				if _mouse_drag_distance <= TAP_MAX_DRAG_PX:
+					_handle_world_tap(event.position)
+		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			_set_map_zoom(_map_zoom + 1)
-		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN and not _terrain_mode:
-			_set_map_zoom(_map_zoom - 1)
+		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_set_map_zoom(_map_zoom - 1, _map_zoom - 1 <= SYRIA_OVERVIEW_ZOOM)
 		get_viewport().set_input_as_handled()
 		return
 
 	if event is InputEventMouseMotion and _mouse_dragging:
+		_mouse_drag_distance += event.relative.length()
 		_pan_from_screen_delta(event.relative)
 		get_viewport().set_input_as_handled()
-
 
 func _pan_from_screen_delta(delta: Vector2) -> void:
 	var viewport_height := maxf(1.0, float(get_viewport().get_visible_rect().size.y))
 	var km_per_pixel := 0.0
 
-	if _terrain_mode:
-		km_per_pixel = 0.018
+	if _terrain_mode and not _is_tactical_overview():
+		km_per_pixel = 0.018 * pow(2.4, float(MAX_MAP_ZOOM - _map_zoom))
 	else:
 		km_per_pixel = camera.size / viewport_height
 
@@ -229,7 +262,6 @@ func _pan_from_screen_delta(delta: Vector2) -> void:
 	_center_lat = clampf(_center_lat + lat_delta, REGION_SOUTH, REGION_NORTH)
 	_center_lon = clampf(_center_lon + lon_delta, REGION_WEST, REGION_EAST)
 
-	# Keep local coordinates numerically small as the camera travels.
 	if _terrain_mode and Vector2(_origin_lon, _origin_lat).distance_to(Vector2(_center_lon, _center_lat)) > 0.18:
 		_origin_lon = _center_lon
 		_origin_lat = _center_lat
@@ -237,7 +269,7 @@ func _pan_from_screen_delta(delta: Vector2) -> void:
 
 	_position_camera()
 	_refresh_tiles()
-
+	_sync_unit_visuals()
 
 func _set_map_zoom(new_zoom: int, center_syria_at_overview: bool = false) -> void:
 	new_zoom = clampi(new_zoom, MIN_MAP_ZOOM, MAX_MAP_ZOOM)
@@ -253,22 +285,43 @@ func _set_map_zoom(new_zoom: int, center_syria_at_overview: bool = false) -> voi
 	if not changed and not center_syria_at_overview:
 		return
 
-	_clear_tiles()
+	if _terrain_mode:
+		_clear_all_world_nodes()
+	else:
+		_clear_tiles()
+
 	_position_camera()
 	_refresh_tiles()
+	if _terrain_mode and not _is_tactical_overview():
+		call_deferred("_refresh_vector_data", true)
+	_sync_unit_visuals()
 	_update_status()
-
 
 func _position_camera() -> void:
 	var center := _geo_to_local(_center_lon, _center_lat, 0.0)
 
 	if _terrain_mode:
-		camera.projection = Camera3D.PROJECTION_PERSPECTIVE
-		camera.position = center + Vector3(0.0, 6.1, 7.2)
-		camera.look_at(center + Vector3(0.0, 0.12, 0.0), Vector3.UP)
-		camera.fov = 40.0
-		camera.near = 0.01
-		camera.far = 1000.0
+		if _is_tactical_overview():
+			camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+			match _map_zoom:
+				8:
+					camera.size = 170.0
+				7:
+					camera.size = 340.0
+				_:
+					camera.size = 620.0
+			camera.position = center + Vector3(0.0, 500.0, 0.01)
+			camera.look_at(center, Vector3(0.0, 0.0, -1.0))
+			camera.near = 0.1
+			camera.far = 1200.0
+		else:
+			camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+			var distance_scale := 1.0 if _map_zoom >= 10 else 2.45
+			camera.position = center + Vector3(0.0, 6.1, 7.2) * distance_scale
+			camera.look_at(center + Vector3(0.0, 0.12, 0.0), Vector3.UP)
+			camera.fov = 40.0
+			camera.near = 0.01
+			camera.far = 1200.0
 	else:
 		camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 		if _is_strategic_map():
@@ -281,12 +334,24 @@ func _position_camera() -> void:
 		camera.near = 0.1
 		camera.far = 1000.0
 
-
 func _is_strategic_map() -> bool:
 	return not _terrain_mode and _map_zoom <= SYRIA_OVERVIEW_ZOOM
 
 
+func _is_tactical_overview() -> bool:
+	return _terrain_mode and _map_zoom <= TACTICAL_OVERVIEW_ZOOM
+
+
 func _refresh_tiles() -> void:
+	if _is_tactical_overview():
+		_pending.clear()
+		_queued.clear()
+		_required_keys.clear()
+		_keep_keys.clear()
+		_build_strategic_world()
+		_update_status()
+		return
+
 	if _is_strategic_map():
 		_pending.clear()
 		_queued.clear()
@@ -840,19 +905,25 @@ func _build_strategic_world() -> void:
 	if is_instance_valid(_strategic_node):
 		return
 
-	var macro_texture := load(STRATEGIC_MACRO_PATH) as Texture2D
-	var variation_texture := load(STRATEGIC_VARIATION_PATH) as Texture2D
-	var height_texture := load(STRATEGIC_HEIGHT_PATH) as Texture2D
-	var strategic_shader := load(STRATEGIC_SHADER_PATH) as Shader
+	var strategic_shader: Shader = null
+	var macro_texture: Texture2D = null
+	var variation_texture: Texture2D = null
+	var height_image: Image = null
 
-	if macro_texture == null or variation_texture == null or height_texture == null or strategic_shader == null:
-		push_error("DAM Strategic: generated Macro Texture assets are missing")
-		return
+	if not _terrain_mode:
+		macro_texture = load(STRATEGIC_MACRO_PATH) as Texture2D
+		variation_texture = load(STRATEGIC_VARIATION_PATH) as Texture2D
+		var height_texture := load(STRATEGIC_HEIGHT_PATH) as Texture2D
+		strategic_shader = load(STRATEGIC_SHADER_PATH) as Shader
 
-	var height_image := height_texture.get_image()
-	if height_image == null or height_image.is_empty():
-		push_error("DAM Strategic: Macro height image is unreadable")
-		return
+		if macro_texture == null or variation_texture == null or height_texture == null or strategic_shader == null:
+			push_error("DAM Strategic: generated Macro Texture assets are missing")
+			return
+
+		height_image = height_texture.get_image()
+		if height_image == null or height_image.is_empty():
+			push_error("DAM Strategic: Macro height image is unreadable")
+			return
 
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -870,10 +941,20 @@ func _build_strategic_world() -> void:
 			var lat0 := lerpf(REGION_NORTH, REGION_SOUTH, v0)
 			var lat1 := lerpf(REGION_NORTH, REGION_SOUTH, v1)
 
-			var h00 := _strategic_height_at(height_image, u0, v0) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
-			var h10 := _strategic_height_at(height_image, u1, v0) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
-			var h01 := _strategic_height_at(height_image, u0, v1) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
-			var h11 := _strategic_height_at(height_image, u1, v1) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
+			var h00 := 0.0
+			var h10 := 0.0
+			var h01 := 0.0
+			var h11 := 0.0
+			if _terrain_mode:
+				h00 = _designed_height_m(lon0, lat0) / 1000.0 * TACTICAL_OVERVIEW_RELIEF_EXAGGERATION
+				h10 = _designed_height_m(lon1, lat0) / 1000.0 * TACTICAL_OVERVIEW_RELIEF_EXAGGERATION
+				h01 = _designed_height_m(lon0, lat1) / 1000.0 * TACTICAL_OVERVIEW_RELIEF_EXAGGERATION
+				h11 = _designed_height_m(lon1, lat1) / 1000.0 * TACTICAL_OVERVIEW_RELIEF_EXAGGERATION
+			else:
+				h00 = _strategic_height_at(height_image, u0, v0) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
+				h10 = _strategic_height_at(height_image, u1, v0) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
+				h01 = _strategic_height_at(height_image, u0, v1) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
+				h11 = _strategic_height_at(height_image, u1, v1) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
 
 			var p00 := _geo_to_local(lon0, lat0, h00)
 			var p10 := _geo_to_local(lon1, lat0, h10)
@@ -895,9 +976,13 @@ func _build_strategic_world() -> void:
 		return
 
 	_strategic_node = MeshInstance3D.new()
-	_strategic_node.name = "StrategicSyriaMacro"
+	_strategic_node.name = "RTSSyriaOverview" if _terrain_mode else "StrategicSyriaMacro"
 	_strategic_node.mesh = mesh
 	terrain_root.add_child(_strategic_node)
+
+	if _terrain_mode:
+		_strategic_node.material_override = _get_tactical_ground_material()
+		return
 
 	_strategic_material = ShaderMaterial.new()
 	_strategic_material.shader = strategic_shader
@@ -914,7 +999,6 @@ func _build_strategic_world() -> void:
 	_strategic_material.set_shader_parameter("detail_fade_end_m", 220000.0)
 
 	_strategic_node.material_override = _strategic_material
-
 
 func _build_map_quad(
 	state: Dictionary,
@@ -1135,7 +1219,7 @@ func _build_art_directed_battlefield() -> void:
 
 
 func _refresh_vector_data(force: bool) -> void:
-	if not _terrain_mode or _vector_inflight:
+	if not _terrain_mode or _is_tactical_overview() or _vector_inflight:
 		return
 	if _vector_loaded and not force:
 		return
@@ -1146,6 +1230,271 @@ func _refresh_vector_data(force: bool) -> void:
 	_vector_loaded = true
 	_vector_inflight = false
 	_update_status()
+
+
+func _setup_unit_layer() -> void:
+	if is_instance_valid(_unit_root):
+		return
+
+	_unit_root = Node3D.new()
+	_unit_root.name = "PersistentUnits"
+	add_child(_unit_root)
+
+	for i in range(GOVERNORATES.size()):
+		var gov: Dictionary = GOVERNORATES[i]
+		var node := _create_tank_visual(i)
+		_unit_root.add_child(node)
+		_units.append({
+			"army_id": i + 1,
+			"governorate_index": i,
+			"lon": float(gov["lon"]),
+			"lat": float(gov["lat"]),
+			"target_lon": float(gov["lon"]),
+			"target_lat": float(gov["lat"]),
+			"moving": false,
+			"node": node,
+		})
+
+
+func _army_color(index: int) -> Color:
+	var hue := fmod(float(index) * 0.61803398875, 1.0)
+	return Color.from_hsv(hue, 0.78, 0.96, 1.0)
+
+
+func _solid_unshaded_material(color: Color, emission_strength: float = 0.0) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = 0.86
+	material.metallic = 0.08
+	if emission_strength > 0.0:
+		material.emission_enabled = true
+		material.emission = color * emission_strength
+	return material
+
+
+func _create_tank_visual(index: int) -> Node3D:
+	var root_node := Node3D.new()
+	root_node.name = "ArmyTank_%02d" % [index + 1]
+	var army_color := _army_color(index)
+
+	var model := Node3D.new()
+	model.name = "TankModel"
+	root_node.add_child(model)
+
+	var hull_mesh := BoxMesh.new()
+	hull_mesh.size = Vector3(1.55, 0.42, 2.25)
+	var hull := MeshInstance3D.new()
+	hull.mesh = hull_mesh
+	hull.position.y = 0.30
+	hull.material_override = _solid_unshaded_material(army_color.darkened(0.24))
+	model.add_child(hull)
+
+	var turret_mesh := CylinderMesh.new()
+	turret_mesh.top_radius = 0.52
+	turret_mesh.bottom_radius = 0.58
+	turret_mesh.height = 0.38
+	turret_mesh.radial_segments = 12
+	var turret := MeshInstance3D.new()
+	turret.mesh = turret_mesh
+	turret.position.y = 0.68
+	turret.material_override = _solid_unshaded_material(army_color)
+	model.add_child(turret)
+
+	var barrel_mesh := BoxMesh.new()
+	barrel_mesh.size = Vector3(0.16, 0.16, 1.55)
+	var barrel := MeshInstance3D.new()
+	barrel.mesh = barrel_mesh
+	barrel.position = Vector3(0.0, 0.72, -1.02)
+	barrel.material_override = _solid_unshaded_material(army_color.lightened(0.08))
+	model.add_child(barrel)
+
+	var marker := Node3D.new()
+	marker.name = "MapMarker"
+	root_node.add_child(marker)
+
+	var marker_mesh := CylinderMesh.new()
+	marker_mesh.top_radius = 1.0
+	marker_mesh.bottom_radius = 1.0
+	marker_mesh.height = 0.12
+	marker_mesh.radial_segments = 18
+	var marker_disc := MeshInstance3D.new()
+	marker_disc.mesh = marker_mesh
+	marker_disc.material_override = _solid_unshaded_material(army_color, 0.25)
+	marker.add_child(marker_disc)
+
+	var marker_label := Label3D.new()
+	marker_label.text = str(index + 1)
+	marker_label.position = Vector3(0.0, 0.18, 0.0)
+	marker_label.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	marker_label.font_size = 30
+	marker_label.pixel_size = 0.015
+	marker_label.modulate = Color.WHITE
+	marker.add_child(marker_label)
+
+	var selection_mesh := CylinderMesh.new()
+	selection_mesh.top_radius = 1.45
+	selection_mesh.bottom_radius = 1.45
+	selection_mesh.height = 0.055
+	selection_mesh.radial_segments = 24
+	var selection := MeshInstance3D.new()
+	selection.name = "Selection"
+	selection.mesh = selection_mesh
+	selection.position.y = 0.03
+	selection.material_override = _solid_unshaded_material(Color(1.0, 0.92, 0.20, 0.82), 0.50)
+	selection.visible = false
+	root_node.add_child(selection)
+
+	return root_node
+
+
+func _tank_visual_scale() -> float:
+	if not _terrain_mode:
+		return maxf(0.55, camera.size * 0.0085)
+	match _map_zoom:
+		10:
+			return 0.0042
+		9:
+			return 0.012
+		8:
+			return 0.70
+		7:
+			return 1.45
+		_:
+			return 2.55
+
+
+func _sync_unit_visuals() -> void:
+	if not is_instance_valid(_unit_root):
+		return
+
+	var scale_value := _tank_visual_scale()
+	for i in range(_units.size()):
+		var unit: Dictionary = _units[i]
+		var node: Node3D = unit["node"]
+		if not is_instance_valid(node):
+			continue
+
+		var lon := float(unit["lon"])
+		var lat := float(unit["lat"])
+		var height := 0.03
+		if _terrain_mode:
+			if _is_tactical_overview():
+				height = _designed_height_m(lon, lat) / 1000.0 * TACTICAL_OVERVIEW_RELIEF_EXAGGERATION + 0.06
+			else:
+				height = _designed_height_m(lon, lat) / 1000.0 + 0.012
+
+		node.position = _geo_to_local(lon, lat, height)
+		node.scale = Vector3.ONE * scale_value
+
+		var model := node.get_node_or_null("TankModel")
+		var marker := node.get_node_or_null("MapMarker")
+		var selection := node.get_node_or_null("Selection")
+		if model != null:
+			model.visible = _terrain_mode
+		if marker != null:
+			marker.visible = not _terrain_mode
+		if selection != null:
+			selection.visible = i == _selected_unit_index
+
+
+func _local_to_geo(local_position: Vector3) -> Vector2:
+	var lat := _origin_lat - rad_to_deg(local_position.z / EARTH_RADIUS_KM)
+	var mean_lat := deg_to_rad((lat + _origin_lat) * 0.5)
+	var lon_radius := EARTH_RADIUS_KM * maxf(0.15, cos(mean_lat))
+	var lon := _origin_lon + rad_to_deg(local_position.x / lon_radius)
+	return Vector2(
+		clampf(lon, REGION_WEST, REGION_EAST),
+		clampf(lat, REGION_SOUTH, REGION_NORTH)
+	)
+
+
+func _screen_to_ground(screen_position: Vector2):
+	var ray_origin := camera.project_ray_origin(screen_position)
+	var ray_direction := camera.project_ray_normal(screen_position)
+	var ground_plane := Plane(Vector3.UP, 0.0)
+	return ground_plane.intersects_ray(ray_origin, ray_direction)
+
+
+func _handle_world_tap(screen_position: Vector2) -> void:
+	if _units.is_empty():
+		return
+
+	var closest_index := -1
+	var closest_distance := UNIT_SELECT_RADIUS_PX
+	for i in range(_units.size()):
+		var unit: Dictionary = _units[i]
+		var node: Node3D = unit["node"]
+		if not is_instance_valid(node):
+			continue
+		if camera.is_position_behind(node.global_position):
+			continue
+		var unit_screen := camera.unproject_position(node.global_position)
+		var distance := unit_screen.distance_to(screen_position)
+		if distance < closest_distance:
+			closest_distance = distance
+			closest_index = i
+
+	if closest_index >= 0:
+		_selected_unit_index = closest_index
+		_sync_unit_visuals()
+		return
+
+	if _selected_unit_index < 0 or _selected_unit_index >= _units.size():
+		return
+
+	var hit = _screen_to_ground(screen_position)
+	if hit == null:
+		return
+	var destination := _local_to_geo(hit)
+	_issue_move_order(_selected_unit_index, destination)
+
+
+func _issue_move_order(unit_index: int, destination: Vector2) -> void:
+	if unit_index < 0 or unit_index >= _units.size():
+		return
+	var unit: Dictionary = _units[unit_index]
+	unit["target_lon"] = clampf(destination.x, REGION_WEST, REGION_EAST)
+	unit["target_lat"] = clampf(destination.y, REGION_SOUTH, REGION_NORTH)
+	unit["moving"] = true
+	_units[unit_index] = unit
+
+
+func _process(delta: float) -> void:
+	if _units.is_empty():
+		return
+
+	var any_moved := false
+	for i in range(_units.size()):
+		var unit: Dictionary = _units[i]
+		if not bool(unit.get("moving", false)):
+			continue
+
+		var current := _geo_to_local(float(unit["lon"]), float(unit["lat"]), 0.0)
+		var target := _geo_to_local(float(unit["target_lon"]), float(unit["target_lat"]), 0.0)
+		var flat_delta := Vector2(target.x - current.x, target.z - current.z)
+		var distance_km := flat_delta.length()
+		var step_km := UNIT_SPEED_KM_PER_SEC * delta
+
+		if distance_km <= maxf(0.001, step_km):
+			unit["lon"] = float(unit["target_lon"])
+			unit["lat"] = float(unit["target_lat"])
+			unit["moving"] = false
+		else:
+			var ratio := step_km / distance_km
+			var next_local := Vector3(
+				lerpf(current.x, target.x, ratio),
+				0.0,
+				lerpf(current.z, target.z, ratio)
+			)
+			var next_geo := _local_to_geo(next_local)
+			unit["lon"] = next_geo.x
+			unit["lat"] = next_geo.y
+
+		_units[i] = unit
+		any_moved = true
+
+	if any_moved:
+		_sync_unit_visuals()
 
 func _governorate() -> Dictionary:
 	return GOVERNORATES[_governorate_index]
@@ -1966,7 +2315,7 @@ func _note_failure(kind: String) -> void:
 
 func _update_status() -> void:
 	if _terrain_mode:
-		zoom_label.text = "RTS TERRAIN"
+		zoom_label.text = "RTS TERRAIN • SYRIA" if _map_zoom <= SYRIA_OVERVIEW_ZOOM else "RTS TERRAIN • Z%d" % _map_zoom
 	else:
 		if _map_zoom <= SYRIA_OVERVIEW_ZOOM:
 			zoom_label.text = "SYRIA • STRATEGIC"
@@ -2002,32 +2351,22 @@ func _on_mode_pressed() -> void:
 	_clear_all_world_nodes()
 	_position_camera()
 	_refresh_tiles()
+	_sync_unit_visuals()
 	_update_status()
 
-	if _terrain_mode:
+	if _terrain_mode and not _is_tactical_overview():
 		call_deferred("_refresh_vector_data", true)
 
-
 func _on_zoom_in_pressed() -> void:
-	if not _terrain_mode:
-		_set_map_zoom(_map_zoom + 1)
+	_set_map_zoom(_map_zoom + 1)
 
 
 func _on_zoom_out_pressed() -> void:
-	if not _terrain_mode:
-		_set_map_zoom(_map_zoom - 1)
+	_set_map_zoom(_map_zoom - 1, _map_zoom - 1 <= SYRIA_OVERVIEW_ZOOM)
 
 
 func _on_zoom_wheel_changed(value: float) -> void:
 	var requested_zoom := clampi(int(round(value)), ZOOM_WHEEL_MIN, ZOOM_WHEEL_MAX)
-
-	# The wheel is the strategic Syria <-> town zoom control. If the player
-	# moves it while inspecting local 3D terrain, return to the map view first.
-	if _terrain_mode:
-		_terrain_mode = false
-		mode_button.text = "TERRAIN"
-		_clear_all_world_nodes()
-
 	_set_map_zoom(requested_zoom, requested_zoom <= SYRIA_OVERVIEW_ZOOM)
 
 
@@ -2042,8 +2381,9 @@ func _on_reset_pressed() -> void:
 	_clear_all_world_nodes()
 	_position_camera()
 	_refresh_tiles()
-	if _terrain_mode:
+	if _terrain_mode and not _is_tactical_overview():
 		_refresh_vector_data(true)
+	_sync_unit_visuals()
 	_update_status()
 
 
