@@ -161,6 +161,7 @@ var _selected_unit_index := -1
 var _selected_unit_indices: Array[int] = []
 var _touch_press_positions := {}
 var _touch_drag_distance := {}
+var _multi_touch_gesture_active := false
 var _mouse_press_position := Vector2.ZERO
 var _mouse_drag_distance := 0.0
 var _radar_action_mode := "camera"
@@ -269,6 +270,10 @@ func _setup_environment() -> void:
 	world_environment.environment = environment
 
 
+func _should_accept_world_tap(active_touch_count: int, drag_distance: float) -> bool:
+	return active_touch_count == 1 and not _multi_touch_gesture_active and drag_distance <= TAP_MAX_DRAG_PX
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed:
@@ -276,14 +281,17 @@ func _unhandled_input(event: InputEvent) -> void:
 			_touches[event.index] = event.position
 			_touch_press_positions[event.index] = event.position
 			_touch_drag_distance[event.index] = 0.0
+			if _touches.size() > 1:
+				_multi_touch_gesture_active = true
 		else:
-			var was_single_touch := _touches.size() == 1
 			var drag_distance := float(_touch_drag_distance.get(event.index, 9999.0))
-			if was_single_touch and drag_distance <= TAP_MAX_DRAG_PX:
+			if _should_accept_world_tap(_touches.size(), drag_distance):
 				_handle_world_tap(event.position)
 			_touches.erase(event.index)
 			_touch_press_positions.erase(event.index)
 			_touch_drag_distance.erase(event.index)
+			if _touches.is_empty():
+				_multi_touch_gesture_active = false
 		_pinch_accumulator = 0.0
 		get_viewport().set_input_as_handled()
 		return
