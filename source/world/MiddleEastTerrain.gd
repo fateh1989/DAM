@@ -164,6 +164,7 @@ var _touch_drag_distance := {}
 var _mouse_press_position := Vector2.ZERO
 var _mouse_drag_distance := 0.0
 var _radar_action_mode := "camera"
+var _move_order_serial := 0
 
 
 func _game_state_node() -> Node:
@@ -2395,6 +2396,7 @@ func _issue_group_move_order(unit_indices: Array[int], destination: Vector2) -> 
 		clampf(destination.x, REGION_WEST, REGION_EAST),
 		clampf(destination.y, REGION_SOUTH, REGION_NORTH)
 	)
+	_move_order_serial += 1
 	var issued_count := 0
 	var columns := maxi(1, int(ceil(sqrt(float(unit_indices.size())))))
 	for order_index in range(unit_indices.size()):
@@ -2425,6 +2427,7 @@ func _issue_move_order(unit_index: int, destination: Vector2) -> bool:
 	var unit: Dictionary = _units[unit_index]
 	unit["target_lon"] = clampf(destination.x, REGION_WEST, REGION_EAST)
 	unit["target_lat"] = clampf(destination.y, REGION_SOUTH, REGION_NORTH)
+	unit["move_order_serial"] = _move_order_serial
 	unit["moving"] = true
 	_units[unit_index] = unit
 	return true
