@@ -47,7 +47,14 @@ func _run() -> void:
 	if scene.get_selected_unit_count() != 14:
 		_fail(27, "Strategic unit smoke: select all command button failed")
 		return
-	scene.clear_selected_units()
+	var clear_button := scene.get_node_or_null("HUD/CommandBar/Row/ClearSelectionButton") as Button
+	if clear_button == null:
+		_fail(28, "Strategic unit smoke: clear command button missing")
+		return
+	clear_button.emit_signal("pressed")
+	if scene.get_selected_unit_count() != 0:
+		_fail(29, "Strategic unit smoke: clear command button failed")
+		return
 
 	var first_before: Dictionary = scene._units[0]
 	var second_before: Dictionary = scene._units[1]
