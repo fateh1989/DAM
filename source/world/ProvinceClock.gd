@@ -11,6 +11,7 @@ var strength := 0.5
 var readiness := 0.5
 var attacking := false
 var selected_province := false
+var _steam_phase := 0.0
 var _name_label: Label = null
 
 
@@ -67,6 +68,19 @@ func set_military_status(new_strength: float, new_readiness: float) -> void:
 	queue_redraw()
 
 
+func set_attacking_state(value: bool) -> void:
+	attacking = value
+	set_process(attacking)
+	queue_redraw()
+
+
+func _process(delta: float) -> void:
+	if not attacking:
+		return
+	_steam_phase = fmod(_steam_phase + delta * 0.42, 1.0)
+	queue_redraw()
+
+
 func get_status_score() -> float:
 	return clampf(strength * 0.55 + readiness * 0.45, 0.0, 1.0)
 
@@ -94,6 +108,8 @@ func _draw() -> void:
 	draw_circle(center, CLOCK_RADIUS - 2.0, Color(0.91, 0.87, 0.73, 1.0))
 	_draw_station_ticks(center)
 	_draw_status_hands(center)
+	if attacking:
+		_draw_attack_steam(center)
 
 
 func _draw_station_ticks(center: Vector2) -> void:
@@ -110,3 +126,15 @@ func _draw_status_hands(center: Vector2) -> void:
 	draw_line(center, center + Vector2(cos(strength_angle), sin(strength_angle)) * 20.0, Color(0.16, 0.12, 0.08, 1.0), 2.2)
 	draw_line(center, center + Vector2(cos(readiness_angle), sin(readiness_angle)) * 16.0, Color(0.48, 0.10, 0.07, 1.0), 1.7)
 	draw_circle(center, 2.5, Color(0.20, 0.15, 0.08, 1.0))
+
+
+func _draw_attack_steam(center: Vector2) -> void:
+	for puff_index in range(3):
+		var phase := fmod(_steam_phase + float(puff_index) * 0.27, 1.0)
+		var drift := sin((phase + float(puff_index)) * TAU) * 2.4
+		var puff_center := center + Vector2(
+			(float(puff_index) - 1.0) * 4.0 + drift,
+			-CLOCK_RADIUS - 3.0 - phase * 13.0
+		)
+		var alpha := (1.0 - phase) * 0.52
+		draw_circle(puff_center, 2.8 + phase * 3.2, Color(0.86, 0.84, 0.78, alpha))

@@ -38,5 +38,11 @@ func run(scene: Node) -> String:
 		return "clock color does not react to strength and readiness"
 	if clock.get_status_score() > 0.20:
 		return "weak province readiness score is incorrect"
+	clock.set_attacking_state(true)
+	if not clock.attacking:
+		return "attack state did not enable province steam"
+	if not clock.has_method("_draw_attack_steam"):
+		return "province attack steam renderer is missing"
+	clock.set_attacking_state(false)
 	clock.free()
 	return ""
