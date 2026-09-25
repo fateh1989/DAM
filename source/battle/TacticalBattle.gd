@@ -452,6 +452,25 @@ func _on_zoom_pressed() -> void:
 	toggle_zoom()
 
 
+func _on_select_all_pressed() -> void:
+	var indices: Array[int] = []
+	for i in range(_units.size()):
+		if bool(_units[i].get("alive", true)):
+			indices.append(i)
+	select_units(indices)
+
+
+func _on_stop_pressed() -> void:
+	for index in _selected:
+		if index < 0 or index >= _units.size():
+			continue
+		var unit: Dictionary = _units[index]
+		unit["moving"] = false
+		unit["attack_target"] = -1
+		unit["target"] = (_units[index]["node"] as Node3D).position
+		_units[index] = unit
+
+
 func _on_back_pressed() -> void:
 	GameState.finish_battle({
 		"result": "retreat" if get_alive_enemy_count() > 0 else "victory",
