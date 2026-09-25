@@ -30,5 +30,13 @@ func run(scene: Node) -> String:
 		return "province name label is missing"
 	if name_label.get_theme_font_size("font_size") < 11 or name_label.get_theme_font_size("font_size") > 14:
 		return "province name font is not medium sized"
+	clock.set_military_status(0.95, 0.95)
+	var strong_color: Color = clock.get_status_color()
+	clock.set_military_status(0.10, 0.10)
+	var weak_color: Color = clock.get_status_color()
+	if strong_color == weak_color:
+		return "clock color does not react to strength and readiness"
+	if clock.get_status_score() > 0.20:
+		return "weak province readiness score is incorrect"
 	clock.free()
 	return ""
