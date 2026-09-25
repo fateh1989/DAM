@@ -16,9 +16,14 @@ permissions:
   contents: read
   actions: read
 
+concurrency:
+  group: dam-android-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   android:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     container:
       image: barichello/godot-ci:4.3@sha256:8d3a9fc683fcaa5b7d8b1c90fa94318402ebb00edeb5f6e2df4bac46665b98ff
     steps:
@@ -80,6 +85,13 @@ jobs:
           test -x /usr/lib/android-sdk/build-tools/35.0.1/apksigner
           test -f /github/home/debug.keystore
 
+      - name: Strategic tactical split preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Preflight: strategic/tactical split"
+          timeout 90s godot --headless --path . --script source/battle/StrategicTacticalSmoke.gd
+
       - name: Build DAM native C++ core
         shell: bash
         run: |
@@ -109,10 +121,6 @@ jobs:
       - name: Army and combat core smoke
         run: |
           godot --headless --path . --script source/combat/ArmyCombatSmoke.gd
-
-      - name: Strategic tactical split smoke
-        run: |
-          godot --headless --path . --script source/battle/StrategicTacticalSmoke.gd
 
       - name: Clean generated Godot cache
         run: |
