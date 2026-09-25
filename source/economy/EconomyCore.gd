@@ -100,11 +100,27 @@ func _auto_sell_node(node_id: String) -> float:
 	return income
 
 
+func _advance_recovery(node_id: String, hours: float) -> void:
+	var node: Dictionary = nodes[node_id]
+	var damage := clampf(float(node.get("damage_ratio", 0.0)), 0.0, 1.0)
+	if damage <= 0.0:
+		node["damage_ratio"] = 0.0
+		node["state"] = STATE_HEALTHY
+		nodes[node_id] = node
+		return
+	damage = maxf(0.0, damage - float(node.get("recovery_rate", 0.025)) * hours)
+	node["damage_ratio"] = damage
+	node["state"] = STATE_HEALTHY if damage <= 0.0 else STATE_RECOVERING
+	nodes[node_id] = node
+
+
 func tick(hours: float) -> Dictionary:
 	hours = maxf(0.0, hours)
 	if hours <= 0.0:
 		return {"hours": 0.0, "produced": 0.0, "income": 0.0}
 	var produced_total := 0.0
+	for node_id in nodes.keys():
+		_advance_recovery(str(node_id), hours)
 	for node_id in nodes.keys():
 		var node: Dictionary = nodes[node_id]
 		var kind := str(node.get("kind", ""))
