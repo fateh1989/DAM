@@ -3,7 +3,7 @@ extends RefCounted
 const CLOCK_SCRIPT := preload("res://source/world/ProvinceClock.gd")
 
 
-func run(_scene: Node) -> String:
+func run(scene: Node) -> String:
 	var clock := CLOCK_SCRIPT.new()
 	clock.setup(2, "حلب")
 	if clock.province_index != 2:
@@ -16,6 +16,15 @@ func run(_scene: Node) -> String:
 		return "province clock height is outside medium mobile size"
 	if not clock.has_method("_draw_station_ticks") or not clock.has_method("_draw_status_hands"):
 		return "railway station clock face helpers are missing"
+	var capture := {"index": -1}
+	clock.province_requested.connect(func(index: int): capture["index"] = index)
+	clock.emit_signal("pressed")
+	if int(capture["index"]) != 2:
+		return "province clock press did not emit its province index"
+	if not bool(scene.call("focus_governorate_from_clock", 2)):
+		return "world rejected valid province clock navigation"
+	if int(scene.get("_governorate_index")) != 2:
+		return "province clock navigation did not focus requested governorate"
 	var name_label := clock.get_node_or_null("ProvinceName") as Label
 	if name_label == null:
 		return "province name label is missing"
