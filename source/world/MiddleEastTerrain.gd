@@ -208,6 +208,7 @@ func _bind_audio_controls() -> void:
 		"HUD/CommandBar/Row/PreviousUnitButton",
 		"HUD/CommandBar/Row/NextUnitButton",
 		"HUD/CommandBar/Row/FocusUnitsButton",
+		"HUD/CommandBar/Row/StopUnitsButton",
 	]:
 		var control := get_node_or_null(path) as Control
 		if control != null:
@@ -2399,6 +2400,10 @@ func _on_next_unit_pressed() -> void:
 
 func _on_focus_units_pressed() -> void:
 	focus_selected_units()
+
+
+func _on_stop_units_pressed() -> void:
+	stop_selected_units()
 
 
 func _on_previous_governorate_pressed() -> void:
