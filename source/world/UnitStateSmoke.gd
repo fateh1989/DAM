@@ -46,6 +46,9 @@ func _run() -> void:
 
 	var selected_indices: Array[int] = [0, 1]
 	scene.select_units(selected_indices)
+	if scene.get_selected_unit_count() != 2:
+		_fail(12, "Strategic unit smoke: public multi-selection control failed")
+		return
 	scene.issue_selected_group_move(Vector2(first_start.x + 0.08, first_start.y))
 	scene._process(1.0)
 
