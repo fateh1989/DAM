@@ -214,6 +214,10 @@ func _run() -> void:
 		_fail(9, "Strategic unit smoke: radar does not mirror active armies")
 		return
 
+	if int((radar_units[0] as Dictionary).get("index", -1)) != 0:
+		_fail(47, "Strategic unit smoke: radar blip lost source unit index")
+		return
+
 	var before_center: Vector2 = scene.get_radar_camera_uv()
 	scene.radar_center_on_uv(Vector2(0.5, 0.5))
 	var after_center: Vector2 = scene.get_radar_camera_uv()

@@ -2070,6 +2070,7 @@ func get_radar_units() -> Array:
 		var u := clampf((float(unit["lon"]) - REGION_WEST) / (REGION_EAST - REGION_WEST), 0.0, 1.0)
 		var v := clampf((REGION_NORTH - float(unit["lat"])) / (REGION_NORTH - REGION_SOUTH), 0.0, 1.0)
 		result.append({
+			"index": i,
 			"uv": Vector2(u, v),
 			"color": _army_color(i),
 			"selected": i in _selected_unit_indices,
