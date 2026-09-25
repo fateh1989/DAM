@@ -372,3 +372,12 @@ The goal is the readability and visual composition of a classic isometric RTS wi
 DAM now targets Godot 4.7.2 stable and the Mobile/Vulkan renderer for the Android build. The CI intentionally keeps the previously used pinned godot-ci 4.3 container only as the source of the existing debug signing identity, then replaces the engine binary and export templates with official Godot 4.7.2 files. This prevents an engine upgrade from silently changing the APK signing key.
 
 Engine-v2 migration is staged: first upgrade the engine/runtime/renderer and keep the existing Syria terrain pipeline working; after that is proven on-device, move the heavy simulation and world-processing hot paths toward a native C++ GDExtension core rather than mixing that migration into the renderer upgrade.
+
+
+### Native Core v1
+
+DAM Engine v2 now has a C++ GDExtension core. The first production hot path moved into native code is terrain chunk cell analysis: cell averages, slope classification, and cliff-edge candidate detection are computed by DAMNativeCore in C++ and consumed by the existing Godot terrain renderer. A GDScript fallback remains only for source-tree editability; CI smoke tests require the native class to load.
+
+The Android native library is built for arm64 with Godot C++ bindings targeting API 4.7 and Android NDK r28b. The same source is also built for Linux in CI so headless runtime tests exercise the exact GDExtension API before Android export.
+
+This is the first stage of the native-core migration. Geometry generation, chunk visibility/culling, pathfinding and large-unit simulation can move into the same native core incrementally after this baseline is proven on-device.

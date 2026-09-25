@@ -109,9 +109,12 @@ var _water_feature_count := 0
 var _landcover_feature_count := 0
 var _tree_instance_count := 0
 var _cliff_face_count := 0
+var _native_core: Object = null
 
 
 func _ready() -> void:
+	if ClassDB.class_exists("DAMNativeCore"):
+		_native_core = ClassDB.instantiate("DAMNativeCore")
 	_setup_environment()
 	_origin_lon = _center_lon
 	_origin_lat = _center_lat
@@ -472,8 +475,13 @@ func _rebuild_tile(key: String) -> void:
 	state["cell_levels"] = levels
 	_tiles[key] = state
 
-	var cell_avgs := PackedInt32Array()
-	cell_avgs.resize(CELL_GRID * CELL_GRID)
+	var cell_analysis := _analyze_cells(levels)
+	var cell_avgs: PackedInt32Array = cell_analysis["averages"]
+	var cell_slopes: PackedInt32Array = cell_analysis["slopes"]
+	state["native_cell_analysis"] = _native_core != null
+	state["native_cliff_candidates"] = int(cell_analysis.get("cliff_edges", 0))
+	_tiles[key] = state
+
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 
@@ -493,18 +501,15 @@ func _rebuild_tile(key: String) -> void:
 			var l10 := levels[i10]
 			var l01 := levels[i01]
 			var l11 := levels[i11]
-			var avg_level := int(round((float(l00) + float(l10) + float(l01) + float(l11)) * 0.25))
-			cell_avgs[gy * CELL_GRID + gx] = avg_level
+			var cell_index := gy * CELL_GRID + gx
+			var avg_level := cell_avgs[cell_index]
 
 			var p00 := _cell_vertex(z, x, y, u0, v0, l00)
 			var p10 := _cell_vertex(z, x, y, u1, v0, l10)
 			var p01 := _cell_vertex(z, x, y, u0, v1, l01)
 			var p11 := _cell_vertex(z, x, y, u1, v1, l11)
 
-			var local_slope := maxi(
-				maxi(abs(l00 - l11), abs(l10 - l01)),
-				maxi(abs(l00 - l10), abs(l00 - l01))
-			)
+			var local_slope := cell_slopes[cell_index]
 			var color := _styled_ground_color(
 				float(avg_level) * CELL_HEIGHT_STEP_M,
 				local_slope,
@@ -559,6 +564,63 @@ func _rebuild_tile(key: String) -> void:
 	node.material_override = _make_ground_material(null)
 	state["node"] = node
 	_tiles[key] = state
+
+
+func _analyze_cells(levels: PackedInt32Array) -> Dictionary:
+	if _native_core != null:
+		var native_result = _native_core.call(
+			"analyze_cells",
+			levels,
+			CELL_GRID,
+			CLIFF_MIN_LEVELS
+		)
+		if typeof(native_result) == TYPE_DICTIONARY:
+			var averages: PackedInt32Array = native_result.get("averages", PackedInt32Array())
+			var slopes: PackedInt32Array = native_result.get("slopes", PackedInt32Array())
+			if averages.size() == CELL_GRID * CELL_GRID and slopes.size() == CELL_GRID * CELL_GRID:
+				return native_result
+
+	# Development fallback. Production CI requires the native core, but this
+	# keeps the project editable if a developer has not compiled GDExtension yet.
+	var averages := PackedInt32Array()
+	var slopes := PackedInt32Array()
+	averages.resize(CELL_GRID * CELL_GRID)
+	slopes.resize(CELL_GRID * CELL_GRID)
+	var cliff_edges := 0
+
+	for gy in range(CELL_GRID):
+		for gx in range(CELL_GRID):
+			var i00 := gy * (CELL_GRID + 1) + gx
+			var i10 := i00 + 1
+			var i01 := i00 + CELL_GRID + 1
+			var i11 := i01 + 1
+			var l00 := levels[i00]
+			var l10 := levels[i10]
+			var l01 := levels[i01]
+			var l11 := levels[i11]
+			var index := gy * CELL_GRID + gx
+			averages[index] = int(round(
+				(float(l00) + float(l10) + float(l01) + float(l11)) * 0.25
+			))
+			slopes[index] = maxi(
+				maxi(abs(l00 - l11), abs(l10 - l01)),
+				maxi(abs(l00 - l10), abs(l00 - l01))
+			)
+
+	for gy in range(CELL_GRID):
+		for gx in range(CELL_GRID):
+			var here := averages[gy * CELL_GRID + gx]
+			if gx + 1 < CELL_GRID and abs(here - averages[gy * CELL_GRID + gx + 1]) >= CLIFF_MIN_LEVELS:
+				cliff_edges += 1
+			if gy + 1 < CELL_GRID and abs(here - averages[(gy + 1) * CELL_GRID + gx]) >= CLIFF_MIN_LEVELS:
+				cliff_edges += 1
+
+	return {
+		"averages": averages,
+		"slopes": slopes,
+		"cliff_edges": cliff_edges,
+		"native": false,
+	}
 
 
 func _add_colored_triangle(

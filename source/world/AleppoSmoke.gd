@@ -24,6 +24,11 @@ func _run() -> void:
 		quit(3)
 		return
 
+	if scene._native_core == null:
+		push_error("Aleppo smoke: DAM native C++ core is not loaded")
+		quit(8)
+		return
+
 	scene._refresh_vector_data(true)
 	await process_frame
 
