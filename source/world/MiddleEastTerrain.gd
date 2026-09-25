@@ -20,6 +20,7 @@ const STRATEGIC_MACRO_PATH := "res://source/world/generated/syria_macro.png"
 const STRATEGIC_VARIATION_PATH := "res://source/world/generated/syria_macro_variation.png"
 const STRATEGIC_HEIGHT_PATH := "res://source/world/generated/syria_macro_height.png"
 const STRATEGIC_SHADER_PATH := "res://source/world/shaders/StrategicMacro.gdshader"
+const STRATEGIC_OVERLAY_PATH := "res://source/world/generated/syria_geo_overlay.json"
 const TACTICAL_SHADER_PATH := "res://source/world/shaders/TacticalGround.gdshader"
 const TACTICAL_RELIEF_EXAGGERATION := 1.0
 const TACTICAL_OVERVIEW_ZOOM := 8
@@ -92,6 +93,7 @@ const VECTOR_REFRESH_DISTANCE_DEG := 0.025
 @onready var zoom_label: Label = $HUD/TopBar/Row/ZoomLabel
 @onready var status_label: Label = $HUD/TopBar/Row/StatusLabel
 @onready var mode_button: Button = $HUD/ModeButton
+@onready var geo_overlay_button: Button = $HUD/GeoOverlayButton
 @onready var governorate_label: Label = $HUD/GovernorateBar/Row/GovernorateLabel
 @onready var zoom_wheel: VSlider = $HUD/ZoomWheel/Column/Slider
 
@@ -133,6 +135,15 @@ var _native_core: Object = null
 var _strategic_node: MeshInstance3D = null
 var _strategic_material: ShaderMaterial = null
 var _tactical_ground_material: ShaderMaterial = null
+var _strategic_height_image: Image = null
+
+var _geo_overlay_root: Node3D = null
+var _geo_overlay_data: Dictionary = {}
+var _geo_overlay_enabled := true
+var _last_geo_overlay_origin := Vector2(999.0, 999.0)
+var _last_geo_overlay_zoom := -1
+var _geo_overlay_boundary_count := 0
+var _geo_overlay_label_count := 0
 
 var _unit_root: Node3D = null
 var _units: Array = []
@@ -152,9 +163,12 @@ func _ready() -> void:
 	_update_governorate_ui()
 	zoom_wheel.set_value_no_signal(float(_map_zoom))
 	_setup_unit_layer()
+	_setup_geo_overlay_layer()
 	_position_camera()
 	_refresh_tiles()
 	_sync_unit_visuals()
+	_refresh_geo_overlay(false)
+	_refresh_geo_overlay(true)
 	_update_status()
 
 
@@ -295,21 +309,26 @@ func _set_map_zoom(new_zoom: int, center_syria_at_overview: bool = false) -> voi
 	if _terrain_mode and not _is_tactical_overview():
 		call_deferred("_refresh_vector_data", true)
 	_sync_unit_visuals()
+	_refresh_geo_overlay(true)
 	_update_status()
 
 func _position_camera() -> void:
+	if _terrain_mode and _is_tactical_overview():
+		camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+		match _map_zoom:
+			8:
+				camera.size = 155.0
+			7:
+				camera.size = 305.0
+			_:
+				var syria_height_km := EARTH_RADIUS_KM * deg_to_rad(REGION_NORTH - REGION_SOUTH)
+				camera.size = syria_height_km * STRATEGIC_CAMERA_MARGIN
+		_clamp_overview_center_to_world()
+
 	var center := _geo_to_local(_center_lon, _center_lat, 0.0)
 
 	if _terrain_mode:
 		if _is_tactical_overview():
-			camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-			match _map_zoom:
-				8:
-					camera.size = 170.0
-				7:
-					camera.size = 340.0
-				_:
-					camera.size = 620.0
 			camera.position = center + Vector3(0.0, 500.0, 0.01)
 			camera.look_at(center, Vector3(0.0, 0.0, -1.0))
 			camera.near = 0.1
@@ -333,6 +352,30 @@ func _position_camera() -> void:
 		camera.look_at(center, Vector3(0.0, 0.0, -1.0))
 		camera.near = 0.1
 		camera.far = 1000.0
+
+
+func _clamp_overview_center_to_world() -> void:
+	var viewport := get_viewport().get_visible_rect().size
+	var aspect := maxf(0.2, float(viewport.x) / maxf(1.0, float(viewport.y)))
+	var half_height_km := camera.size * 0.5
+	var half_width_km := camera.size * aspect * 0.5
+
+	var half_lat_deg := rad_to_deg(half_height_km / EARTH_RADIUS_KM)
+	var lon_radius := EARTH_RADIUS_KM * maxf(0.15, cos(deg_to_rad(_center_lat)))
+	var half_lon_deg := rad_to_deg(half_width_km / lon_radius)
+
+	var lat_span := REGION_NORTH - REGION_SOUTH
+	var lon_span := REGION_EAST - REGION_WEST
+
+	if half_lat_deg * 2.0 >= lat_span:
+		_center_lat = (REGION_NORTH + REGION_SOUTH) * 0.5
+	else:
+		_center_lat = clampf(_center_lat, REGION_SOUTH + half_lat_deg, REGION_NORTH - half_lat_deg)
+
+	if half_lon_deg * 2.0 >= lon_span:
+		_center_lon = (REGION_EAST + REGION_WEST) * 0.5
+	else:
+		_center_lon = clampf(_center_lon, REGION_WEST + half_lon_deg, REGION_EAST - half_lon_deg)
 
 func _is_strategic_map() -> bool:
 	return not _terrain_mode and _map_zoom <= SYRIA_OVERVIEW_ZOOM
@@ -905,25 +948,19 @@ func _build_strategic_world() -> void:
 	if is_instance_valid(_strategic_node):
 		return
 
-	var strategic_shader: Shader = null
-	var macro_texture: Texture2D = null
-	var variation_texture: Texture2D = null
-	var height_image: Image = null
+	var macro_texture := load(STRATEGIC_MACRO_PATH) as Texture2D
+	var variation_texture := load(STRATEGIC_VARIATION_PATH) as Texture2D
+	var height_texture := load(STRATEGIC_HEIGHT_PATH) as Texture2D
+	var strategic_shader := load(STRATEGIC_SHADER_PATH) as Shader
 
-	if not _terrain_mode:
-		macro_texture = load(STRATEGIC_MACRO_PATH) as Texture2D
-		variation_texture = load(STRATEGIC_VARIATION_PATH) as Texture2D
-		var height_texture := load(STRATEGIC_HEIGHT_PATH) as Texture2D
-		strategic_shader = load(STRATEGIC_SHADER_PATH) as Shader
+	if macro_texture == null or variation_texture == null or height_texture == null or strategic_shader == null:
+		push_error("DAM Strategic: generated macro assets are missing")
+		return
 
-		if macro_texture == null or variation_texture == null or height_texture == null or strategic_shader == null:
-			push_error("DAM Strategic: generated Macro Texture assets are missing")
-			return
-
-		height_image = height_texture.get_image()
-		if height_image == null or height_image.is_empty():
-			push_error("DAM Strategic: Macro height image is unreadable")
-			return
+	_strategic_height_image = height_texture.get_image()
+	if _strategic_height_image == null or _strategic_height_image.is_empty():
+		push_error("DAM Strategic: macro height image is unreadable")
+		return
 
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -941,20 +978,10 @@ func _build_strategic_world() -> void:
 			var lat0 := lerpf(REGION_NORTH, REGION_SOUTH, v0)
 			var lat1 := lerpf(REGION_NORTH, REGION_SOUTH, v1)
 
-			var h00 := 0.0
-			var h10 := 0.0
-			var h01 := 0.0
-			var h11 := 0.0
-			if _terrain_mode:
-				h00 = _designed_height_m(lon0, lat0) / 1000.0 * TACTICAL_OVERVIEW_RELIEF_EXAGGERATION
-				h10 = _designed_height_m(lon1, lat0) / 1000.0 * TACTICAL_OVERVIEW_RELIEF_EXAGGERATION
-				h01 = _designed_height_m(lon0, lat1) / 1000.0 * TACTICAL_OVERVIEW_RELIEF_EXAGGERATION
-				h11 = _designed_height_m(lon1, lat1) / 1000.0 * TACTICAL_OVERVIEW_RELIEF_EXAGGERATION
-			else:
-				h00 = _strategic_height_at(height_image, u0, v0) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
-				h10 = _strategic_height_at(height_image, u1, v0) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
-				h01 = _strategic_height_at(height_image, u0, v1) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
-				h11 = _strategic_height_at(height_image, u1, v1) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
+			var h00 := _strategic_height_at(_strategic_height_image, u0, v0) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
+			var h10 := _strategic_height_at(_strategic_height_image, u1, v0) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
+			var h01 := _strategic_height_at(_strategic_height_image, u0, v1) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
+			var h11 := _strategic_height_at(_strategic_height_image, u1, v1) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
 
 			var p00 := _geo_to_local(lon0, lat0, h00)
 			var p10 := _geo_to_local(lon1, lat0, h10)
@@ -980,10 +1007,6 @@ func _build_strategic_world() -> void:
 	_strategic_node.mesh = mesh
 	terrain_root.add_child(_strategic_node)
 
-	if _terrain_mode:
-		_strategic_node.material_override = _get_tactical_ground_material()
-		return
-
 	_strategic_material = ShaderMaterial.new()
 	_strategic_material.shader = strategic_shader
 	_strategic_material.set_shader_parameter("global_macro_tex", macro_texture)
@@ -995,8 +1018,8 @@ func _build_strategic_world() -> void:
 	var size_m := Vector2(se.x - nw.x, se.z - nw.z) * 1000.0
 	_strategic_material.set_shader_parameter("world_origin", origin_m)
 	_strategic_material.set_shader_parameter("world_size_meters", size_m)
-	_strategic_material.set_shader_parameter("detail_fade_start_m", 60000.0)
-	_strategic_material.set_shader_parameter("detail_fade_end_m", 220000.0)
+	_strategic_material.set_shader_parameter("detail_fade_start_m", 0.0 if _terrain_mode else 60000.0)
+	_strategic_material.set_shader_parameter("detail_fade_end_m", 1.0 if _terrain_mode else 220000.0)
 
 	_strategic_node.material_override = _strategic_material
 
@@ -1230,6 +1253,273 @@ func _refresh_vector_data(force: bool) -> void:
 	_vector_loaded = true
 	_vector_inflight = false
 	_update_status()
+
+
+
+func _setup_geo_overlay_layer() -> void:
+	if is_instance_valid(_geo_overlay_root):
+		return
+	_geo_overlay_root = Node3D.new()
+	_geo_overlay_root.name = "GeoOverlay"
+	add_child(_geo_overlay_root)
+	_load_geo_overlay_data()
+	_update_geo_overlay_button()
+
+
+func _load_geo_overlay_data() -> void:
+	_geo_overlay_data = {}
+	if not FileAccess.file_exists(STRATEGIC_OVERLAY_PATH):
+		return
+	var file := FileAccess.open(STRATEGIC_OVERLAY_PATH, FileAccess.READ)
+	if file == null:
+		return
+	var parsed = JSON.parse_string(file.get_as_text())
+	file.close()
+	if typeof(parsed) == TYPE_DICTIONARY:
+		_geo_overlay_data = parsed
+
+
+func _update_geo_overlay_button() -> void:
+	if geo_overlay_button == null:
+		return
+	geo_overlay_button.text = "الحدود والأسماء: تشغيل" if _geo_overlay_enabled else "الحدود والأسماء: إخفاء"
+
+
+func _on_geo_overlay_pressed() -> void:
+	_geo_overlay_enabled = not _geo_overlay_enabled
+	_update_geo_overlay_button()
+	_refresh_geo_overlay(true)
+
+
+func _clear_geo_overlay() -> void:
+	if not is_instance_valid(_geo_overlay_root):
+		return
+	for child in _geo_overlay_root.get_children():
+		child.free()
+	_geo_overlay_boundary_count = 0
+	_geo_overlay_label_count = 0
+
+
+func _boundary_min_zoom(level: int) -> int:
+	match level:
+		2:
+			return 6
+		4:
+			return 6
+		6:
+			return 7
+		8:
+			return 9
+		_:
+			return 11
+
+
+func _boundary_width_km(level: int) -> float:
+	var base := 0.045
+	if _map_zoom <= 6:
+		base = 0.72
+	elif _map_zoom == 7:
+		base = 0.38
+	elif _map_zoom == 8:
+		base = 0.20
+	elif _map_zoom == 9:
+		base = 0.075
+	if level == 2:
+		return base * 1.8
+	if level == 4:
+		return base * 1.25
+	if level == 6:
+		return base * 0.78
+	return base * 0.52
+
+
+func _boundary_color(level: int) -> Color:
+	match level:
+		2:
+			return Color(1.0, 0.89, 0.46, 0.96)
+		4:
+			return Color(0.96, 0.94, 0.84, 0.90)
+		6:
+			return Color(0.93, 0.74, 0.40, 0.78)
+		_:
+			return Color(0.86, 0.82, 0.70, 0.58)
+
+
+func _geo_overlay_bounds() -> Rect2:
+	if _terrain_mode and _is_tactical_overview():
+		var viewport := get_viewport().get_visible_rect().size
+		var aspect := maxf(0.2, float(viewport.x) / maxf(1.0, float(viewport.y)))
+		var half_lat := rad_to_deg((camera.size * 0.56) / EARTH_RADIUS_KM)
+		var lon_radius := EARTH_RADIUS_KM * maxf(0.15, cos(deg_to_rad(_center_lat)))
+		var half_lon := rad_to_deg((camera.size * aspect * 0.56) / lon_radius)
+		return Rect2(_center_lon - half_lon, _center_lat - half_lat, half_lon * 2.0, half_lat * 2.0)
+
+	var lat_radius := 0.075 if _map_zoom >= 10 else 0.20
+	var lon_radius_deg := 0.095 if _map_zoom >= 10 else 0.25
+	return Rect2(_center_lon - lon_radius_deg, _center_lat - lat_radius, lon_radius_deg * 2.0, lat_radius * 2.0)
+
+
+func _geo_point_in_bounds(lon: float, lat: float, bounds: Rect2, margin: float = 0.0) -> bool:
+	return (
+		lon >= bounds.position.x - margin
+		and lon <= bounds.end.x + margin
+		and lat >= bounds.position.y - margin
+		and lat <= bounds.end.y + margin
+	)
+
+
+func _geo_segment_intersects_bounds(a: Vector2, b: Vector2, bounds: Rect2) -> bool:
+	if _geo_point_in_bounds(a.x, a.y, bounds, 0.03) or _geo_point_in_bounds(b.x, b.y, bounds, 0.03):
+		return true
+	var min_lon := minf(a.x, b.x)
+	var max_lon := maxf(a.x, b.x)
+	var min_lat := minf(a.y, b.y)
+	var max_lat := maxf(a.y, b.y)
+	return not (
+		max_lon < bounds.position.x
+		or min_lon > bounds.end.x
+		or max_lat < bounds.position.y
+		or min_lat > bounds.end.y
+	)
+
+
+func _overview_height_at_geo(lon: float, lat: float) -> float:
+	if _strategic_height_image == null or _strategic_height_image.is_empty():
+		var height_texture := load(STRATEGIC_HEIGHT_PATH) as Texture2D
+		if height_texture != null:
+			_strategic_height_image = height_texture.get_image()
+	if _strategic_height_image == null or _strategic_height_image.is_empty():
+		return 0.0
+	var u := clampf((lon - REGION_WEST) / (REGION_EAST - REGION_WEST), 0.0, 1.0)
+	var v := clampf((REGION_NORTH - lat) / (REGION_NORTH - REGION_SOUTH), 0.0, 1.0)
+	return _strategic_height_at(_strategic_height_image, u, v) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
+
+
+func _overlay_height_at_geo(lon: float, lat: float) -> float:
+	if _terrain_mode and _is_tactical_overview():
+		return _overview_height_at_geo(lon, lat)
+	return _height_at_geo(lon, lat)
+
+
+func _append_geo_boundary_segment(st: SurfaceTool, a_geo: Vector2, b_geo: Vector2, width_km: float) -> void:
+	var a := _geo_to_local(a_geo.x, a_geo.y, _overlay_height_at_geo(a_geo.x, a_geo.y) + 0.035)
+	var b := _geo_to_local(b_geo.x, b_geo.y, _overlay_height_at_geo(b_geo.x, b_geo.y) + 0.035)
+	var delta := Vector2(b.x - a.x, b.z - a.z)
+	if delta.length() < 0.0001:
+		return
+	var direction := delta.normalized()
+	var side := Vector3(-direction.y, 0.0, direction.x) * width_km * 0.5
+	st.add_vertex(a - side)
+	st.add_vertex(b - side)
+	st.add_vertex(a + side)
+	st.add_vertex(a + side)
+	st.add_vertex(b - side)
+	st.add_vertex(b + side)
+
+
+func _commit_geo_boundary_batch(st: SurfaceTool, level: int, count: int) -> void:
+	if count <= 0:
+		return
+	var mesh := st.commit()
+	if mesh == null:
+		return
+	var node := MeshInstance3D.new()
+	node.name = "AdminBoundary_%d" % level
+	node.mesh = mesh
+	var material := StandardMaterial3D.new()
+	material.albedo_color = _boundary_color(level)
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	node.material_override = material
+	_geo_overlay_root.add_child(node)
+
+
+func _add_geo_overlay_label(item: Dictionary, screen_points: Array) -> bool:
+	var lon := float(item.get("lon", 0.0))
+	var lat := float(item.get("lat", 0.0))
+	var world := _geo_to_local(lon, lat, _overlay_height_at_geo(lon, lat) + 0.10)
+	if camera.is_position_behind(world):
+		return false
+	var screen := camera.unproject_position(world)
+	for p in screen_points:
+		if screen.distance_to(p) < 72.0:
+			return false
+	screen_points.append(screen)
+
+	var label := Label3D.new()
+	label.text = str(item.get("name", ""))
+	if label.text.is_empty():
+		return false
+	label.position = world
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.fixed_size = true
+	label.font_size = 28 if int(item.get("min_zoom", 10)) <= 7 else 23
+	label.outline_size = 6
+	label.modulate = Color(1.0, 0.97, 0.84, 0.98)
+	label.outline_modulate = Color(0.05, 0.06, 0.05, 0.96)
+	_geo_overlay_root.add_child(label)
+	return true
+
+
+func _refresh_geo_overlay(force: bool = false) -> void:
+	if not is_instance_valid(_geo_overlay_root):
+		return
+
+	_geo_overlay_root.visible = _geo_overlay_enabled and _terrain_mode
+	if not _geo_overlay_root.visible:
+		return
+	if _geo_overlay_data.is_empty():
+		_load_geo_overlay_data()
+		if _geo_overlay_data.is_empty():
+			return
+
+	var current_origin := Vector2(_origin_lon, _origin_lat)
+	if not force and _last_geo_overlay_zoom == _map_zoom and _last_geo_overlay_origin.distance_to(current_origin) < 0.00001:
+		return
+
+	_clear_geo_overlay()
+	_last_geo_overlay_zoom = _map_zoom
+	_last_geo_overlay_origin = current_origin
+	var bounds := _geo_overlay_bounds()
+
+	var levels := [2, 4, 6, 8]
+	for level in levels:
+		if _map_zoom < _boundary_min_zoom(level):
+			continue
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var segment_count := 0
+		for feature in _geo_overlay_data.get("boundaries", []):
+			if int(feature.get("level", 0)) != level:
+				continue
+			var points: Array = feature.get("points", [])
+			for i in range(points.size() - 1):
+				var raw_a = points[i]
+				var raw_b = points[i + 1]
+				if raw_a.size() < 2 or raw_b.size() < 2:
+					continue
+				var a := Vector2(float(raw_a[0]), float(raw_a[1]))
+				var b := Vector2(float(raw_b[0]), float(raw_b[1]))
+				if not _geo_segment_intersects_bounds(a, b, bounds):
+					continue
+				_append_geo_boundary_segment(st, a, b, _boundary_width_km(level))
+				segment_count += 1
+		_commit_geo_boundary_batch(st, level, segment_count)
+		_geo_overlay_boundary_count += segment_count
+
+	var screen_points: Array = []
+	for item in _geo_overlay_data.get("labels", []):
+		if _map_zoom < int(item.get("min_zoom", 10)):
+			continue
+		var lon := float(item.get("lon", 0.0))
+		var lat := float(item.get("lat", 0.0))
+		if not _geo_point_in_bounds(lon, lat, bounds, 0.02):
+			continue
+		if _add_geo_overlay_label(item, screen_points):
+			_geo_overlay_label_count += 1
+			if _geo_overlay_label_count >= 90:
+				break
 
 
 func _setup_unit_layer() -> void:
@@ -1532,8 +1822,9 @@ func _select_governorate(index: int) -> void:
 	_refresh_tiles()
 	_update_status()
 
-	if _terrain_mode:
+	if _terrain_mode and not _is_tactical_overview():
 		call_deferred("_refresh_vector_data", true)
+	_refresh_geo_overlay(true)
 
 
 func _on_previous_governorate_pressed() -> void:
@@ -2352,6 +2643,7 @@ func _on_mode_pressed() -> void:
 	_position_camera()
 	_refresh_tiles()
 	_sync_unit_visuals()
+	_refresh_geo_overlay(true)
 	_update_status()
 
 	if _terrain_mode and not _is_tactical_overview():
@@ -2384,6 +2676,7 @@ func _on_reset_pressed() -> void:
 	if _terrain_mode and not _is_tactical_overview():
 		_refresh_vector_data(true)
 	_sync_unit_visuals()
+	_refresh_geo_overlay(true)
 	_update_status()
 
 
