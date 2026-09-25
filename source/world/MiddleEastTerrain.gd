@@ -2127,6 +2127,19 @@ func _toggle_unit_selection(unit_index: int) -> void:
 	_sync_unit_visuals()
 
 
+func select_units(indices: Array[int]) -> void:
+	_selected_unit_indices.clear()
+	for index in indices:
+		if index < 0 or index >= _units.size():
+			continue
+		if not bool(_units[index].get("alive", true)):
+			continue
+		if index not in _selected_unit_indices:
+			_selected_unit_indices.append(index)
+	_selected_unit_index = _selected_unit_indices.back() if not _selected_unit_indices.is_empty() else -1
+	_sync_unit_visuals()
+
+
 func get_selected_unit_indices() -> Array[int]:
 	return _selected_unit_indices.duplicate()
 
