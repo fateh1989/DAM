@@ -177,6 +177,9 @@ jobs:
       - name: Aleppo terrain runtime smoke
         run: godot --headless --path . --script source/world/AleppoSmoke.gd
 
+      - name: Persistent units and RTS/map view smoke
+        run: godot --headless --path . --script source/world/UnitStateSmoke.gd
+
       - name: Export APK
         shell: bash
         run: |
