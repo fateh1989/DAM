@@ -4,33 +4,40 @@ const BATTLEFIELD_SIZE := 2000.0
 const ZOOM_NORMAL := 1100.0
 const ZOOM_CLOSE := 550.0
 const UNIT_SPEED := 150.0
+const ATTACK_RANGE := 190.0
+const ATTACK_DPS := 150.0
+const ENEMY_HP := 600.0
 const SELECT_RADIUS_PX := 58.0
 const TAP_MAX_DRAG_PX := 18.0
 
 @onready var camera: Camera3D = $Camera3D
 @onready var unit_root: Node3D = $Units
+@onready var enemy_root: Node3D = $Enemies
 @onready var ground: MeshInstance3D = $Ground
 @onready var title_label: Label = $HUD/TopBar/Row/Title
+@onready var status_label: Label = $HUD/TopBar/Row/Status
 @onready var zoom_button: Button = $HUD/TopBar/Row/ZoomButton
 
 var _zoom_level := 1
 var _units: Array = []
+var _enemies: Array = []
 var _selected: Array[int] = []
 var _touches := {}
 var _touch_drag := {}
 var _mouse_down := false
 var _mouse_drag := 0.0
-var _mouse_start := Vector2.ZERO
 
 
 func _ready() -> void:
 	if GameState.active_battle.is_empty():
 		GameState.begin_battle(GameState.selected_province_id, GameState.selected_province_name)
-	title_label.text = "DAM • BATTLE • %s" % str(GameState.active_battle.get("province_name", ""))
+	title_label.text = "DAM • %s" % str(GameState.active_battle.get("province_name", "BATTLE"))
 	_setup_camera()
 	_setup_ground()
-	_spawn_units()
+	_spawn_friendly_units()
+	_spawn_enemy_units()
 	_update_zoom_ui()
+	_update_status()
 
 
 func _setup_camera() -> void:
@@ -57,43 +64,38 @@ func _tank_material(color: Color) -> StandardMaterial3D:
 	return material
 
 
-func _spawn_units() -> void:
-	var positions := [
-		Vector3(-260, 10, 120), Vector3(-100, 10, 120), Vector3(60, 10, 120),
-		Vector3(-260, 10, 300), Vector3(-100, 10, 300), Vector3(60, 10, 300),
-	]
-	for i in range(positions.size()):
-		var root := Node3D.new()
-		root.name = "Tank_%02d" % (i + 1)
-		root.position = positions[i]
-		unit_root.add_child(root)
+func _create_tank(name_text: String, position: Vector3, body_color: Color, turret_color: Color, selectable: bool) -> Node3D:
+	var root := Node3D.new()
+	root.name = name_text
+	root.position = position
 
-		var hull_mesh := BoxMesh.new()
-		hull_mesh.size = Vector3(70, 28, 110)
-		var hull := MeshInstance3D.new()
-		hull.mesh = hull_mesh
-		hull.position.y = 18
-		hull.material_override = _tank_material(Color(0.20, 0.48, 0.23, 1.0))
-		root.add_child(hull)
+	var hull_mesh := BoxMesh.new()
+	hull_mesh.size = Vector3(70, 28, 110)
+	var hull := MeshInstance3D.new()
+	hull.mesh = hull_mesh
+	hull.position.y = 18
+	hull.material_override = _tank_material(body_color)
+	root.add_child(hull)
 
-		var turret_mesh := CylinderMesh.new()
-		turret_mesh.top_radius = 24
-		turret_mesh.bottom_radius = 28
-		turret_mesh.height = 20
-		var turret := MeshInstance3D.new()
-		turret.mesh = turret_mesh
-		turret.position.y = 42
-		turret.material_override = _tank_material(Color(0.27, 0.58, 0.30, 1.0))
-		root.add_child(turret)
+	var turret_mesh := CylinderMesh.new()
+	turret_mesh.top_radius = 24
+	turret_mesh.bottom_radius = 28
+	turret_mesh.height = 20
+	var turret := MeshInstance3D.new()
+	turret.mesh = turret_mesh
+	turret.position.y = 42
+	turret.material_override = _tank_material(turret_color)
+	root.add_child(turret)
 
-		var barrel_mesh := BoxMesh.new()
-		barrel_mesh.size = Vector3(8, 8, 70)
-		var barrel := MeshInstance3D.new()
-		barrel.mesh = barrel_mesh
-		barrel.position = Vector3(0, 44, -55)
-		barrel.material_override = _tank_material(Color(0.30, 0.62, 0.32, 1.0))
-		root.add_child(barrel)
+	var barrel_mesh := BoxMesh.new()
+	barrel_mesh.size = Vector3(8, 8, 70)
+	var barrel := MeshInstance3D.new()
+	barrel.mesh = barrel_mesh
+	barrel.position = Vector3(0, 44, -55)
+	barrel.material_override = _tank_material(turret_color.lightened(0.08))
+	root.add_child(barrel)
 
+	if selectable:
 		var ring_mesh := CylinderMesh.new()
 		ring_mesh.top_radius = 48
 		ring_mesh.bottom_radius = 48
@@ -106,15 +108,67 @@ func _spawn_units() -> void:
 		ring.visible = false
 		root.add_child(ring)
 
+	return root
+
+
+func _spawn_friendly_units() -> void:
+	var positions := [
+		Vector3(-260, 10, 260), Vector3(-100, 10, 260), Vector3(60, 10, 260),
+		Vector3(-260, 10, 410), Vector3(-100, 10, 410), Vector3(60, 10, 410),
+	]
+	for i in range(positions.size()):
+		var root := _create_tank(
+			"Friendly_%02d" % (i + 1),
+			positions[i],
+			Color(0.20, 0.48, 0.23, 1.0),
+			Color(0.27, 0.58, 0.30, 1.0),
+			true
+		)
+		unit_root.add_child(root)
 		_units.append({
 			"node": root,
 			"target": positions[i],
 			"moving": false,
+			"attack_target": -1,
+			"alive": true,
+		})
+
+
+func _spawn_enemy_units() -> void:
+	var positions := [
+		Vector3(-250, 10, -280), Vector3(-90, 10, -280), Vector3(70, 10, -280),
+		Vector3(-250, 10, -430), Vector3(-90, 10, -430), Vector3(70, 10, -430),
+	]
+	for i in range(positions.size()):
+		var root := _create_tank(
+			"Enemy_%02d" % (i + 1),
+			positions[i],
+			Color(0.52, 0.16, 0.12, 1.0),
+			Color(0.68, 0.20, 0.14, 1.0),
+			false
+		)
+		enemy_root.add_child(root)
+		_enemies.append({
+			"node": root,
+			"hp": ENEMY_HP,
+			"alive": true,
 		})
 
 
 func _update_zoom_ui() -> void:
 	zoom_button.text = "ZOOM %dX" % _zoom_level
+
+
+func _update_status() -> void:
+	var friendly_alive := 0
+	for unit in _units:
+		if bool(unit.get("alive", true)):
+			friendly_alive += 1
+	var enemy_alive := get_alive_enemy_count()
+	if enemy_alive == 0:
+		status_label.text = "VICTORY • %d FRIENDLY" % friendly_alive
+	else:
+		status_label.text = "FRIENDLY %d • ENEMY %d" % [friendly_alive, enemy_alive]
 
 
 func toggle_zoom() -> void:
@@ -131,6 +185,66 @@ func get_zoom_level() -> int:
 
 func get_unit_count() -> int:
 	return _units.size()
+
+
+func get_enemy_count() -> int:
+	return _enemies.size()
+
+
+func get_alive_enemy_count() -> int:
+	var count := 0
+	for enemy in _enemies:
+		if bool(enemy.get("alive", false)):
+			count += 1
+	return count
+
+
+func get_selected_count() -> int:
+	return _selected.size()
+
+
+func get_radar_blips() -> Array:
+	var result: Array = []
+	for i in range(_units.size()):
+		var unit: Dictionary = _units[i]
+		if not bool(unit.get("alive", true)):
+			continue
+		var node: Node3D = unit["node"]
+		result.append({
+			"uv": _world_to_uv(node.position),
+			"friendly": true,
+			"selected": i in _selected,
+		})
+	for enemy in _enemies:
+		if not bool(enemy.get("alive", false)):
+			continue
+		var node: Node3D = enemy["node"]
+		result.append({
+			"uv": _world_to_uv(node.position),
+			"friendly": false,
+			"selected": false,
+		})
+	return result
+
+
+func _world_to_uv(position: Vector3) -> Vector2:
+	return Vector2(
+		clampf(position.x / BATTLEFIELD_SIZE + 0.5, 0.0, 1.0),
+		clampf(position.z / BATTLEFIELD_SIZE + 0.5, 0.0, 1.0)
+	)
+
+
+func get_radar_camera_uv() -> Vector2:
+	return _world_to_uv(Vector3(camera.position.x, 0.0, camera.position.z - 720.0))
+
+
+func radar_center_on_uv(uv: Vector2) -> void:
+	uv.x = clampf(uv.x, 0.0, 1.0)
+	uv.y = clampf(uv.y, 0.0, 1.0)
+	camera.position.x = (uv.x - 0.5) * BATTLEFIELD_SIZE
+	camera.position.z = (uv.y - 0.5) * BATTLEFIELD_SIZE + 720.0
+	camera.position.x = clampf(camera.position.x, -700.0, 700.0)
+	camera.position.z = clampf(camera.position.z, 150.0, 1450.0)
 
 
 func _screen_to_ground(screen_position: Vector2):
@@ -150,19 +264,60 @@ func _toggle_selection(index: int) -> void:
 			ring.visible = i in _selected
 
 
-func _handle_tap(screen_position: Vector2) -> void:
+func select_units(indices: Array[int]) -> void:
+	_selected.clear()
+	for index in indices:
+		if index >= 0 and index < _units.size():
+			_selected.append(index)
+	for i in range(_units.size()):
+		var ring := (_units[i]["node"] as Node3D).get_node_or_null("Selection")
+		if ring != null:
+			ring.visible = i in _selected
+
+
+func _closest_friendly_on_screen(screen_position: Vector2) -> int:
 	var closest := -1
 	var closest_distance := SELECT_RADIUS_PX
 	for i in range(_units.size()):
-		var node: Node3D = _units[i]["node"]
+		var unit: Dictionary = _units[i]
+		if not bool(unit.get("alive", true)):
+			continue
+		var node: Node3D = unit["node"]
 		if camera.is_position_behind(node.global_position):
 			continue
 		var d := camera.unproject_position(node.global_position).distance_to(screen_position)
 		if d < closest_distance:
 			closest_distance = d
 			closest = i
-	if closest >= 0:
-		_toggle_selection(closest)
+	return closest
+
+
+func _closest_enemy_on_screen(screen_position: Vector2) -> int:
+	var closest := -1
+	var closest_distance := SELECT_RADIUS_PX
+	for i in range(_enemies.size()):
+		var enemy: Dictionary = _enemies[i]
+		if not bool(enemy.get("alive", false)):
+			continue
+		var node: Node3D = enemy["node"]
+		if camera.is_position_behind(node.global_position):
+			continue
+		var d := camera.unproject_position(node.global_position).distance_to(screen_position)
+		if d < closest_distance:
+			closest_distance = d
+			closest = i
+	return closest
+
+
+func _handle_tap(screen_position: Vector2) -> void:
+	var friendly := _closest_friendly_on_screen(screen_position)
+	if friendly >= 0:
+		_toggle_selection(friendly)
+		return
+
+	var enemy := _closest_enemy_on_screen(screen_position)
+	if enemy >= 0 and not _selected.is_empty():
+		issue_attack_order(enemy)
 		return
 
 	if _selected.is_empty():
@@ -171,6 +326,18 @@ func _handle_tap(screen_position: Vector2) -> void:
 	if hit == null:
 		return
 	_issue_group_move(hit)
+
+
+func issue_attack_order(enemy_index: int) -> void:
+	if enemy_index < 0 or enemy_index >= _enemies.size():
+		return
+	if not bool(_enemies[enemy_index].get("alive", false)):
+		return
+	for index in _selected:
+		var unit: Dictionary = _units[index]
+		unit["attack_target"] = enemy_index
+		unit["moving"] = false
+		_units[index] = unit
 
 
 func _issue_group_move(center: Vector3) -> void:
@@ -191,6 +358,7 @@ func _issue_group_move(center: Vector3) -> void:
 		var unit: Dictionary = _units[index]
 		unit["target"] = target
 		unit["moving"] = true
+		unit["attack_target"] = -1
 		_units[index] = unit
 
 
@@ -224,7 +392,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.pressed:
 			_mouse_down = true
 			_mouse_drag = 0.0
-			_mouse_start = event.position
 		else:
 			if _mouse_down and _mouse_drag <= TAP_MAX_DRAG_PX:
 				_handle_tap(event.position)
@@ -237,6 +404,34 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	for i in range(_units.size()):
 		var unit: Dictionary = _units[i]
+		if not bool(unit.get("alive", true)):
+			continue
+
+		var attack_target := int(unit.get("attack_target", -1))
+		if attack_target >= 0 and attack_target < _enemies.size():
+			var enemy: Dictionary = _enemies[attack_target]
+			if not bool(enemy.get("alive", false)):
+				unit["attack_target"] = -1
+				_units[i] = unit
+				continue
+			var node: Node3D = unit["node"]
+			var enemy_node: Node3D = enemy["node"]
+			var delta_vec := enemy_node.position - node.position
+			delta_vec.y = 0.0
+			var distance := delta_vec.length()
+			if distance > ATTACK_RANGE:
+				node.position += delta_vec.normalized() * minf(UNIT_SPEED * delta, distance - ATTACK_RANGE)
+			else:
+				enemy["hp"] = float(enemy.get("hp", ENEMY_HP)) - ATTACK_DPS * delta
+				if float(enemy["hp"]) <= 0.0:
+					enemy["alive"] = false
+					enemy_node.visible = false
+					unit["attack_target"] = -1
+				_enemies[attack_target] = enemy
+				_units[i] = unit
+				_update_status()
+			continue
+
 		if not bool(unit.get("moving", false)):
 			continue
 		var node: Node3D = unit["node"]
@@ -258,5 +453,9 @@ func _on_zoom_pressed() -> void:
 
 
 func _on_back_pressed() -> void:
-	GameState.finish_battle({"result": "retreat", "survivors": _units.size()})
+	GameState.finish_battle({
+		"result": "retreat" if get_alive_enemy_count() > 0 else "victory",
+		"friendly_survivors": _units.size(),
+		"enemy_survivors": get_alive_enemy_count(),
+	})
 	get_tree().change_scene_to_file("res://source/world/MiddleEastTerrain.tscn")
