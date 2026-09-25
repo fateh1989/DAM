@@ -22,6 +22,8 @@ const STRATEGIC_MACRO_PATH := "res://source/world/generated/syria_macro.png"
 const STRATEGIC_VARIATION_PATH := "res://source/world/generated/syria_macro_variation.png"
 const STRATEGIC_HEIGHT_PATH := "res://source/world/generated/syria_macro_height.png"
 const STRATEGIC_SHADER_PATH := "res://source/world/shaders/StrategicMacro.gdshader"
+const TACTICAL_SHADER_PATH := "res://source/world/shaders/TacticalGround.gdshader"
+const TACTICAL_RELIEF_EXAGGERATION := 1.45
 
 const TERRAIN_ZOOM := 13
 const TERRAIN_TILE_RADIUS := 1
@@ -124,6 +126,7 @@ var _cliff_face_count := 0
 var _native_core: Object = null
 var _strategic_node: MeshInstance3D = null
 var _strategic_material: ShaderMaterial = null
+var _tactical_ground_material: ShaderMaterial = null
 
 
 func _ready() -> void:
@@ -475,6 +478,79 @@ func _apply_dem_bytes(key: String, bytes: PackedByteArray) -> bool:
 	return true
 
 
+func _global_terrain_uv(lon: float, lat: float) -> Vector2:
+	return Vector2(
+		clampf((lon - REGION_WEST) / (REGION_EAST - REGION_WEST), 0.0, 1.0),
+		clampf((REGION_NORTH - lat) / (REGION_NORTH - REGION_SOUTH), 0.0, 1.0)
+	)
+
+
+func _cell_vertex_height(
+	z: int,
+	x: int,
+	y: int,
+	u: float,
+	v: float,
+	elevation_m: float
+) -> Vector3:
+	var geo := _tile_fraction_to_lon_lat(z, x, y, u, v)
+	var height_km := elevation_m / 1000.0 * TACTICAL_RELIEF_EXAGGERATION
+	return _geo_to_local(geo.x, geo.y, height_km)
+
+
+func _smooth_render_heights(raw: PackedFloat32Array) -> PackedFloat32Array:
+	var result := raw.duplicate()
+	var stride := CELL_GRID + 1
+
+	# Smooth only interior vertices. Border samples remain untouched so
+	# adjacent Terrarium tiles continue to meet at the same geographic edge.
+	for gy in range(1, CELL_GRID):
+		for gx in range(1, CELL_GRID):
+			var center := gy * stride + gx
+			var sum := raw[center] * 4.0
+			sum += raw[center - 1] * 2.0
+			sum += raw[center + 1] * 2.0
+			sum += raw[center - stride] * 2.0
+			sum += raw[center + stride] * 2.0
+			sum += raw[center - stride - 1]
+			sum += raw[center - stride + 1]
+			sum += raw[center + stride - 1]
+			sum += raw[center + stride + 1]
+			result[center] = sum / 16.0
+
+	return result
+
+
+func _add_ground_triangle(
+	st: SurfaceTool,
+	a: Vector3,
+	b: Vector3,
+	c: Vector3,
+	uv_a: Vector2,
+	uv_b: Vector2,
+	uv_c: Vector2
+) -> void:
+	st.set_uv(uv_a); st.add_vertex(a)
+	st.set_uv(uv_b); st.add_vertex(b)
+	st.set_uv(uv_c); st.add_vertex(c)
+
+
+func _get_tactical_ground_material() -> ShaderMaterial:
+	if _tactical_ground_material != null:
+		return _tactical_ground_material
+
+	var shader := load(TACTICAL_SHADER_PATH) as Shader
+	var macro_texture := load(STRATEGIC_MACRO_PATH) as Texture2D
+	if shader == null or macro_texture == null:
+		push_error("DAM Tactical: ground shader or macro texture is missing")
+		return null
+
+	_tactical_ground_material = ShaderMaterial.new()
+	_tactical_ground_material.shader = shader
+	_tactical_ground_material.set_shader_parameter("global_macro_tex", macro_texture)
+	return _tactical_ground_material
+
+
 func _rebuild_tile(key: String) -> void:
 	if not _tiles.has(key):
 		return
@@ -490,8 +566,10 @@ func _rebuild_tile(key: String) -> void:
 		_build_map_quad(state, key, z, x, y, map_texture)
 		return
 
-	# Real DEM stays authoritative. We only quantize and art-direct its visual
-	# presentation so the battlefield reads like a classic RTS.
+	# DEM remains authoritative. Rendering now uses a continuous floating
+	# height field; the discrete 20 m grid remains only for analysis/gameplay.
+	var raw_heights := PackedFloat32Array()
+	raw_heights.resize((CELL_GRID + 1) * (CELL_GRID + 1))
 	var levels := PackedInt32Array()
 	levels.resize((CELL_GRID + 1) * (CELL_GRID + 1))
 
@@ -502,7 +580,11 @@ func _rebuild_tile(key: String) -> void:
 			var elevation_m := 0.0
 			if dem_image != null:
 				elevation_m = _sample_dem(dem_image, u, v)
-			levels[gy * (CELL_GRID + 1) + gx] = int(round(elevation_m / CELL_HEIGHT_STEP_M))
+			var sample_index := gy * (CELL_GRID + 1) + gx
+			raw_heights[sample_index] = elevation_m
+			levels[sample_index] = int(round(elevation_m / CELL_HEIGHT_STEP_M))
+
+	var render_heights := _smooth_render_heights(raw_heights)
 
 	for gy in range(CELL_GRID):
 		for gx in range(CELL_GRID):
@@ -544,57 +626,28 @@ func _rebuild_tile(key: String) -> void:
 			var i01 := i00 + CELL_GRID + 1
 			var i11 := i01 + 1
 
-			var l00 := levels[i00]
-			var l10 := levels[i10]
-			var l01 := levels[i01]
-			var l11 := levels[i11]
-			var cell_index := gy * CELL_GRID + gx
-			var avg_level := cell_avgs[cell_index]
+			var p00 := _cell_vertex_height(z, x, y, u0, v0, render_heights[i00])
+			var p10 := _cell_vertex_height(z, x, y, u1, v0, render_heights[i10])
+			var p01 := _cell_vertex_height(z, x, y, u0, v1, render_heights[i01])
+			var p11 := _cell_vertex_height(z, x, y, u1, v1, render_heights[i11])
 
-			var p00 := _cell_vertex(z, x, y, u0, v0, l00)
-			var p10 := _cell_vertex(z, x, y, u1, v0, l10)
-			var p01 := _cell_vertex(z, x, y, u0, v1, l01)
-			var p11 := _cell_vertex(z, x, y, u1, v1, l11)
+			var g00 := _tile_fraction_to_lon_lat(z, x, y, u0, v0)
+			var g10 := _tile_fraction_to_lon_lat(z, x, y, u1, v0)
+			var g01 := _tile_fraction_to_lon_lat(z, x, y, u0, v1)
+			var g11 := _tile_fraction_to_lon_lat(z, x, y, u1, v1)
 
-			var local_slope := cell_slopes[cell_index]
-			var color := _styled_ground_color(
-				float(avg_level) * CELL_HEIGHT_STEP_M,
-				local_slope,
-				x, y, gx, gy
-			)
+			var uv00 := _global_terrain_uv(g00.x, g00.y)
+			var uv10 := _global_terrain_uv(g10.x, g10.y)
+			var uv01 := _global_terrain_uv(g01.x, g01.y)
+			var uv11 := _global_terrain_uv(g11.x, g11.y)
 
-			_add_colored_triangle(st, p00, p01, p10, color)
-			_add_colored_triangle(st, p10, p01, p11, color)
+			_add_ground_triangle(st, p00, p01, p10, uv00, uv01, uv10)
+			_add_ground_triangle(st, p10, p01, p11, uv10, uv01, uv11)
 
-	# Decorative cliff faces are generated from real height steps. The DEM is
-	# not moved; these faces only make steep changes visually explicit.
-	for gy in range(CELL_GRID):
-		for gx in range(CELL_GRID):
-			var here := cell_avgs[gy * CELL_GRID + gx]
-			var u0 := float(gx) / float(CELL_GRID)
-			var u1 := float(gx + 1) / float(CELL_GRID)
-			var v0 := float(gy) / float(CELL_GRID)
-			var v1 := float(gy + 1) / float(CELL_GRID)
-
-			if gx + 1 < CELL_GRID:
-				var east := cell_avgs[gy * CELL_GRID + gx + 1]
-				if abs(here - east) >= CLIFF_MIN_LEVELS:
-					_append_cliff_face(
-						st, z, x, y,
-						u1, v0, u1, v1,
-						here, east,
-						x + gx, y + gy
-					)
-
-			if gy + 1 < CELL_GRID:
-				var south := cell_avgs[(gy + 1) * CELL_GRID + gx]
-				if abs(here - south) >= CLIFF_MIN_LEVELS:
-					_append_cliff_face(
-						st, z, x, y,
-						u0, v1, u1, v1,
-						here, south,
-						x + gx + 17, y + gy + 31
-					)
+	# The old vertical cliff quads are intentionally not rendered in this pass.
+	# They produced dark triangular artifacts. Cliff candidates remain in the
+	# native analysis and will return later as a dedicated rock-mesh system.
+	_cliff_face_count = 0
 
 	st.generate_normals()
 	var mesh := st.commit()
@@ -608,7 +661,7 @@ func _rebuild_tile(key: String) -> void:
 		terrain_root.add_child(node)
 
 	node.mesh = mesh
-	node.material_override = _make_ground_material(null)
+	node.material_override = _get_tactical_ground_material()
 	state["node"] = node
 	_tiles[key] = state
 
@@ -1126,13 +1179,13 @@ func _build_vector_world(data: Dictionary) -> void:
 	if _landcover_feature_count > 0:
 		_commit_vertex_color_batch(landcover, "LandcoverBatch")
 	if _road_feature_count > 0:
-		_commit_vector_batch(road_shoulders, "RoadShoulderBatch", Color(0.55, 0.44, 0.27, 1.0))
-		_commit_vector_batch(roads, "RoadBatch", Color(0.20, 0.19, 0.18, 1.0))
+		_commit_vector_batch(road_shoulders, "RoadShoulderBatch", Color(0.45, 0.35, 0.22, 1.0))
+		_commit_vector_batch(roads, "RoadBatch", Color(0.70, 0.59, 0.40, 1.0))
 	if _building_feature_count > 0:
 		_commit_vector_batch(buildings, "BuildingBatch", Color(0.76, 0.68, 0.59, 1.0))
 	if _water_feature_count > 0:
-		_commit_vector_batch(water_banks, "WaterBankBatch", Color(0.48, 0.40, 0.24, 1.0))
-		_commit_vector_batch(water, "WaterBatch", Color(0.08, 0.30, 0.50, 1.0))
+		_commit_vector_batch(water_banks, "WaterBankBatch", Color(0.47, 0.39, 0.25, 1.0))
+		_commit_vector_batch(water, "WaterBatch", Color(0.07, 0.34, 0.43, 1.0))
 
 	_commit_tree_multimesh(
 		forest_trees, "ForestTrees",
@@ -1204,19 +1257,19 @@ func _append_landcover_geometry(
 func _landcover_color(kind: String) -> Color:
 	match kind:
 		"forest":
-			return Color(0.24, 0.38, 0.17, 1.0)
+			return Color(0.16, 0.31, 0.10, 1.0)
 		"orchard":
-			return Color(0.36, 0.44, 0.19, 1.0)
+			return Color(0.27, 0.39, 0.12, 1.0)
 		"farmland":
-			return Color(0.52, 0.50, 0.27, 1.0)
+			return Color(0.55, 0.47, 0.24, 1.0)
 		"meadow":
-			return Color(0.42, 0.50, 0.25, 1.0)
+			return Color(0.31, 0.46, 0.18, 1.0)
 		"scrub":
-			return Color(0.43, 0.43, 0.24, 1.0)
+			return Color(0.39, 0.39, 0.20, 1.0)
 		"park":
-			return Color(0.29, 0.46, 0.20, 1.0)
+			return Color(0.22, 0.43, 0.14, 1.0)
 		_:
-			return Color(0.46, 0.45, 0.26, 1.0)
+			return Color(0.46, 0.42, 0.23, 1.0)
 
 
 func _scatter_trees_in_polygon(

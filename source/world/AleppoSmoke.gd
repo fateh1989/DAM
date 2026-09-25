@@ -29,6 +29,16 @@ func _run() -> void:
 		quit(8)
 		return
 
+	var tactical_shader_found := false
+	for child in scene.terrain_root.get_children():
+		if child is MeshInstance3D and child.material_override is ShaderMaterial:
+			tactical_shader_found = true
+			break
+	if not tactical_shader_found:
+		push_error("Aleppo smoke: tactical continuous ground shader is missing")
+		quit(9)
+		return
+
 	scene._refresh_vector_data(true)
 	await process_frame
 
