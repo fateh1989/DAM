@@ -68,6 +68,11 @@ func set_military_status(new_strength: float, new_readiness: float) -> void:
 	queue_redraw()
 
 
+func set_selected_state(value: bool) -> void:
+	selected_province = value
+	queue_redraw()
+
+
 func set_attacking_state(value: bool) -> void:
 	attacking = value
 	set_process(attacking)
@@ -102,6 +107,9 @@ func _on_pressed() -> void:
 
 func _draw() -> void:
 	var center := Vector2(size.x * 0.5, 37.0)
+	if selected_province:
+		draw_circle(center, CLOCK_RADIUS + 7.0, Color(0.94, 0.74, 0.24, 0.28))
+		draw_arc(center, CLOCK_RADIUS + 6.0, 0.0, TAU, 56, Color(0.96, 0.78, 0.30, 1.0), 2.2)
 	draw_circle(center, CLOCK_RADIUS + 4.0, Color(0.25, 0.18, 0.08, 1.0))
 	draw_circle(center, CLOCK_RADIUS + 1.5, Color(0.67, 0.50, 0.22, 1.0))
 	draw_arc(center, CLOCK_RADIUS + 0.2, -PI * 0.75, -PI * 0.75 + PI * 1.5 * get_status_score(), 48, get_status_color(), 3.0)

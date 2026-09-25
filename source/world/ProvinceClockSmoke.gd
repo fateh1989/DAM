@@ -44,5 +44,9 @@ func run(scene: Node) -> String:
 	if not clock.has_method("_draw_attack_steam"):
 		return "province attack steam renderer is missing"
 	clock.set_attacking_state(false)
+	clock.set_selected_state(true)
+	if not clock.selected_province:
+		return "selected province highlight state was not retained"
+	clock.set_selected_state(false)
 	clock.free()
 	return ""
