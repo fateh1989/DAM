@@ -280,3 +280,26 @@ func seed_syria_gameplay_baseline() -> void:
 	create_node("latakia_market", "market", "latakia", 0.90)
 	create_node("daraa_grain", "grain", "daraa", 0.85)
 	create_node("raqqa_grain", "grain", "raqqa", 1.05)
+
+
+func get_governorate_snapshot(governorate_id: String) -> Dictionary:
+	var result := {
+		"governorate_id": governorate_id,
+		"node_count": 0,
+		"capacity": 0.0,
+		"throughput": 0.0,
+		"revenue_total": 0.0,
+		"livestock": 0.0,
+		"nodes": [],
+	}
+	for node_id in nodes.keys():
+		var node: Dictionary = nodes[node_id]
+		if str(node.get("governorate_id", "")) != governorate_id:
+			continue
+		result["node_count"] = int(result["node_count"]) + 1
+		result["capacity"] = float(result["capacity"]) + float(node.get("capacity", 0.0))
+		result["throughput"] = float(result["throughput"]) + get_node_throughput(str(node_id))
+		result["revenue_total"] = float(result["revenue_total"]) + float(node.get("revenue_total", 0.0))
+		result["livestock"] = float(result["livestock"]) + float(node.get("head_count", 0.0))
+		(result["nodes"] as Array).append(node.duplicate(true))
+	return result
