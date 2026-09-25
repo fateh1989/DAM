@@ -2140,6 +2140,14 @@ func select_units(indices: Array[int]) -> void:
 	_sync_unit_visuals()
 
 
+func toggle_unit_selection(index: int) -> void:
+	if index < 0 or index >= _units.size():
+		return
+	if not bool(_units[index].get("alive", true)):
+		return
+	_toggle_unit_selection(index)
+
+
 func select_single_unit(index: int) -> void:
 	var indices: Array[int] = []
 	if index >= 0 and index < _units.size() and bool(_units[index].get("alive", true)):

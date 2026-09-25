@@ -61,6 +61,14 @@ func _run() -> void:
 	if scene.get_selected_unit_count() != 1 or scene.get_selected_unit_indices()[0] != 1:
 		_fail(17, "Strategic unit smoke: single selection control failed")
 		return
+	scene.toggle_unit_selection(0)
+	if scene.get_selected_unit_count() != 2:
+		_fail(18, "Strategic unit smoke: toggle selection add failed")
+		return
+	scene.toggle_unit_selection(0)
+	if scene.get_selected_unit_count() != 1:
+		_fail(19, "Strategic unit smoke: toggle selection remove failed")
+		return
 	scene.select_units(selected_indices)
 	scene.issue_selected_group_move(Vector2(first_start.x + 0.08, first_start.y))
 	if scene.are_selected_units_stopped():
