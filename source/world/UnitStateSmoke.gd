@@ -67,6 +67,14 @@ func _run() -> void:
 		_fail(44, "Strategic unit smoke: radar camera mode label did not restore")
 		return
 
+	var first_radar_item: Dictionary = scene.get_radar_units()[0]
+	scene.clear_selected_units()
+	var nearest_index: int = scene.select_nearest_unit_uv(first_radar_item.get("uv", Vector2.ZERO))
+	if nearest_index != 0 or scene.get_selected_unit_count() != 1:
+		_fail(48, "Strategic unit smoke: radar nearest-unit selection failed")
+		return
+	scene.clear_selected_units()
+
 	var select_all_button := scene.get_node_or_null("HUD/CommandBar/Row/SelectAllUnitsButton") as Button
 	if select_all_button == null:
 		_fail(26, "Strategic unit smoke: select all command button missing")
