@@ -73,12 +73,17 @@ func _run() -> void:
 		_fail(11, "Unit state smoke: movement stopped when switching to map view")
 		return
 
+	var expected_target := Vector2(float(after_map["target_lon"]), float(after_map["target_lat"]))
 	scene._on_mode_pressed()
 	await process_frame
 	var after_return: Dictionary = scene._units[0]
 	var return_pos := Vector2(float(after_return["lon"]), float(after_return["lat"]))
-	if return_pos.distance_to(map_pos) > 0.000001:
-		_fail(12, "Unit state smoke: unit state changed while switching views")
+	var return_target := Vector2(float(after_return["target_lon"]), float(after_return["target_lat"]))
+	if int(after_return["army_id"]) != 1 or return_target.distance_to(expected_target) > 0.000001:
+		_fail(12, "Unit state smoke: unit identity or move order changed while switching views")
+		return
+	if return_pos.distance_to(start) + 0.000001 < map_pos.distance_to(start):
+		_fail(13, "Unit state smoke: tank moved backwards or reset while switching views")
 		return
 
 	print("Unit state smoke: 14 armies + persistent RTS/map movement OK")
