@@ -10,18 +10,18 @@ func _fail(code: int, message: String) -> void:
 
 
 func _visible_world_fits(scene) -> bool:
-	var viewport := scene.get_viewport().get_visible_rect().size
-	var aspect := maxf(0.2, float(viewport.x) / maxf(1.0, float(viewport.y)))
-	var half_h_km := scene.camera.size * 0.5
-	var half_w_km := scene.camera.size * aspect * 0.5
-	var half_lat := rad_to_deg(half_h_km / scene.EARTH_RADIUS_KM)
-	var lon_radius := scene.EARTH_RADIUS_KM * maxf(0.15, cos(deg_to_rad(scene._center_lat)))
-	var half_lon := rad_to_deg(half_w_km / lon_radius)
+	var viewport: Vector2 = scene.get_viewport().get_visible_rect().size
+	var aspect: float = maxf(0.2, float(viewport.x) / maxf(1.0, float(viewport.y)))
+	var half_h_km: float = float(scene.camera.size) * 0.5
+	var half_w_km: float = float(scene.camera.size) * aspect * 0.5
+	var half_lat: float = rad_to_deg(half_h_km / float(scene.EARTH_RADIUS_KM))
+	var lon_radius: float = float(scene.EARTH_RADIUS_KM) * maxf(0.15, cos(deg_to_rad(float(scene._center_lat))))
+	var half_lon: float = rad_to_deg(half_w_km / lon_radius)
 	return (
-		scene._center_lat - half_lat >= scene.REGION_SOUTH - 0.02
-		and scene._center_lat + half_lat <= scene.REGION_NORTH + 0.02
-		and scene._center_lon - half_lon >= scene.REGION_WEST - 0.02
-		and scene._center_lon + half_lon <= scene.REGION_EAST + 0.02
+		float(scene._center_lat) - half_lat >= float(scene.REGION_SOUTH) - 0.02
+		and float(scene._center_lat) + half_lat <= float(scene.REGION_NORTH) + 0.02
+		and float(scene._center_lon) - half_lon >= float(scene.REGION_WEST) - 0.02
+		and float(scene._center_lon) + half_lon <= float(scene.REGION_EAST) + 0.02
 	)
 
 
@@ -59,7 +59,7 @@ func _run() -> void:
 	if not (scene._strategic_node.material_override is ShaderMaterial):
 		_fail(8, "Geo overlay smoke: RTS macro does not use macro shader material")
 		return
-	var shader_path := scene._strategic_node.material_override.shader.resource_path
+	var shader_path: String = String(scene._strategic_node.material_override.shader.resource_path)
 	if not shader_path.ends_with("StrategicMacro.gdshader"):
 		_fail(9, "Geo overlay smoke: tactical noise shader leaked into RTS overview")
 		return
