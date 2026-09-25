@@ -59,6 +59,14 @@ func _run() -> void:
 		return
 	scene.select_units(selected_indices)
 	scene.issue_selected_group_move(Vector2(first_start.x + 0.08, first_start.y))
+	if scene.are_selected_units_stopped():
+		_fail(15, "Strategic unit smoke: move command did not arm movement")
+		return
+	scene.stop_selected_units()
+	if not scene.are_selected_units_stopped():
+		_fail(16, "Strategic unit smoke: stop control failed")
+		return
+	scene.issue_selected_group_move(Vector2(first_start.x + 0.08, first_start.y))
 	scene._process(1.0)
 
 	var first_after: Dictionary = scene._units[0]

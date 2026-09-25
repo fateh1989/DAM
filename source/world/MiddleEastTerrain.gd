@@ -2166,6 +2166,26 @@ func issue_selected_group_move(destination: Vector2) -> void:
 	_issue_group_move_order(_selected_unit_indices, destination)
 
 
+func stop_selected_units() -> void:
+	for index in _selected_unit_indices:
+		if index < 0 or index >= _units.size():
+			continue
+		var unit: Dictionary = _units[index]
+		unit["moving"] = false
+		unit["target_lon"] = float(unit["lon"])
+		unit["target_lat"] = float(unit["lat"])
+		_units[index] = unit
+
+
+func are_selected_units_stopped() -> bool:
+	for index in _selected_unit_indices:
+		if index < 0 or index >= _units.size():
+			continue
+		if bool(_units[index].get("moving", false)):
+			return false
+	return true
+
+
 func _issue_group_move_order(unit_indices: Array[int], destination: Vector2) -> void:
 	if unit_indices.is_empty():
 		return
