@@ -132,7 +132,12 @@ jobs:
         run: godot --headless --path . --script source/world/AleppoSmoke.gd
 
       - name: Export APK
-        run: godot --headless --path . --export-debug "Android" build/DAM.apk
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/build"
+          test -d "$GITHUB_WORKSPACE/build"
+          godot --headless --path "$GITHUB_WORKSPACE" --export-debug "Android" "$GITHUB_WORKSPACE/build/DAM.apk"
 
       - name: Verify APK
         run: |
