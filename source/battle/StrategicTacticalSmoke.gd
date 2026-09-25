@@ -9,22 +9,43 @@ func _fail(code: int, message: String) -> void:
 	quit(code)
 
 
+func _ensure_service(node_name: String, script_path: String) -> Node:
+	var service := root.get_node_or_null(node_name)
+	if service != null:
+		return service
+	var script = load(script_path)
+	if script == null:
+		return null
+	service = Node.new()
+	service.name = node_name
+	service.set_script(script)
+	root.add_child(service)
+	return service
+
+
 func _run() -> void:
-	if not GameState.ensure_started():
+	var game_state := _ensure_service("GameState", "res://source/state/GameState.gd")
+	var audio := _ensure_service("AudioFocusManager", "res://source/audio/AudioFocusManager.gd")
+	await process_frame
+
+	if game_state == null or not bool(game_state.call("ensure_started")):
 		_fail(2, "Strategic/tactical smoke: GameState failed")
+		return
+	if audio == null:
+		_fail(17, "Strategic/tactical smoke: AudioFocusManager failed")
 		return
 
 	for signature_id in ["ui", "friendly_tank", "enemy_tank", "sheep", "industrial", "oil", "grain", "market", "electric", "water"]:
-		if not AudioFocusManager.has_signature(signature_id):
-			_fail(17, "Strategic/tactical smoke: missing audio signature " + signature_id)
+		if not bool(audio.call("has_signature", signature_id)):
+			_fail(18, "Strategic/tactical smoke: missing audio signature " + signature_id)
 			return
 
-	var snapshot := GameState.get_country_snapshot("syria")
+	var snapshot: Dictionary = game_state.call("get_country_snapshot", "syria")
 	if snapshot.is_empty():
 		_fail(3, "Strategic/tactical smoke: persistent army missing")
 		return
 
-	if not GameState.begin_battle("aleppo", "حلب"):
+	if not bool(game_state.call("begin_battle", "aleppo", "حلب")):
 		_fail(4, "Strategic/tactical smoke: battle did not start")
 		return
 
@@ -81,10 +102,11 @@ func _run() -> void:
 		_fail(15, "Strategic/tactical smoke: radar camera jump failed")
 		return
 
-	GameState.finish_battle({"result": "test"})
-	if not GameState.active_battle.is_empty():
+	game_state.call("finish_battle", {"result": "test"})
+	var active_battle: Dictionary = game_state.get("active_battle")
+	if not active_battle.is_empty():
 		_fail(16, "Strategic/tactical smoke: battle state did not clear")
 		return
 
-	print("Strategic/tactical smoke: battle split + 2-step camera + radar + multi-select + combat OK")
+	print("Strategic/tactical smoke: state + battle + 2-step camera + radar + combat + audio OK")
 	quit(0)

@@ -165,6 +165,14 @@ var _mouse_press_position := Vector2.ZERO
 var _mouse_drag_distance := 0.0
 
 
+func _game_state_node() -> Node:
+	return get_node_or_null("/root/GameState")
+
+
+func _audio_focus_node() -> Node:
+	return get_node_or_null("/root/AudioFocusManager")
+
+
 func _ready() -> void:
 	if ClassDB.class_exists("DAMNativeCore"):
 		_native_core = ClassDB.instantiate("DAMNativeCore")
@@ -198,12 +206,16 @@ func _bind_audio_controls() -> void:
 	]:
 		var control := get_node_or_null(path) as Control
 		if control != null:
-			AudioFocusManager.bind_control(control, "ui")
+			var audio := _audio_focus_node()
+			if audio != null:
+				audio.call("bind_control", control, "ui")
 
 
 func _focus_world_audio(screen_position: Vector2) -> void:
 	if _units.is_empty():
-		AudioFocusManager.clear_focus()
+		var audio := _audio_focus_node()
+		if audio != null:
+			audio.call("clear_focus")
 		return
 
 	var closest_index := -1
@@ -223,9 +235,13 @@ func _focus_world_audio(screen_position: Vector2) -> void:
 			closest_index = i
 
 	if closest_index >= 0:
-		AudioFocusManager.focus_object("strategic:unit:%d" % closest_index, "friendly_tank")
+		var audio := _audio_focus_node()
+		if audio != null:
+			audio.call("focus_object", "strategic:unit:%d" % closest_index, "friendly_tank")
 	else:
-		AudioFocusManager.clear_focus()
+		var audio := _audio_focus_node()
+		if audio != null:
+			audio.call("clear_focus")
 
 
 func _setup_environment() -> void:
@@ -1760,11 +1776,12 @@ func _refresh_geo_overlay(force: bool = false) -> void:
 
 
 func _setup_army_combat_core() -> void:
-	if not GameState.ensure_started():
+	var game_state := _game_state_node()
+	if game_state == null or not bool(game_state.call("ensure_started")):
 		push_error("DAM GameState: persistent army failed to initialize")
 		_army_core = null
 		return
-	_army_core = GameState.army_core
+	_army_core = game_state.get("army_core")
 
 
 func get_country_army_snapshot(country_id: String = "syria") -> Dictionary:
@@ -3038,8 +3055,11 @@ func _on_battle_pressed() -> void:
 	var gov := _governorate()
 	var province_id := str(gov.get("slug", "unknown"))
 	var province_name := str(gov.get("name_ar", gov.get("name_en", province_id)))
-	GameState.select_province(province_id, province_name)
-	if GameState.begin_battle(province_id, province_name):
+	var game_state := _game_state_node()
+	if game_state == null:
+		return
+	game_state.call("select_province", province_id, province_name)
+	if bool(game_state.call("begin_battle", province_id, province_name)):
 		get_tree().change_scene_to_file("res://source/battle/TacticalBattle.tscn")
 
 

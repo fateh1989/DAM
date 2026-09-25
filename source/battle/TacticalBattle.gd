@@ -28,10 +28,27 @@ var _mouse_down := false
 var _mouse_drag := 0.0
 
 
+func _game_state_node() -> Node:
+	return get_node_or_null("/root/GameState")
+
+
+func _audio_focus_node() -> Node:
+	return get_node_or_null("/root/AudioFocusManager")
+
+
 func _ready() -> void:
-	if GameState.active_battle.is_empty():
-		GameState.begin_battle(GameState.selected_province_id, GameState.selected_province_name)
-	title_label.text = "DAM • %s" % str(GameState.active_battle.get("province_name", "BATTLE"))
+	var game_state := _game_state_node()
+	var active_battle: Dictionary = {}
+	if game_state != null:
+		active_battle = game_state.get("active_battle")
+		if active_battle.is_empty():
+			game_state.call(
+				"begin_battle",
+				str(game_state.get("selected_province_id")),
+				str(game_state.get("selected_province_name"))
+			)
+			active_battle = game_state.get("active_battle")
+	title_label.text = "DAM • %s" % str(active_battle.get("province_name", "BATTLE"))
 	_setup_camera()
 	_setup_ground()
 	_spawn_friendly_units()
@@ -50,19 +67,27 @@ func _bind_audio_controls() -> void:
 	]:
 		var control := get_node_or_null(path) as Control
 		if control != null:
-			AudioFocusManager.bind_control(control, "ui")
+			var audio := _audio_focus_node()
+			if audio != null:
+				audio.call("bind_control", control, "ui")
 
 
 func _focus_audio_at_screen(screen_position: Vector2) -> void:
 	var friendly := _closest_friendly_on_screen(screen_position)
 	if friendly >= 0:
-		AudioFocusManager.focus_object("battle:friendly:%d" % friendly, "friendly_tank")
+		var audio := _audio_focus_node()
+		if audio != null:
+			audio.call("focus_object", "battle:friendly:%d" % friendly, "friendly_tank")
 		return
 	var enemy := _closest_enemy_on_screen(screen_position)
 	if enemy >= 0:
-		AudioFocusManager.focus_object("battle:enemy:%d" % enemy, "enemy_tank")
+		var audio := _audio_focus_node()
+		if audio != null:
+			audio.call("focus_object", "battle:enemy:%d" % enemy, "enemy_tank")
 		return
-	AudioFocusManager.clear_focus()
+	var audio := _audio_focus_node()
+	if audio != null:
+		audio.call("clear_focus")
 
 
 func _setup_camera() -> void:
@@ -500,9 +525,11 @@ func _on_stop_pressed() -> void:
 
 
 func _on_back_pressed() -> void:
-	GameState.finish_battle({
-		"result": "retreat" if get_alive_enemy_count() > 0 else "victory",
-		"friendly_survivors": _units.size(),
-		"enemy_survivors": get_alive_enemy_count(),
-	})
+	var game_state := _game_state_node()
+	if game_state != null:
+		game_state.call("finish_battle", {
+			"result": "retreat" if get_alive_enemy_count() > 0 else "victory",
+			"friendly_survivors": _units.size(),
+			"enemy_survivors": get_alive_enemy_count(),
+		})
 	get_tree().change_scene_to_file("res://source/world/MiddleEastTerrain.tscn")
