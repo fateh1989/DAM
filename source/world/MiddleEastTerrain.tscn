@@ -172,6 +172,12 @@ layout_mode = 2
 text = "STOP"
 
 
+[node name="RadarModeButton" type="Button" parent="HUD/CommandBar/Row"]
+custom_minimum_size = Vector2(124, 46)
+layout_mode = 2
+text = "RADAR CAMERA"
+
+
 [node name="ZoomWheel" type="PanelContainer" parent="HUD"]
 visible = false
 anchor_left = 1.0
@@ -256,6 +262,7 @@ horizontal_alignment = 2
 [connection signal="pressed" from="HUD/CommandBar/Row/NextUnitButton" to="." method="_on_next_unit_pressed"]
 [connection signal="pressed" from="HUD/CommandBar/Row/FocusUnitsButton" to="." method="_on_focus_units_pressed"]
 [connection signal="pressed" from="HUD/CommandBar/Row/StopUnitsButton" to="." method="_on_stop_units_pressed"]
+[connection signal="pressed" from="HUD/CommandBar/Row/RadarModeButton" to="." method="_on_radar_mode_pressed"]
 [connection signal="value_changed" from="HUD/ZoomWheel/Column/Slider" to="." method="_on_zoom_wheel_changed"]
 
 [connection signal="pressed" from="HUD/GovernorateBar/Row/PreviousButton" to="." method="_on_previous_governorate_pressed"]

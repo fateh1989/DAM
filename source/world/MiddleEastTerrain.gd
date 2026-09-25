@@ -210,6 +210,7 @@ func _bind_audio_controls() -> void:
 		"HUD/CommandBar/Row/NextUnitButton",
 		"HUD/CommandBar/Row/FocusUnitsButton",
 		"HUD/CommandBar/Row/StopUnitsButton",
+		"HUD/CommandBar/Row/RadarModeButton",
 	]:
 		var control := get_node_or_null(path) as Control
 		if control != null:
@@ -2417,6 +2418,10 @@ func _on_focus_units_pressed() -> void:
 
 func _on_stop_units_pressed() -> void:
 	stop_selected_units()
+
+
+func _on_radar_mode_pressed() -> void:
+	toggle_radar_action_mode()
 
 
 func _on_previous_governorate_pressed() -> void:
