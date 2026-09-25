@@ -181,7 +181,51 @@ func _ready() -> void:
 	_refresh_tiles()
 	_sync_unit_visuals()
 	_refresh_geo_overlay(true)
+	_bind_audio_controls()
 	_update_status()
+
+
+func _bind_audio_controls() -> void:
+	for path in [
+		"HUD/TopBar/Row/BackButton",
+		"HUD/TopBar/Row/ResetButton",
+		"HUD/TopBar/Row/ZoomOutButton",
+		"HUD/TopBar/Row/ZoomInButton",
+		"HUD/ModeButton",
+		"HUD/GeoOverlayButton",
+		"HUD/GovernorateBar/Row/PreviousButton",
+		"HUD/GovernorateBar/Row/NextButton",
+	]:
+		var control := get_node_or_null(path) as Control
+		if control != null:
+			AudioFocusManager.bind_control(control, "ui")
+
+
+func _focus_world_audio(screen_position: Vector2) -> void:
+	if _units.is_empty():
+		AudioFocusManager.clear_focus()
+		return
+
+	var closest_index := -1
+	var closest_distance := UNIT_SELECT_RADIUS_PX
+	for i in range(_units.size()):
+		var unit: Dictionary = _units[i]
+		if not bool(unit.get("alive", true)):
+			continue
+		var node = unit.get("node")
+		if not (node is Node3D):
+			continue
+		if not is_instance_valid(node) or camera.is_position_behind(node.global_position):
+			continue
+		var distance := camera.unproject_position(node.global_position).distance_to(screen_position)
+		if distance < closest_distance:
+			closest_distance = distance
+			closest_index = i
+
+	if closest_index >= 0:
+		AudioFocusManager.focus_object("strategic:unit:%d" % closest_index, "friendly_tank")
+	else:
+		AudioFocusManager.clear_focus()
 
 
 func _setup_environment() -> void:
@@ -202,6 +246,7 @@ func _setup_environment() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed:
+			_focus_world_audio(event.position)
 			_touches[event.index] = event.position
 			_touch_press_positions[event.index] = event.position
 			_touch_drag_distance[event.index] = 0.0
@@ -278,6 +323,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_mouse_drag_distance += event.relative.length()
 		_pan_from_screen_delta(event.relative)
 		get_viewport().set_input_as_handled()
+		return
+
+	if event is InputEventMouseMotion:
+		_focus_world_audio(event.position)
 
 func _pan_from_screen_delta(delta: Vector2) -> void:
 	var viewport_height := maxf(1.0, float(get_viewport().get_visible_rect().size.y))
