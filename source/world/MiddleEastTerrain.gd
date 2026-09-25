@@ -2091,6 +2091,7 @@ func get_radar_units() -> Array:
 			"uv": Vector2(u, v),
 			"color": _army_color(i),
 			"selected": i in _selected_unit_indices,
+			"primary": i == _selected_unit_index,
 		})
 	return result
 
