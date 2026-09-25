@@ -40,6 +40,14 @@ func has_signature(signature_id: String) -> bool:
 	return _buffers.has(signature_id)
 
 
+func get_last_focus_key() -> String:
+	return _last_focus_key
+
+
+func is_control_bound(control: Control) -> bool:
+	return control != null and bool(control.get_meta("dam_audio_bound", false))
+
+
 func focus_object(focus_key: String, signature_id: String, force: bool = false) -> void:
 	if focus_key.is_empty() or not _buffers.has(signature_id):
 		return

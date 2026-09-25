@@ -63,6 +63,16 @@ func _run() -> void:
 	await process_frame
 	print("SMOKE checkpoint 5: first frame")
 
+	var select_all_button := battle.get_node_or_null("HUD/CommandBar/SelectAllButton") as Control
+	var stop_button := battle.get_node_or_null("HUD/CommandBar/StopButton") as Control
+	if not bool(audio.call("is_control_bound", select_all_button)) or not bool(audio.call("is_control_bound", stop_button)):
+		_fail(32, "Strategic/tactical smoke: mobile battle controls are missing audio focus binding")
+		return
+	audio.call("focus_object", "smoke:friendly-tank", "friendly_tank", true)
+	if str(audio.call("get_last_focus_key")) != "smoke:friendly-tank":
+		_fail(33, "Strategic/tactical smoke: touch/hover audio focus did not register")
+		return
+
 	var battle_context: Dictionary = battle.get_battle_context()
 	if str(battle_context.get("province_id", "")) != "aleppo":
 		_fail(19, "Strategic/tactical smoke: tactical battle lost province id")
