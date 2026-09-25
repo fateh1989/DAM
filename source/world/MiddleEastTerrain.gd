@@ -2140,6 +2140,12 @@ func select_units(indices: Array[int]) -> void:
 	_sync_unit_visuals()
 
 
+func clear_selected_units() -> void:
+	_selected_unit_indices.clear()
+	_selected_unit_index = -1
+	_sync_unit_visuals()
+
+
 func get_selected_unit_indices() -> Array[int]:
 	return _selected_unit_indices.duplicate()
 
