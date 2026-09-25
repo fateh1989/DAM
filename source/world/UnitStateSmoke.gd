@@ -39,6 +39,16 @@ func _run() -> void:
 		_fail(55, "Radar core smoke: " + radar_error)
 		return
 
+	var movement_contract_script := load("res://source/world/MovementCoreSmoke.gd") as Script
+	if movement_contract_script == null:
+		_fail(56, "Movement core smoke: contract script missing")
+		return
+	var movement_contract = movement_contract_script.new()
+	var movement_error := str(movement_contract.call("run", scene))
+	if not movement_error.is_empty():
+		_fail(57, "Movement core smoke: " + movement_error)
+		return
+
 	if scene._units.size() != scene.GOVERNORATES.size() or scene._units.size() != 14:
 		_fail(3, "Strategic unit smoke: expected one persistent tank per governorate")
 		return

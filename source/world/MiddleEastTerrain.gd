@@ -2336,17 +2336,17 @@ func focus_selected_units() -> bool:
 	return true
 
 
-func issue_selected_group_move(destination: Vector2) -> void:
-	_issue_group_move_order(_selected_unit_indices, destination)
+func issue_selected_group_move(destination: Vector2) -> bool:
+	return _issue_group_move_order(_selected_unit_indices, destination)
 
 
-func issue_selected_group_move_uv(uv: Vector2) -> void:
+func issue_selected_group_move_uv(uv: Vector2) -> bool:
 	var clamped := Vector2(clampf(uv.x, 0.0, 1.0), clampf(uv.y, 0.0, 1.0))
 	var destination := Vector2(
 		lerpf(REGION_WEST, REGION_EAST, clamped.x),
 		lerpf(REGION_NORTH, REGION_SOUTH, clamped.y)
 	)
-	_issue_group_move_order(_selected_unit_indices, destination)
+	return _issue_group_move_order(_selected_unit_indices, destination)
 
 
 func stop_selected_units() -> void:
@@ -2369,9 +2369,10 @@ func are_selected_units_stopped() -> bool:
 	return true
 
 
-func _issue_group_move_order(unit_indices: Array[int], destination: Vector2) -> void:
+func _issue_group_move_order(unit_indices: Array[int], destination: Vector2) -> bool:
 	if unit_indices.is_empty():
-		return
+		return false
+	var issued_count := 0
 	var columns := maxi(1, int(ceil(sqrt(float(unit_indices.size())))))
 	for order_index in range(unit_indices.size()):
 		var row := int(order_index / columns)
@@ -2384,23 +2385,26 @@ func _issue_group_move_order(unit_indices: Array[int], destination: Vector2) -> 
 		var target_lat := destination.y + rad_to_deg(north_km / EARTH_RADIUS_KM)
 		var lon_radius := EARTH_RADIUS_KM * maxf(0.15, cos(deg_to_rad(destination.y)))
 		var target_lon := destination.x + rad_to_deg(east_km / lon_radius)
-		_issue_move_order(
+		if _issue_move_order(
 			unit_indices[order_index],
 			Vector2(
 				clampf(target_lon, REGION_WEST, REGION_EAST),
 				clampf(target_lat, REGION_SOUTH, REGION_NORTH)
 			)
-		)
+		):
+			issued_count += 1
+	return issued_count > 0
 
 
-func _issue_move_order(unit_index: int, destination: Vector2) -> void:
+func _issue_move_order(unit_index: int, destination: Vector2) -> bool:
 	if unit_index < 0 or unit_index >= _units.size():
-		return
+		return false
 	var unit: Dictionary = _units[unit_index]
 	unit["target_lon"] = clampf(destination.x, REGION_WEST, REGION_EAST)
 	unit["target_lat"] = clampf(destination.y, REGION_SOUTH, REGION_NORTH)
 	unit["moving"] = true
 	_units[unit_index] = unit
+	return true
 
 
 func _process(delta: float) -> void:
