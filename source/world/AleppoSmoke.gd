@@ -34,7 +34,7 @@ func _run() -> void:
 	for state in scene._tiles.values():
 		var levels = state.get("cell_levels", PackedInt32Array())
 		cell_level_count += levels.size()
-	print("Aleppo smoke draw_nodes=", vector_count, " features=", feature_count, " labels=", label_count, " cell_levels=", cell_level_count)
+	print("Aleppo smoke draw_nodes=", vector_count, " features=", feature_count, " labels=", label_count, " cell_levels=", cell_level_count, " trees=", scene._tree_instance_count, " cliffs=", scene._cliff_face_count)
 
 	if cell_level_count < 100:
 		push_error("Aleppo smoke: cell engine did not compile terrain cells")

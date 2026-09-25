@@ -356,3 +356,12 @@ This document is the persistent source of truth for DAM.
 DAM is considered feature-complete only when it has a polished Android control/UI layer; three complete asymmetric factions; economy, power, construction and tech trees; land, air and naval combat; abilities and superweapons; robust fog/minimap; competent skirmish AI; multiple maps; campaign framework/content; saves/settings; audio/VFX; and a reproducible stable APK build.
 
 This vision is intentionally larger than the current prototype. Development should reach it through playable, testable milestones rather than attempting a single giant rewrite.
+
+
+## Terrain v2 — classic RTS art direction
+
+The geographic source remains real: DEM elevation, OpenStreetMap roads/buildings/water and mapped land-cover geometry. Terrain v2 changes only presentation. It uses high-contrast battlefield colors, deterministic ground breakup, visible rock faces for steep DEM transitions, road shoulders, water banks, and GPU-instanced vegetation inside real mapped forest/orchard/park polygons.
+
+Individual procedural tree positions are visual fill inside a real mapped vegetation polygon and are not claimed to be survey-accurate tree coordinates. This distinction must remain explicit as the project adds higher-quality land-cover sources.
+
+The goal is the readability and visual composition of a classic isometric RTS without copying any proprietary Red Alert art assets, textures, maps, or models.

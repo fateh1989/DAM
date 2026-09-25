@@ -8,9 +8,6 @@ import osmium
 PBF = sys.argv[1] if len(sys.argv) > 1 else "/tmp/syria.osm.pbf"
 OUT_DIR = sys.argv[2] if len(sys.argv) > 2 else "source/world/data"
 
-# First-pass detailed urban sectors: one real sector for each Syrian governorate.
-# These are intentionally compact enough for Android; later we expand sectors
-# until every governorate becomes continuous.
 GOVERNORATES = [
     {"slug":"damascus","name_ar":"دمشق","name_en":"Damascus","lat":33.5138,"lon":36.2765},
     {"slug":"rif_dimashq","name_ar":"ريف دمشق","name_en":"Rif Dimashq","lat":33.5723,"lon":36.4027},
@@ -34,6 +31,7 @@ MAX_ROADS = 2600
 MAX_BUILDINGS = 1500
 MAX_WATER = 350
 MAX_PLACES = 120
+MAX_LANDCOVER = 650
 
 for g in GOVERNORATES:
     g["south"] = g["lat"] - HALF_LAT
@@ -44,6 +42,7 @@ for g in GOVERNORATES:
     g["buildings"] = []
     g["water"] = []
     g["places"] = []
+    g["landcover"] = []
 
 
 def in_bbox(lat, lon, g):
@@ -58,6 +57,26 @@ def distance2(lat, lon, g):
 
 def compact_tags(tags, keys):
     return {k: tags[k] for k in keys if k in tags}
+
+
+def classify_landcover(tags):
+    landuse = tags.get("landuse", "")
+    natural = tags.get("natural", "")
+    leisure = tags.get("leisure", "")
+
+    if natural == "wood" or landuse == "forest":
+        return "forest"
+    if landuse == "orchard":
+        return "orchard"
+    if landuse in {"farmland", "farm"}:
+        return "farmland"
+    if landuse == "meadow" or natural in {"grassland", "heath"}:
+        return "meadow"
+    if natural == "scrub":
+        return "scrub"
+    if leisure in {"park", "garden"}:
+        return "park"
+    return None
 
 
 class SyriaHandler(osmium.SimpleHandler):
@@ -83,11 +102,13 @@ class SyriaHandler(osmium.SimpleHandler):
 
     def way(self, w):
         tags = dict(w.tags)
+        cover = classify_landcover(tags)
         relevant = (
             "highway" in tags
             or "building" in tags
             or "waterway" in tags
             or tags.get("natural") == "water"
+            or cover is not None
         )
         if not relevant:
             return
@@ -126,27 +147,32 @@ class SyriaHandler(osmium.SimpleHandler):
             if not intersects:
                 continue
 
+            d2 = distance2(center_lat, center_lon, g)
+
             if "highway" in tags:
-                item = {
+                g["roads"].append((d2, {
                     "type":"way",
                     "geometry":geom,
                     "tags":{"highway":tags.get("highway","road")},
-                }
-                g["roads"].append((distance2(center_lat, center_lon, g), item))
+                }))
             elif "building" in tags and len(geom) >= 4:
-                item = {
+                g["buildings"].append((d2, {
                     "type":"way",
                     "geometry":geom,
                     "tags":compact_tags(tags, ("building","height","building:levels")),
-                }
-                g["buildings"].append((distance2(center_lat, center_lon, g), item))
+                }))
             elif "waterway" in tags or tags.get("natural") == "water":
-                item = {
+                g["water"].append((d2, {
                     "type":"way",
                     "geometry":geom,
                     "tags":compact_tags(tags, ("waterway","natural")),
-                }
-                g["water"].append((distance2(center_lat, center_lon, g), item))
+                }))
+            elif cover is not None and len(geom) >= 4:
+                g["landcover"].append((d2, {
+                    "type":"way",
+                    "geometry":geom,
+                    "tags":{"dam:landcover":cover},
+                }))
 
 
 def take_nearest(items, limit):
@@ -164,6 +190,7 @@ for g in GOVERNORATES:
     buildings = take_nearest(g["buildings"], MAX_BUILDINGS)
     water = take_nearest(g["water"], MAX_WATER)
     places = take_nearest(g["places"], MAX_PLACES)
+    landcover = take_nearest(g["landcover"], MAX_LANDCOVER)
 
     payload = {
         "meta":{
@@ -173,7 +200,7 @@ for g in GOVERNORATES:
             "center":[g["lat"],g["lon"]],
             "sector_bbox":[g["south"],g["west"],g["north"],g["east"]],
         },
-        "elements": roads + water + places + buildings,
+        "elements": landcover + roads + water + places + buildings,
     }
 
     path = os.path.join(OUT_DIR, f"syria_{g['slug']}.json")
@@ -183,6 +210,7 @@ for g in GOVERNORATES:
     size = os.path.getsize(path)
     print(
         g["slug"],
+        "landcover",len(landcover),
         "roads",len(roads),
         "buildings",len(buildings),
         "water",len(water),
@@ -197,6 +225,7 @@ for g in GOVERNORATES:
         "lon":g["lon"],
         "file":f"syria_{g['slug']}.json",
         "bytes":size,
+        "landcover":len(landcover),
     })
 
 with open(os.path.join(OUT_DIR, "syria_manifest.json"), "w", encoding="utf-8") as f:

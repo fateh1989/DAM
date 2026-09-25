@@ -55,6 +55,9 @@ const VERTICAL_EXAGGERATION := 2.2
 const CELL_GRID := 48
 const CELL_HEIGHT_STEP_M := 20.0
 const CELL_MAX_CORNER_DELTA := 1
+const CLIFF_MIN_LEVELS := 2
+const MAX_FOREST_TREES := 700
+const MAX_ORCHARD_TREES := 450
 
 # Vector-detail query radius around current terrain camera.
 const VECTOR_HALF_LAT := 0.055
@@ -63,6 +66,7 @@ const VECTOR_REFRESH_DISTANCE_DEG := 0.025
 
 @onready var terrain_root: Node3D = $TerrainRoot
 @onready var vector_root: Node3D = $VectorRoot
+@onready var vegetation_root: Node3D = $VegetationRoot
 @onready var labels_root: Node3D = $LabelsRoot
 @onready var camera: Camera3D = $Camera3D
 @onready var world_environment: WorldEnvironment = $WorldEnvironment
@@ -102,6 +106,9 @@ var _feature_count := 0
 var _road_feature_count := 0
 var _building_feature_count := 0
 var _water_feature_count := 0
+var _landcover_feature_count := 0
+var _tree_instance_count := 0
+var _cliff_face_count := 0
 
 
 func _ready() -> void:
@@ -117,11 +124,11 @@ func _ready() -> void:
 func _setup_environment() -> void:
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color(0.24, 0.34, 0.42, 1.0)
-	environment.background_energy_multiplier = 0.8
+	environment.background_color = Color(0.19, 0.28, 0.34, 1.0)
+	environment.background_energy_multiplier = 0.72
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color(0.72, 0.74, 0.76, 1.0)
-	environment.ambient_light_energy = 0.85
+	environment.ambient_light_color = Color(0.70, 0.68, 0.58, 1.0)
+	environment.ambient_light_energy = 0.58
 	world_environment.environment = environment
 
 
@@ -222,9 +229,9 @@ func _position_camera() -> void:
 
 	if _terrain_mode:
 		camera.projection = Camera3D.PROJECTION_PERSPECTIVE
-		camera.position = center + Vector3(0.0, 5.4, 6.2)
-		camera.look_at(center + Vector3(0.0, 0.18, 0.0), Vector3.UP)
-		camera.fov = 44.0
+		camera.position = center + Vector3(0.0, 6.1, 7.2)
+		camera.look_at(center + Vector3(0.0, 0.12, 0.0), Vector3.UP)
+		camera.fov = 40.0
 		camera.near = 0.01
 		camera.far = 1000.0
 	else:
@@ -433,7 +440,8 @@ func _rebuild_tile(key: String) -> void:
 		_build_map_quad(state, key, z, x, y, map_texture)
 		return
 
-	# Compile the real DEM into explicit RTS cells first.
+	# Real DEM stays authoritative. We only quantize and art-direct its visual
+	# presentation so the battlefield reads like a classic RTS.
 	var levels := PackedInt32Array()
 	levels.resize((CELL_GRID + 1) * (CELL_GRID + 1))
 
@@ -444,12 +452,8 @@ func _rebuild_tile(key: String) -> void:
 			var elevation_m := 0.0
 			if dem_image != null:
 				elevation_m = _sample_dem(dem_image, u, v)
-			var level := int(round(elevation_m / CELL_HEIGHT_STEP_M))
-			levels[gy * (CELL_GRID + 1) + gx] = level
+			levels[gy * (CELL_GRID + 1) + gx] = int(round(elevation_m / CELL_HEIGHT_STEP_M))
 
-	# Constrain each corner so a playable ramp never jumps more than one
-	# height step from the cell's average level. Large real elevation changes
-	# naturally become a sequence of RTS levels across neighbouring cells.
 	for gy in range(CELL_GRID):
 		for gx in range(CELL_GRID):
 			var i00 := gy * (CELL_GRID + 1) + gx
@@ -468,11 +472,11 @@ func _rebuild_tile(key: String) -> void:
 	state["cell_levels"] = levels
 	_tiles[key] = state
 
+	var cell_avgs := PackedInt32Array()
+	cell_avgs.resize(CELL_GRID * CELL_GRID)
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 
-	# Each cell owns its vertices. This intentionally creates the crisp,
-	# readable faceting of a classic RTS instead of one smoothed 3D sheet.
 	for gy in range(CELL_GRID):
 		var v0 := float(gy) / float(CELL_GRID)
 		var v1 := float(gy + 1) / float(CELL_GRID)
@@ -489,28 +493,56 @@ func _rebuild_tile(key: String) -> void:
 			var l10 := levels[i10]
 			var l01 := levels[i01]
 			var l11 := levels[i11]
+			var avg_level := int(round((float(l00) + float(l10) + float(l01) + float(l11)) * 0.25))
+			cell_avgs[gy * CELL_GRID + gx] = avg_level
 
 			var p00 := _cell_vertex(z, x, y, u0, v0, l00)
 			var p10 := _cell_vertex(z, x, y, u1, v0, l10)
 			var p01 := _cell_vertex(z, x, y, u0, v1, l01)
 			var p11 := _cell_vertex(z, x, y, u1, v1, l11)
 
-			var avg_level := (l00 + l10 + l01 + l11) / 4.0
-			var color := _cell_terrain_color(avg_level * CELL_HEIGHT_STEP_M)
+			var local_slope := maxi(
+				maxi(abs(l00 - l11), abs(l10 - l01)),
+				maxi(abs(l00 - l10), abs(l00 - l01))
+			)
+			var color := _styled_ground_color(
+				float(avg_level) * CELL_HEIGHT_STEP_M,
+				local_slope,
+				x, y, gx, gy
+			)
 
-			st.set_color(color)
-			st.add_vertex(p00)
-			st.set_color(color)
-			st.add_vertex(p01)
-			st.set_color(color)
-			st.add_vertex(p10)
+			_add_colored_triangle(st, p00, p01, p10, color)
+			_add_colored_triangle(st, p10, p01, p11, color)
 
-			st.set_color(color)
-			st.add_vertex(p10)
-			st.set_color(color)
-			st.add_vertex(p01)
-			st.set_color(color)
-			st.add_vertex(p11)
+	# Decorative cliff faces are generated from real height steps. The DEM is
+	# not moved; these faces only make steep changes visually explicit.
+	for gy in range(CELL_GRID):
+		for gx in range(CELL_GRID):
+			var here := cell_avgs[gy * CELL_GRID + gx]
+			var u0 := float(gx) / float(CELL_GRID)
+			var u1 := float(gx + 1) / float(CELL_GRID)
+			var v0 := float(gy) / float(CELL_GRID)
+			var v1 := float(gy + 1) / float(CELL_GRID)
+
+			if gx + 1 < CELL_GRID:
+				var east := cell_avgs[gy * CELL_GRID + gx + 1]
+				if abs(here - east) >= CLIFF_MIN_LEVELS:
+					_append_cliff_face(
+						st, z, x, y,
+						u1, v0, u1, v1,
+						here, east,
+						x + gx, y + gy
+					)
+
+			if gy + 1 < CELL_GRID:
+				var south := cell_avgs[(gy + 1) * CELL_GRID + gx]
+				if abs(here - south) >= CLIFF_MIN_LEVELS:
+					_append_cliff_face(
+						st, z, x, y,
+						u0, v1, u1, v1,
+						here, south,
+						x + gx + 17, y + gy + 31
+					)
 
 	st.generate_normals()
 	var mesh := st.commit()
@@ -520,7 +552,7 @@ func _rebuild_tile(key: String) -> void:
 	var node: MeshInstance3D = state.get("node")
 	if not is_instance_valid(node):
 		node = MeshInstance3D.new()
-		node.name = "CellTile_%d_%d_%d" % [z, x, y]
+		node.name = "RTSTile_%d_%d_%d" % [z, x, y]
 		terrain_root.add_child(node)
 
 	node.mesh = mesh
@@ -528,6 +560,86 @@ func _rebuild_tile(key: String) -> void:
 	state["node"] = node
 	_tiles[key] = state
 
+
+func _add_colored_triangle(
+	st: SurfaceTool,
+	a: Vector3,
+	b: Vector3,
+	c: Vector3,
+	color: Color
+) -> void:
+	st.set_color(color); st.add_vertex(a)
+	st.set_color(color); st.add_vertex(b)
+	st.set_color(color); st.add_vertex(c)
+
+
+func _append_cliff_face(
+	st: SurfaceTool,
+	z: int,
+	x: int,
+	y: int,
+	u0: float,
+	v0: float,
+	u1: float,
+	v1: float,
+	level_a: int,
+	level_b: int,
+	noise_x: int,
+	noise_y: int
+) -> void:
+	var high := maxi(level_a, level_b)
+	var low := mini(level_a, level_b)
+	var top0 := _cell_vertex(z, x, y, u0, v0, high)
+	var top1 := _cell_vertex(z, x, y, u1, v1, high)
+	var bottom0 := _cell_vertex(z, x, y, u0, v0, low)
+	var bottom1 := _cell_vertex(z, x, y, u1, v1, low)
+	var rock := _cliff_color(float(high) * CELL_HEIGHT_STEP_M, noise_x, noise_y)
+
+	_add_colored_triangle(st, top0, bottom0, top1, rock)
+	_add_colored_triangle(st, top1, bottom0, bottom1, rock)
+	_cliff_face_count += 1
+
+
+func _styled_ground_color(
+	elevation_m: float,
+	slope_steps: int,
+	tile_x: int,
+	tile_y: int,
+	cell_x: int,
+	cell_y: int
+) -> Color:
+	var base := _cell_terrain_color(elevation_m)
+	var fine := _hash_noise(tile_x * 53 + cell_x, tile_y * 47 + cell_y)
+	var patch := _hash_noise(tile_x * 11 + int(cell_x / 4), tile_y * 13 + int(cell_y / 4))
+	var factor := 0.88 + fine * 0.22
+
+	if patch > 0.68:
+		base = base.lerp(Color(0.59, 0.49, 0.27, 1.0), 0.25)
+	elif patch < 0.20:
+		base = base.lerp(Color(0.34, 0.43, 0.23, 1.0), 0.18)
+
+	if slope_steps >= CLIFF_MIN_LEVELS:
+		base = base.lerp(Color(0.55, 0.36, 0.18, 1.0), 0.28)
+
+	return Color(
+		clampf(base.r * factor, 0.0, 1.0),
+		clampf(base.g * factor, 0.0, 1.0),
+		clampf(base.b * factor, 0.0, 1.0),
+		1.0
+	)
+
+
+func _cliff_color(elevation_m: float, x: int, y: int) -> Color:
+	var n := _hash_noise(x * 7, y * 11)
+	var base := Color(0.55, 0.31, 0.14, 1.0)
+	if elevation_m > 900.0:
+		base = Color(0.46, 0.36, 0.27, 1.0)
+	return base.lerp(Color(0.72, 0.49, 0.24, 1.0), n * 0.38)
+
+
+func _hash_noise(x: int, y: int) -> float:
+	var value := sin(float(x) * 12.9898 + float(y) * 78.233) * 43758.5453
+	return value - floor(value)
 
 func _build_map_quad(
 	state: Dictionary,
@@ -582,17 +694,18 @@ func _cell_vertex(z: int, x: int, y: int, u: float, v: float, level: int) -> Vec
 
 
 func _cell_terrain_color(elevation_m: float) -> Color:
-	# Readable RTS palette. Real land-cover classification will replace these
-	# broad elevation colors after the cell engine itself is verified.
+	# High-contrast RTS palette. Geographic shape remains real; palette is
+	# deliberately art-directed for readability at battlefield zoom.
 	if elevation_m < 250.0:
-		return Color(0.53, 0.47, 0.30, 1.0)
+		return Color(0.53, 0.49, 0.28, 1.0)
 	if elevation_m < 450.0:
-		return Color(0.46, 0.43, 0.27, 1.0)
+		return Color(0.48, 0.49, 0.27, 1.0)
 	if elevation_m < 700.0:
-		return Color(0.40, 0.39, 0.26, 1.0)
+		return Color(0.43, 0.44, 0.25, 1.0)
 	if elevation_m < 1100.0:
-		return Color(0.38, 0.35, 0.28, 1.0)
-	return Color(0.48, 0.46, 0.42, 1.0)
+		return Color(0.43, 0.39, 0.27, 1.0)
+	return Color(0.50, 0.47, 0.39, 1.0)
+
 
 func _make_ground_material(map_texture: Texture2D) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
@@ -746,14 +859,25 @@ func _build_vector_world(data: Dictionary) -> void:
 	_road_feature_count = 0
 	_building_feature_count = 0
 	_water_feature_count = 0
+	_landcover_feature_count = 0
+	_tree_instance_count = 0
 
+	var landcover := SurfaceTool.new()
+	var road_shoulders := SurfaceTool.new()
 	var roads := SurfaceTool.new()
 	var buildings := SurfaceTool.new()
+	var water_banks := SurfaceTool.new()
 	var water := SurfaceTool.new()
+
+	landcover.begin(Mesh.PRIMITIVE_TRIANGLES)
+	road_shoulders.begin(Mesh.PRIMITIVE_TRIANGLES)
 	roads.begin(Mesh.PRIMITIVE_TRIANGLES)
 	buildings.begin(Mesh.PRIMITIVE_TRIANGLES)
+	water_banks.begin(Mesh.PRIMITIVE_TRIANGLES)
 	water.begin(Mesh.PRIMITIVE_TRIANGLES)
 
+	var forest_trees: Array[Transform3D] = []
+	var orchard_trees: Array[Transform3D] = []
 	var building_limit := 1200
 
 	for element in elements:
@@ -773,30 +897,254 @@ func _build_vector_world(data: Dictionary) -> void:
 		if geometry.size() < 2:
 			continue
 
-		if tags.has("highway"):
-			if _append_road_geometry(roads, geometry, tags):
+		if tags.has("dam:landcover"):
+			if _append_landcover_geometry(
+				landcover, geometry, tags,
+				forest_trees, orchard_trees
+			):
+				_landcover_feature_count += 1
+		elif tags.has("highway"):
+			if _append_road_geometry(roads, road_shoulders, geometry, tags):
 				_road_feature_count += 1
 		elif tags.has("building") and _building_feature_count < building_limit:
 			if _append_building_geometry(buildings, geometry, tags):
 				_building_feature_count += 1
 		elif tags.has("waterway") or tags.get("natural", "") == "water":
-			if _append_water_geometry(water, geometry):
+			if _append_water_geometry(water, water_banks, geometry):
 				_water_feature_count += 1
 
-	_feature_count = _road_feature_count + _building_feature_count + _water_feature_count
+	_feature_count = (
+		_road_feature_count + _building_feature_count
+		+ _water_feature_count + _landcover_feature_count
+	)
 
-	# Thousands of OSM features become only a few draw nodes. This is the key
-	# Android optimization: data count stays high while SceneTree node count
-	# stays tiny.
+	if _landcover_feature_count > 0:
+		_commit_vertex_color_batch(landcover, "LandcoverBatch")
 	if _road_feature_count > 0:
-		_commit_vector_batch(roads, "RoadBatch", Color(0.24, 0.23, 0.22, 1.0))
+		_commit_vector_batch(road_shoulders, "RoadShoulderBatch", Color(0.55, 0.44, 0.27, 1.0))
+		_commit_vector_batch(roads, "RoadBatch", Color(0.20, 0.19, 0.18, 1.0))
 	if _building_feature_count > 0:
-		_commit_vector_batch(buildings, "BuildingBatch", Color(0.78, 0.72, 0.66, 1.0))
+		_commit_vector_batch(buildings, "BuildingBatch", Color(0.76, 0.68, 0.59, 1.0))
 	if _water_feature_count > 0:
-		_commit_vector_batch(water, "WaterBatch", Color(0.10, 0.38, 0.62, 1.0))
+		_commit_vector_batch(water_banks, "WaterBankBatch", Color(0.48, 0.40, 0.24, 1.0))
+		_commit_vector_batch(water, "WaterBatch", Color(0.08, 0.30, 0.50, 1.0))
+
+	_commit_tree_multimesh(
+		forest_trees, "ForestTrees",
+		Color(0.18, 0.34, 0.12, 1.0)
+	)
+	_commit_tree_multimesh(
+		orchard_trees, "OrchardTrees",
+		Color(0.28, 0.40, 0.15, 1.0)
+	)
+	_tree_instance_count = forest_trees.size() + orchard_trees.size()
 
 
-func _append_road_geometry(st: SurfaceTool, geometry: Array, tags: Dictionary) -> bool:
+func _append_landcover_geometry(
+	st: SurfaceTool,
+	geometry: Array,
+	tags: Dictionary,
+	forest_trees: Array[Transform3D],
+	orchard_trees: Array[Transform3D]
+) -> bool:
+	if geometry.size() < 4:
+		return false
+
+	var kind := str(tags.get("dam:landcover", ""))
+	var local_points: Array[Vector3] = []
+	var geo_polygon := PackedVector2Array()
+
+	for p in geometry:
+		if typeof(p) != TYPE_DICTIONARY:
+			continue
+		var lon := float(p.get("lon", 0.0))
+		var lat := float(p.get("lat", 0.0))
+		var h := _height_at_geo(lon, lat) + 0.0025
+		local_points.append(_geo_to_local(lon, lat, h))
+		geo_polygon.append(Vector2(lon, lat))
+
+	if local_points.size() < 4:
+		return false
+
+	if local_points[0].distance_to(local_points[local_points.size() - 1]) < 0.0005:
+		local_points.pop_back()
+		geo_polygon.resize(geo_polygon.size() - 1)
+
+	if local_points.size() < 3:
+		return false
+
+	var polygon2d := PackedVector2Array()
+	for p in local_points:
+		polygon2d.append(Vector2(p.x, p.z))
+
+	var triangles := Geometry2D.triangulate_polygon(polygon2d)
+	if triangles.is_empty():
+		return false
+
+	var color := _landcover_color(kind)
+	for i in range(0, triangles.size(), 3):
+		var a := local_points[triangles[i]]
+		var b := local_points[triangles[i + 1]]
+		var c := local_points[triangles[i + 2]]
+		_add_colored_triangle(st, a, b, c, color)
+
+	if kind in ["forest", "park"] and forest_trees.size() < MAX_FOREST_TREES:
+		_scatter_trees_in_polygon(geo_polygon, kind, forest_trees, MAX_FOREST_TREES)
+	elif kind == "orchard" and orchard_trees.size() < MAX_ORCHARD_TREES:
+		_scatter_trees_in_polygon(geo_polygon, kind, orchard_trees, MAX_ORCHARD_TREES)
+
+	return true
+
+
+func _landcover_color(kind: String) -> Color:
+	match kind:
+		"forest":
+			return Color(0.24, 0.38, 0.17, 1.0)
+		"orchard":
+			return Color(0.36, 0.44, 0.19, 1.0)
+		"farmland":
+			return Color(0.52, 0.50, 0.27, 1.0)
+		"meadow":
+			return Color(0.42, 0.50, 0.25, 1.0)
+		"scrub":
+			return Color(0.43, 0.43, 0.24, 1.0)
+		"park":
+			return Color(0.29, 0.46, 0.20, 1.0)
+		_:
+			return Color(0.46, 0.45, 0.26, 1.0)
+
+
+func _scatter_trees_in_polygon(
+	polygon: PackedVector2Array,
+	kind: String,
+	out: Array[Transform3D],
+	max_count: int
+) -> void:
+	if polygon.size() < 3 or out.size() >= max_count:
+		return
+
+	var min_lon := polygon[0].x
+	var max_lon := polygon[0].x
+	var min_lat := polygon[0].y
+	var max_lat := polygon[0].y
+	for p in polygon:
+		min_lon = minf(min_lon, p.x)
+		max_lon = maxf(max_lon, p.x)
+		min_lat = minf(min_lat, p.y)
+		max_lat = maxf(max_lat, p.y)
+
+	var lat_km := (max_lat - min_lat) * 111.0
+	var lon_km := (max_lon - min_lon) * 111.0 * maxf(0.2, cos(deg_to_rad((min_lat + max_lat) * 0.5)))
+	var area_km2 := maxf(0.0001, lat_km * lon_km)
+	var density := 95.0 if kind in ["forest", "park"] else 125.0
+	var target := clampi(int(area_km2 * density), 3, 90)
+	target = mini(target, max_count - out.size())
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(abs(hash("%s|%.6f|%.6f|%.6f|%.6f" % [
+		kind, min_lon, min_lat, max_lon, max_lat
+	])))
+
+	var placed := 0
+	var attempts := maxi(24, target * 10)
+	for _attempt in range(attempts):
+		if placed >= target or out.size() >= max_count:
+			break
+		var lon := rng.randf_range(min_lon, max_lon)
+		var lat := rng.randf_range(min_lat, max_lat)
+		if not Geometry2D.is_point_in_polygon(Vector2(lon, lat), polygon):
+			continue
+
+		var h := _height_at_geo(lon, lat) + 0.002
+		var origin := _geo_to_local(lon, lat, h)
+		var size_jitter := rng.randf_range(0.78, 1.22)
+		var width := (0.0085 if kind in ["forest", "park"] else 0.0065) * size_jitter
+		var height := (0.017 if kind in ["forest", "park"] else 0.011) * size_jitter
+		var rotation := rng.randf_range(0.0, TAU)
+		var basis := Basis(Vector3.UP, rotation).scaled(Vector3(width, height, width))
+		out.append(Transform3D(basis, origin))
+		placed += 1
+
+
+func _commit_tree_multimesh(
+	transforms: Array[Transform3D],
+	node_name: String,
+	canopy_color: Color
+) -> void:
+	if transforms.is_empty():
+		return
+
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = _make_tree_mesh(canopy_color)
+	multimesh.instance_count = transforms.size()
+
+	for i in range(transforms.size()):
+		multimesh.set_instance_transform(i, transforms[i])
+
+	var node := MultiMeshInstance3D.new()
+	node.name = node_name
+	node.multimesh = multimesh
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	vegetation_root.add_child(node)
+
+
+func _make_tree_mesh(canopy_color: Color) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+	var trunk := Color(0.25, 0.16, 0.08, 1.0)
+	var half := 0.085
+	var trunk_top := 0.42
+
+	var base := [
+		Vector3(-half, 0.0, -half),
+		Vector3( half, 0.0, -half),
+		Vector3( half, 0.0,  half),
+		Vector3(-half, 0.0,  half)
+	]
+	var top := [
+		Vector3(-half, trunk_top, -half),
+		Vector3( half, trunk_top, -half),
+		Vector3( half, trunk_top,  half),
+		Vector3(-half, trunk_top,  half)
+	]
+
+	for i in range(4):
+		var j := (i + 1) % 4
+		_add_colored_triangle(st, base[i], base[j], top[i], trunk)
+		_add_colored_triangle(st, top[i], base[j], top[j], trunk)
+
+	var ring: Array[Vector3] = []
+	var sides := 7
+	for i in range(sides):
+		var a := TAU * float(i) / float(sides)
+		ring.append(Vector3(cos(a) * 0.40, 0.34, sin(a) * 0.40))
+	var apex := Vector3(0.0, 1.0, 0.0)
+	var underside := Vector3(0.0, 0.30, 0.0)
+
+	for i in range(sides):
+		var j := (i + 1) % sides
+		var shade := 0.88 + 0.12 * float(i % 2)
+		var leaf := Color(
+			canopy_color.r * shade,
+			canopy_color.g * shade,
+			canopy_color.b * shade,
+			1.0
+		)
+		_add_colored_triangle(st, apex, ring[i], ring[j], leaf)
+		_add_colored_triangle(st, underside, ring[j], ring[i], leaf.darkened(0.12))
+
+	st.generate_normals()
+	return st.commit()
+
+
+func _append_road_geometry(
+	st: SurfaceTool,
+	shoulders: SurfaceTool,
+	geometry: Array,
+	tags: Dictionary
+) -> bool:
 	var highway: String = str(tags.get("highway", "road"))
 	var width_m := 5.0
 	if highway in ["motorway", "trunk"]:
@@ -814,17 +1162,50 @@ func _append_road_geometry(st: SurfaceTool, geometry: Array, tags: Dictionary) -
 			continue
 		var lon := float(p.get("lon", 0.0))
 		var lat := float(p.get("lat", 0.0))
-		var h := _height_at_geo(lon, lat) + 0.006
+		var h := _height_at_geo(lon, lat)
 		points.append(_geo_to_local(lon, lat, h))
 
 	if points.size() < 2:
 		return false
 
-	var added := false
 	var width_km := width_m / 1000.0
+	var shoulder_ok := _append_ribbon_geometry(shoulders, points, width_km * 1.55, 0.004)
+	var road_ok := _append_ribbon_geometry(st, points, width_km, 0.006)
+	return shoulder_ok or road_ok
+
+
+func _append_water_geometry(
+	st: SurfaceTool,
+	banks: SurfaceTool,
+	geometry: Array
+) -> bool:
+	var points: Array[Vector3] = []
+	for p in geometry:
+		if typeof(p) != TYPE_DICTIONARY:
+			continue
+		var lon := float(p.get("lon", 0.0))
+		var lat := float(p.get("lat", 0.0))
+		var h := _height_at_geo(lon, lat)
+		points.append(_geo_to_local(lon, lat, h))
+
+	if points.size() < 2:
+		return false
+
+	var bank_ok := _append_ribbon_geometry(banks, points, 0.030, 0.003)
+	var water_ok := _append_ribbon_geometry(st, points, 0.018, 0.005)
+	return bank_ok or water_ok
+
+
+func _append_ribbon_geometry(
+	st: SurfaceTool,
+	points: Array[Vector3],
+	width_km: float,
+	y_offset: float
+) -> bool:
+	var added := false
 	for i in range(points.size() - 1):
-		var a := points[i]
-		var b := points[i + 1]
+		var a := points[i] + Vector3.UP * y_offset
+		var b := points[i + 1] + Vector3.UP * y_offset
 		var delta := Vector2(b.x - a.x, b.z - a.z)
 		if delta.length() < 0.0005:
 			continue
@@ -889,56 +1270,32 @@ func _append_building_geometry(st: SurfaceTool, geometry: Array, tags: Dictionar
 		var b := pts[j]
 		var at := a + Vector3.UP * height_km
 		var bt := b + Vector3.UP * height_km
-
-		st.add_vertex(a)
-		st.add_vertex(b)
-		st.add_vertex(at)
-		st.add_vertex(at)
-		st.add_vertex(b)
-		st.add_vertex(bt)
-
-		st.add_vertex(roof_center)
-		st.add_vertex(at)
-		st.add_vertex(bt)
+		st.add_vertex(a); st.add_vertex(b); st.add_vertex(at)
+		st.add_vertex(at); st.add_vertex(b); st.add_vertex(bt)
+		st.add_vertex(roof_center); st.add_vertex(at); st.add_vertex(bt)
 
 	return true
 
 
-func _append_water_geometry(st: SurfaceTool, geometry: Array) -> bool:
-	var points: Array[Vector3] = []
-	for p in geometry:
-		if typeof(p) != TYPE_DICTIONARY:
-			continue
-		var lon := float(p.get("lon", 0.0))
-		var lat := float(p.get("lat", 0.0))
-		var h := _height_at_geo(lon, lat) + 0.004
-		points.append(_geo_to_local(lon, lat, h))
+func _commit_vertex_color_batch(st: SurfaceTool, node_name: String) -> void:
+	st.generate_normals()
+	var mesh := st.commit()
+	if mesh == null:
+		return
+	var node := MeshInstance3D.new()
+	node.name = node_name
+	node.mesh = mesh
+	node.material_override = _make_vertex_color_material()
+	vector_root.add_child(node)
 
-	if points.size() < 2:
-		return false
 
-	var added := false
-	var width_km := 0.018
-	for i in range(points.size() - 1):
-		var a := points[i]
-		var b := points[i + 1]
-		var delta := Vector2(b.x - a.x, b.z - a.z)
-		if delta.length() < 0.0005:
-			continue
-		var direction := delta.normalized()
-		var side := Vector3(-direction.y, 0.0, direction.x) * width_km * 0.5
-		var a0 := a - side
-		var a1 := a + side
-		var b0 := b - side
-		var b1 := b + side
-		st.add_vertex(a0)
-		st.add_vertex(b0)
-		st.add_vertex(a1)
-		st.add_vertex(a1)
-		st.add_vertex(b0)
-		st.add_vertex(b1)
-		added = true
-	return added
+func _make_vertex_color_material() -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.vertex_color_use_as_albedo = true
+	material.roughness = 1.0
+	material.metallic = 0.0
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return material
 
 
 func _commit_vector_batch(st: SurfaceTool, node_name: String, color: Color) -> void:
@@ -1228,12 +1585,16 @@ func _clear_tiles() -> void:
 func _clear_vector_nodes() -> void:
 	for child in vector_root.get_children():
 		child.free()
+	for child in vegetation_root.get_children():
+		child.free()
 	for child in labels_root.get_children():
 		child.free()
 	_feature_count = 0
 	_road_feature_count = 0
 	_building_feature_count = 0
 	_water_feature_count = 0
+	_landcover_feature_count = 0
+	_tree_instance_count = 0
 
 
 func _clear_all_world_nodes() -> void:
@@ -1264,11 +1625,12 @@ func _update_status() -> void:
 		status_label.text = ("%s TERRAIN" % _governorate_name() if _terrain_mode else "%s MAP" % _governorate_name()) + " • LOADING %d" % loading
 	else:
 		if _terrain_mode:
-			status_label.text = "%s • R%d B%d W%d • %d NODES" % [_governorate_name(),
+			status_label.text = "%s • R%d B%d V%d T%d" % [
+				_governorate_name(),
 				_road_feature_count,
 				_building_feature_count,
-				_water_feature_count,
-				vector_root.get_child_count() + labels_root.get_child_count()
+				_landcover_feature_count,
+				_tree_instance_count
 			]
 		else:
 			status_label.text = "%s MAP READY" % _governorate_name()
