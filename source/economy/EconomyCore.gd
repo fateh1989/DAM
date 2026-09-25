@@ -67,3 +67,21 @@ func get_node_snapshot(node_id: String) -> Dictionary:
 	if not nodes.has(node_id):
 		return {}
 	return (nodes[node_id] as Dictionary).duplicate(true)
+
+
+func _support_ratio(node: Dictionary) -> float:
+	var logistics := clampf(float(node.get("logistics_ratio", 1.0)), 0.0, 1.0)
+	var security := clampf(float(node.get("route_security", 1.0)), 0.0, 1.0)
+	var power := clampf(float(node.get("power_ratio", 1.0)), 0.0, 1.0)
+	var water := clampf(float(node.get("water_ratio", 1.0)), 0.0, 1.0)
+	return logistics * security * (0.35 + 0.65 * power) * (0.50 + 0.50 * water)
+
+
+func get_node_throughput(node_id: String) -> float:
+	if not nodes.has(node_id):
+		return 0.0
+	var node: Dictionary = nodes[node_id]
+	if str(node.get("state", STATE_HEALTHY)) == STATE_DISABLED:
+		return 0.0
+	var damage_factor := 1.0 - clampf(float(node.get("damage_ratio", 0.0)), 0.0, 1.0)
+	return maxf(0.0, float(node.get("capacity", 0.0)) * damage_factor * _support_ratio(node))
