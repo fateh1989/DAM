@@ -72,7 +72,10 @@ jobs:
 
           # Godot 4.7 recommended Android SDK generation.
           test -d /usr/lib/android-sdk
-          yes | sdkmanager             "platform-tools"             "platforms;android-35"             "build-tools;35.0.1"
+          # Licenses are already accepted in the CI image. Do not pipe `yes`
+          # into sdkmanager under pipefail: sdkmanager can finish successfully
+          # while `yes` receives SIGPIPE, producing the false exit code 141.
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.1"
           test -x /usr/lib/android-sdk/build-tools/35.0.1/apksigner
           test -f /github/home/debug.keystore
 
