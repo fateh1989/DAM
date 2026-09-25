@@ -2027,7 +2027,10 @@ func _sync_unit_visuals() -> void:
 		if marker != null:
 			marker.visible = not _terrain_mode
 		if selection != null:
-			selection.visible = i in _selected_unit_indices
+			var is_selected := i in _selected_unit_indices
+			var is_primary := is_selected and i == _selected_unit_index
+			selection.visible = is_selected
+			selection.scale = Vector3.ONE * (1.28 if is_primary else 1.0)
 
 
 func _local_to_geo(local_position: Vector3) -> Vector2:
