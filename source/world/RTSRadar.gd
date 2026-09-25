@@ -78,6 +78,9 @@ func apply_action_uv(uv: Vector2) -> void:
 	var mode := "camera"
 	if _world.has_method("get_radar_action_mode"):
 		mode = str(_world.call("get_radar_action_mode"))
+	if mode == "select" and _world.has_method("select_nearest_unit_uv"):
+		_world.call("select_nearest_unit_uv", uv)
+		return
 	if mode == "move" and _world.has_method("issue_selected_group_move_uv"):
 		var selected_count := 0
 		if _world.has_method("get_selected_unit_count"):

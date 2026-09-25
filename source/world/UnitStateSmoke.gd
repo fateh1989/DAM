@@ -85,6 +85,14 @@ func _run() -> void:
 		return
 	scene.clear_selected_units()
 
+	scene.set_radar_action_mode("select")
+	radar.call("apply_action_uv", first_radar_item.get("uv", Vector2.ZERO))
+	if scene.get_selected_unit_count() != 1 or scene.get_selected_unit_indices()[0] != 0:
+		_fail(51, "Strategic unit smoke: radar select mode did not select tapped unit")
+		return
+	scene.clear_selected_units()
+	scene.set_radar_action_mode("camera")
+
 	var select_all_button := scene.get_node_or_null("HUD/CommandBar/Row/SelectAllUnitsButton") as Button
 	if select_all_button == null:
 		_fail(26, "Strategic unit smoke: select all command button missing")
