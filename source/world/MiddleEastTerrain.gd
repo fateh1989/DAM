@@ -2121,6 +2121,30 @@ func get_radar_camera_uv() -> Vector2:
 	)
 
 
+func get_radar_camera_rect_uv() -> Rect2:
+	var center := get_radar_camera_uv()
+	var viewport_size := get_viewport().get_visible_rect().size
+	var aspect := maxf(0.2, float(viewport_size.x) / maxf(1.0, float(viewport_size.y)))
+	var half_height_km := 1.0
+	if camera.projection == Camera3D.PROJECTION_ORTHOGONAL:
+		half_height_km = maxf(0.1, camera.size * 0.5)
+	else:
+		var camera_height_km := maxf(0.2, absf(camera.global_position.y))
+		half_height_km = maxf(0.1, camera_height_km * tan(deg_to_rad(camera.fov * 0.5)))
+	var half_width_km := half_height_km * aspect
+	var half_lat_deg := rad_to_deg(half_height_km / EARTH_RADIUS_KM)
+	var lon_radius := EARTH_RADIUS_KM * maxf(0.15, cos(deg_to_rad(_center_lat)))
+	var half_lon_deg := rad_to_deg(half_width_km / lon_radius)
+	var size_uv := Vector2(
+		clampf((half_lon_deg * 2.0) / (REGION_EAST - REGION_WEST), 0.01, 1.0),
+		clampf((half_lat_deg * 2.0) / (REGION_NORTH - REGION_SOUTH), 0.01, 1.0)
+	)
+	var position := center - size_uv * 0.5
+	position.x = clampf(position.x, 0.0, 1.0 - size_uv.x)
+	position.y = clampf(position.y, 0.0, 1.0 - size_uv.y)
+	return Rect2(position, size_uv)
+
+
 func get_rts_zoom_level() -> int:
 	return _rts_zoom_level
 
