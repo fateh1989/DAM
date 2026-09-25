@@ -119,3 +119,14 @@ func tick(hours: float) -> Dictionary:
 	treasury_income += income_total
 	elapsed_hours += hours
 	return {"hours": hours, "produced": produced_total, "income": income_total}
+
+
+func apply_damage(node_id: String, severity: float) -> bool:
+	if not nodes.has(node_id):
+		return false
+	var node: Dictionary = nodes[node_id]
+	var damage := clampf(float(node.get("damage_ratio", 0.0)) + maxf(0.0, severity), 0.0, 1.0)
+	node["damage_ratio"] = damage
+	node["state"] = STATE_DISABLED if damage >= 0.75 else STATE_DAMAGED
+	nodes[node_id] = node
+	return true
