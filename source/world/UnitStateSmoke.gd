@@ -59,7 +59,13 @@ func _run() -> void:
 	if scene.get_radar_action_mode() != "move":
 		_fail(41, "Strategic unit smoke: radar mode command button failed")
 		return
+	if radar_mode_button.text != "RADAR MOVE":
+		_fail(43, "Strategic unit smoke: radar move mode label did not update")
+		return
 	scene.set_radar_action_mode("camera")
+	if radar_mode_button.text != "RADAR CAMERA":
+		_fail(44, "Strategic unit smoke: radar camera mode label did not restore")
+		return
 
 	var select_all_button := scene.get_node_or_null("HUD/CommandBar/Row/SelectAllUnitsButton") as Button
 	if select_all_button == null:
