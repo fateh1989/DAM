@@ -146,3 +146,13 @@ func apply_damage(node_id: String, severity: float) -> bool:
 	node["state"] = STATE_DISABLED if damage >= 0.75 else STATE_DAMAGED
 	nodes[node_id] = node
 	return true
+
+
+func set_logistics(node_id: String, logistics_ratio: float, route_security: float = 1.0) -> bool:
+	if not nodes.has(node_id):
+		return false
+	var node: Dictionary = nodes[node_id]
+	node["logistics_ratio"] = clampf(logistics_ratio, 0.0, 1.0)
+	node["route_security"] = clampf(route_security, 0.0, 1.0)
+	nodes[node_id] = node
+	return true
