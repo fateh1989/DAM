@@ -102,10 +102,6 @@ jobs:
           test -s native/bin/android/libdam_native.android.template_debug.arm64.so
           ls -lh native/bin/linux/*.so native/bin/android/*.so
 
-      - name: DAM Native Core smoke
-        run: |
-          godot --headless --path . --script source/NativeCoreSmoke.gd
-
       - name: DAM Engine v2 smoke
         run: |
           godot --headless --path . --script source/EngineV2Smoke.gd
@@ -143,6 +139,14 @@ jobs:
             sleep 3
             godot --headless --editor --path . --import --quit
           fi
+
+      - name: DAM Native Core smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s native/bin/linux/libdam_native.linux.template_debug.x86_64.so
+          test -f native/dam_native.gdextension
+          godot --headless --path . --script source/NativeCoreSmoke.gd
 
       - name: Smoke test real terrain scene
         run: |
