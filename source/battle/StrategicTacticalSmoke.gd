@@ -74,9 +74,9 @@ func _run() -> void:
 		_fail(14, "Strategic/tactical smoke: selected units did not damage enemy")
 		return
 
-	var before_uv := battle.get_radar_camera_uv()
+	var before_uv: Vector2 = battle.get_radar_camera_uv()
 	battle.radar_center_on_uv(Vector2(0.6, 0.6))
-	var after_uv := battle.get_radar_camera_uv()
+	var after_uv: Vector2 = battle.get_radar_camera_uv()
 	if before_uv.distance_to(after_uv) < 0.0001:
 		_fail(15, "Strategic/tactical smoke: radar camera jump failed")
 		return
