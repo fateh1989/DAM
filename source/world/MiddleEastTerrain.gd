@@ -2360,15 +2360,19 @@ func get_selected_move_targets() -> Array[Vector2]:
 	return targets
 
 
-func stop_selected_units() -> void:
+func stop_selected_units() -> int:
+	var stopped_count := 0
 	for index in _selected_unit_indices:
 		if index < 0 or index >= _units.size():
 			continue
 		var unit: Dictionary = _units[index]
+		if bool(unit.get("moving", false)):
+			stopped_count += 1
 		unit["moving"] = false
 		unit["target_lon"] = float(unit["lon"])
 		unit["target_lat"] = float(unit["lat"])
 		_units[index] = unit
+	return stopped_count
 
 
 func are_selected_units_stopped() -> bool:
