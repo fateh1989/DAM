@@ -233,6 +233,10 @@ func get_zoom_level() -> int:
 	return _zoom_level
 
 
+func get_zoom_target_size() -> float:
+	return ZOOM_CLOSE if _zoom_level == 2 else ZOOM_NORMAL
+
+
 func get_unit_count() -> int:
 	return _units.size()
 

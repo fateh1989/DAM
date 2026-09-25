@@ -77,6 +77,9 @@ func _run() -> void:
 	if battle.get_zoom_level() != 1:
 		_fail(7, "Strategic/tactical smoke: initial zoom must be 1")
 		return
+	if absf(battle.get_zoom_target_size() - 1100.0) > 0.01:
+		_fail(21, "Strategic/tactical smoke: normal zoom target mismatch")
+		return
 	if battle.get_unit_count() != 6 or battle.get_enemy_count() != 6:
 		_fail(8, "Strategic/tactical smoke: expected 6 friendly and 6 enemy tanks")
 		return
@@ -92,6 +95,9 @@ func _run() -> void:
 	await process_frame
 	if battle.get_zoom_level() != 2:
 		_fail(11, "Strategic/tactical smoke: zoom 2 failed")
+		return
+	if absf(battle.get_zoom_target_size() - 550.0) > 0.01:
+		_fail(22, "Strategic/tactical smoke: close zoom target mismatch")
 		return
 	if battle.camera.size >= original_size:
 		_fail(12, "Strategic/tactical smoke: close zoom did not reduce camera size")
