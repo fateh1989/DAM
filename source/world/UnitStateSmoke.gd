@@ -56,15 +56,16 @@ func _run() -> void:
 		_fail(40, "Strategic unit smoke: radar mode command button missing")
 		return
 	radar_mode_button.emit_signal("pressed")
-	if scene.get_radar_action_mode() != "move":
-		_fail(41, "Strategic unit smoke: radar mode command button failed")
+	if scene.get_radar_action_mode() != "move" or radar_mode_button.text != "RADAR MOVE":
+		_fail(41, "Strategic unit smoke: radar move button cycle failed")
 		return
-	if radar_mode_button.text != "RADAR MOVE":
-		_fail(43, "Strategic unit smoke: radar move mode label did not update")
+	radar_mode_button.emit_signal("pressed")
+	if scene.get_radar_action_mode() != "select" or radar_mode_button.text != "RADAR SELECT":
+		_fail(43, "Strategic unit smoke: radar select button cycle failed")
 		return
-	scene.set_radar_action_mode("camera")
-	if radar_mode_button.text != "RADAR CAMERA":
-		_fail(44, "Strategic unit smoke: radar camera mode label did not restore")
+	radar_mode_button.emit_signal("pressed")
+	if scene.get_radar_action_mode() != "camera" or radar_mode_button.text != "RADAR CAMERA":
+		_fail(44, "Strategic unit smoke: radar camera button cycle failed")
 		return
 
 	scene.set_radar_action_mode("select")

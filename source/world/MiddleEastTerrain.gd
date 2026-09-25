@@ -2068,7 +2068,10 @@ func _update_radar_mode_ui() -> void:
 	var button := get_node_or_null("HUD/CommandBar/Row/RadarModeButton") as Button
 	if button == null:
 		return
-	button.text = "RADAR MOVE" if _radar_action_mode == "move" else "RADAR CAMERA"
+	match _radar_action_mode:
+		"move": button.text = "RADAR MOVE"
+		"select": button.text = "RADAR SELECT"
+		_: button.text = "RADAR CAMERA"
 
 
 func get_radar_units() -> Array:
@@ -2462,7 +2465,7 @@ func _on_stop_units_pressed() -> void:
 
 
 func _on_radar_mode_pressed() -> void:
-	toggle_radar_action_mode()
+	cycle_radar_action_mode()
 
 
 func _on_previous_governorate_pressed() -> void:
