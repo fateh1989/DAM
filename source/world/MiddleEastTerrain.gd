@@ -2369,9 +2369,22 @@ func are_selected_units_stopped() -> bool:
 	return true
 
 
+func _is_move_destination_valid(destination: Vector2) -> bool:
+	return (
+		destination.x == destination.x
+		and destination.y == destination.y
+		and absf(destination.x) < 1000.0
+		and absf(destination.y) < 1000.0
+	)
+
+
 func _issue_group_move_order(unit_indices: Array[int], destination: Vector2) -> bool:
-	if unit_indices.is_empty():
+	if unit_indices.is_empty() or not _is_move_destination_valid(destination):
 		return false
+	destination = Vector2(
+		clampf(destination.x, REGION_WEST, REGION_EAST),
+		clampf(destination.y, REGION_SOUTH, REGION_NORTH)
+	)
 	var issued_count := 0
 	var columns := maxi(1, int(ceil(sqrt(float(unit_indices.size())))))
 	for order_index in range(unit_indices.size()):
