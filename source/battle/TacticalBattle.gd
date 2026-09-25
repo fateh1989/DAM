@@ -36,8 +36,33 @@ func _ready() -> void:
 	_setup_ground()
 	_spawn_friendly_units()
 	_spawn_enemy_units()
+	_bind_audio_controls()
 	_update_zoom_ui()
 	_update_status()
+
+
+func _bind_audio_controls() -> void:
+	for path in [
+		"HUD/TopBar/Row/BackButton",
+		"HUD/TopBar/Row/ZoomButton",
+		"HUD/CommandBar/SelectAllButton",
+		"HUD/CommandBar/StopButton",
+	]:
+		var control := get_node_or_null(path) as Control
+		if control != null:
+			AudioFocusManager.bind_control(control, "ui")
+
+
+func _focus_audio_at_screen(screen_position: Vector2) -> void:
+	var friendly := _closest_friendly_on_screen(screen_position)
+	if friendly >= 0:
+		AudioFocusManager.focus_object("battle:friendly:%d" % friendly, "friendly_tank")
+		return
+	var enemy := _closest_enemy_on_screen(screen_position)
+	if enemy >= 0:
+		AudioFocusManager.focus_object("battle:enemy:%d" % enemy, "enemy_tank")
+		return
+	AudioFocusManager.clear_focus()
 
 
 func _setup_camera() -> void:
@@ -372,6 +397,7 @@ func _pan_camera(relative: Vector2) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed:
+			_focus_audio_at_screen(event.position)
 			_touches[event.index] = event.position
 			_touch_drag[event.index] = 0.0
 		else:
@@ -399,6 +425,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and _mouse_down:
 		_mouse_drag += event.relative.length()
 		_pan_camera(event.relative)
+	elif event is InputEventMouseMotion:
+		_focus_audio_at_screen(event.position)
 
 
 func _process(delta: float) -> void:

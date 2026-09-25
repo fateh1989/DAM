@@ -14,6 +14,11 @@ func _run() -> void:
 		_fail(2, "Strategic/tactical smoke: GameState failed")
 		return
 
+	for signature_id in ["ui", "friendly_tank", "enemy_tank", "sheep", "industrial", "oil", "grain", "market", "electric", "water"]:
+		if not AudioFocusManager.has_signature(signature_id):
+			_fail(17, "Strategic/tactical smoke: missing audio signature " + signature_id)
+			return
+
 	var snapshot := GameState.get_country_snapshot("syria")
 	if snapshot.is_empty():
 		_fail(3, "Strategic/tactical smoke: persistent army missing")
