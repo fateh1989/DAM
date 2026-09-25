@@ -6,6 +6,14 @@ const STATE_DAMAGED := "damaged"
 const STATE_DISABLED := "disabled"
 const STATE_RECOVERING := "recovering"
 
+const INDUSTRIAL_PROFILES := {
+	"textile": {"power_need": 0.72, "water_need": 0.54, "value_multiplier": 0.92},
+	"food": {"power_need": 0.58, "water_need": 0.82, "value_multiplier": 1.00},
+	"chemical": {"power_need": 0.88, "water_need": 0.76, "value_multiplier": 1.24},
+	"engineering": {"power_need": 0.82, "water_need": 0.46, "value_multiplier": 1.18},
+	"energy": {"power_need": 0.38, "water_need": 0.44, "value_multiplier": 1.08},
+}
+
 const RESOURCE_CATALOG := {
 	"sheep": {"base_output": 0.0, "unit_value": 85.0, "sale_ratio": 0.0},
 	"grain": {"base_output": 18.0, "unit_value": 24.0, "sale_ratio": 0.72},
@@ -56,6 +64,8 @@ func create_node(
 		"head_count": 0.0,
 		"growth_rate": 0.0,
 		"market_sale_rate": 0.0,
+		"industrial_profile": "",
+		"value_multiplier": 1.0,
 	}
 	return true
 
@@ -94,7 +104,7 @@ func _auto_sell_node(node_id: String) -> float:
 	var catalog: Dictionary = RESOURCE_CATALOG.get(kind, {})
 	var sale_ratio := clampf(float(catalog.get("sale_ratio", 0.0)), 0.0, 1.0)
 	var amount := float(node.get("stored_output", 0.0)) * sale_ratio
-	var income := amount * float(catalog.get("unit_value", 0.0))
+	var income := amount * float(catalog.get("unit_value", 0.0)) * float(node.get("value_multiplier", 1.0))
 	node["stored_output"] = float(node.get("stored_output", 0.0)) - amount
 	node["revenue_total"] = float(node.get("revenue_total", 0.0)) + income
 	nodes[node_id] = node
@@ -211,5 +221,18 @@ func configure_livestock_market(node_id: String, daily_sale_rate: float) -> bool
 	if str(node.get("kind", "")) != "sheep":
 		return false
 	node["market_sale_rate"] = clampf(daily_sale_rate, 0.0, 1.0)
+	nodes[node_id] = node
+	return true
+
+
+func configure_industrial_profile(node_id: String, profile: String) -> bool:
+	if not nodes.has(node_id) or not INDUSTRIAL_PROFILES.has(profile):
+		return false
+	var node: Dictionary = nodes[node_id]
+	if str(node.get("kind", "")) != "industrial":
+		return false
+	var data: Dictionary = INDUSTRIAL_PROFILES[profile]
+	node["industrial_profile"] = profile
+	node["value_multiplier"] = float(data.get("value_multiplier", 1.0))
 	nodes[node_id] = node
 	return true
