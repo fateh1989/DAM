@@ -92,9 +92,9 @@ func _run() -> void:
 		_fail(15, "Unit state smoke: radar does not mirror active armies")
 		return
 
-	var before_center := scene.get_radar_camera_uv()
+	var before_center: Vector2 = scene.get_radar_camera_uv()
 	scene.radar_center_on_uv(Vector2(0.5, 0.5))
-	var after_center := scene.get_radar_camera_uv()
+	var after_center: Vector2 = scene.get_radar_camera_uv()
 	if after_center.distance_to(Vector2(0.5, 0.5)) > 0.001 or before_center.distance_to(after_center) < 0.000001:
 		_fail(16, "Unit state smoke: radar camera jump failed")
 		return
