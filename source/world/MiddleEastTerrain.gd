@@ -2077,9 +2077,9 @@ func _update_radar_mode_ui() -> void:
 func get_radar_units() -> Array:
 	var result: Array = []
 	for i in range(_units.size()):
-		var unit: Dictionary = _units[i]
-		if not bool(unit.get("alive", true)):
+		if not _is_unit_selectable(i):
 			continue
+		var unit: Dictionary = _units[i]
 		var u := clampf((float(unit["lon"]) - REGION_WEST) / (REGION_EAST - REGION_WEST), 0.0, 1.0)
 		var v := clampf((REGION_NORTH - float(unit["lat"])) / (REGION_NORTH - REGION_SOUTH), 0.0, 1.0)
 		result.append({
@@ -2151,10 +2151,10 @@ func _handle_world_tap(screen_position: Vector2) -> void:
 	var closest_index := -1
 	var closest_distance := UNIT_SELECT_RADIUS_PX
 	for i in range(_units.size()):
+		if not _is_unit_selectable(i):
+			continue
 		var unit: Dictionary = _units[i]
 		var node: Node3D = unit["node"]
-		if not is_instance_valid(node):
-			continue
 		if camera.is_position_behind(node.global_position):
 			continue
 		var unit_screen := camera.unproject_position(node.global_position)
@@ -2178,7 +2178,7 @@ func _handle_world_tap(screen_position: Vector2) -> void:
 
 
 func _toggle_unit_selection(unit_index: int) -> void:
-	if unit_index < 0 or unit_index >= _units.size():
+	if not _is_unit_selectable(unit_index):
 		return
 	if unit_index in _selected_unit_indices:
 		_selected_unit_indices.erase(unit_index)
@@ -2189,10 +2189,18 @@ func _toggle_unit_selection(unit_index: int) -> void:
 	_update_status()
 
 
-func select_unit(index: int, additive: bool = false) -> bool:
+func _is_unit_selectable(index: int) -> bool:
 	if index < 0 or index >= _units.size():
 		return false
-	if not bool(_units[index].get("alive", true)):
+	var unit: Dictionary = _units[index]
+	if not bool(unit.get("alive", true)):
+		return false
+	var node = unit.get("node")
+	return node is Node3D and is_instance_valid(node)
+
+
+func select_unit(index: int, additive: bool = false) -> bool:
+	if not _is_unit_selectable(index):
 		return false
 	if additive:
 		toggle_unit_selection(index)
@@ -2204,9 +2212,7 @@ func select_unit(index: int, additive: bool = false) -> bool:
 func select_units(indices: Array[int]) -> void:
 	_selected_unit_indices.clear()
 	for index in indices:
-		if index < 0 or index >= _units.size():
-			continue
-		if not bool(_units[index].get("alive", true)):
+		if not _is_unit_selectable(index):
 			continue
 		if index not in _selected_unit_indices:
 			_selected_unit_indices.append(index)
@@ -2216,16 +2222,14 @@ func select_units(indices: Array[int]) -> void:
 
 
 func toggle_unit_selection(index: int) -> void:
-	if index < 0 or index >= _units.size():
-		return
-	if not bool(_units[index].get("alive", true)):
+	if not _is_unit_selectable(index):
 		return
 	_toggle_unit_selection(index)
 
 
 func select_single_unit(index: int) -> void:
 	var indices: Array[int] = []
-	if index >= 0 and index < _units.size() and bool(_units[index].get("alive", true)):
+	if _is_unit_selectable(index):
 		indices.append(index)
 	select_units(indices)
 
@@ -2237,7 +2241,7 @@ func select_previous_unit() -> void:
 	var start := _selected_unit_index if _selected_unit_index >= 0 else 0
 	for step in range(1, _units.size() + 1):
 		var index := posmod(start - step, _units.size())
-		if bool(_units[index].get("alive", true)):
+		if _is_unit_selectable(index):
 			select_single_unit(index)
 			return
 	clear_selected_units()
@@ -2250,7 +2254,7 @@ func select_next_unit() -> void:
 	var start := _selected_unit_index
 	for step in range(1, _units.size() + 1):
 		var index := posmod(start + step, _units.size())
-		if bool(_units[index].get("alive", true)):
+		if _is_unit_selectable(index):
 			select_single_unit(index)
 			return
 	clear_selected_units()
@@ -2259,7 +2263,7 @@ func select_next_unit() -> void:
 func select_all_units() -> void:
 	var indices: Array[int] = []
 	for i in range(_units.size()):
-		if bool(_units[i].get("alive", true)):
+		if _is_unit_selectable(i):
 			indices.append(i)
 	select_units(indices)
 
