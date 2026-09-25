@@ -47,10 +47,17 @@ func _ensure_name_label() -> void:
 	_name_label.name = "ProvinceName"
 	_name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_name_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_name_label.offset_left = 7.0
+	_name_label.offset_top = 17.0
+	_name_label.offset_right = -7.0
+	_name_label.offset_bottom = -13.0
 	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_name_label.add_theme_font_size_override("font_size", 12)
 	_name_label.add_theme_color_override("font_color", Color(0.12, 0.10, 0.07, 1.0))
+	_name_label.add_theme_color_override("font_outline_color", Color(0.94, 0.90, 0.78, 0.92))
+	_name_label.add_theme_constant_override("outline_size", 2)
+	_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(_name_label)
 
 

@@ -16,5 +16,10 @@ func run(_scene: Node) -> String:
 		return "province clock height is outside medium mobile size"
 	if not clock.has_method("_draw_station_ticks") or not clock.has_method("_draw_status_hands"):
 		return "railway station clock face helpers are missing"
+	var name_label := clock.get_node_or_null("ProvinceName") as Label
+	if name_label == null:
+		return "province name label is missing"
+	if name_label.get_theme_font_size("font_size") < 11 or name_label.get_theme_font_size("font_size") > 14:
+		return "province name font is not medium sized"
 	clock.free()
 	return ""
