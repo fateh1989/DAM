@@ -74,6 +74,17 @@ func _run() -> void:
 		_fail(33, "Strategic unit smoke: previous unit command button did not go back")
 		return
 	scene.clear_selected_units()
+	var focus_button := scene.get_node_or_null("HUD/CommandBar/Row/FocusUnitsButton") as Button
+	if focus_button == null:
+		_fail(34, "Strategic unit smoke: focus command button missing")
+		return
+	scene.select_single_unit(0)
+	focus_button.emit_signal("pressed")
+	var focused_uv: Vector2 = scene.get_radar_camera_uv()
+	if focused_uv.x < 0.0 or focused_uv.x > 1.0 or focused_uv.y < 0.0 or focused_uv.y > 1.0:
+		_fail(35, "Strategic unit smoke: focus command button moved outside map")
+		return
+	scene.clear_selected_units()
 
 	var first_before: Dictionary = scene._units[0]
 	var second_before: Dictionary = scene._units[1]

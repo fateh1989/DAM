@@ -160,6 +160,12 @@ layout_mode = 2
 text = "UNIT >"
 
 
+[node name="FocusUnitsButton" type="Button" parent="HUD/CommandBar/Row"]
+custom_minimum_size = Vector2(94, 46)
+layout_mode = 2
+text = "FOCUS"
+
+
 [node name="ZoomWheel" type="PanelContainer" parent="HUD"]
 visible = false
 anchor_left = 1.0
@@ -242,6 +248,7 @@ horizontal_alignment = 2
 [connection signal="pressed" from="HUD/CommandBar/Row/ClearSelectionButton" to="." method="_on_clear_selection_pressed"]
 [connection signal="pressed" from="HUD/CommandBar/Row/PreviousUnitButton" to="." method="_on_previous_unit_pressed"]
 [connection signal="pressed" from="HUD/CommandBar/Row/NextUnitButton" to="." method="_on_next_unit_pressed"]
+[connection signal="pressed" from="HUD/CommandBar/Row/FocusUnitsButton" to="." method="_on_focus_units_pressed"]
 [connection signal="value_changed" from="HUD/ZoomWheel/Column/Slider" to="." method="_on_zoom_wheel_changed"]
 
 [connection signal="pressed" from="HUD/GovernorateBar/Row/PreviousButton" to="." method="_on_previous_governorate_pressed"]
