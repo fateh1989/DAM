@@ -85,12 +85,13 @@ jobs:
           test -x /usr/lib/android-sdk/build-tools/35.0.1/apksigner
           test -f /github/home/debug.keystore
 
-      - name: Strategic tactical split preflight
+      - name: Battle checkpoint 01 preflight
         shell: bash
         run: |
           set -euo pipefail
-          echo "Preflight: strategic/tactical split"
+          echo "Checkpoint: battle-core-01"
           timeout 90s godot --headless --path . --script source/battle/StrategicTacticalSmoke.gd
+          echo "Checkpoint battle-core-01 preflight passed"
 
       - name: Build DAM native C++ core
         shell: bash
