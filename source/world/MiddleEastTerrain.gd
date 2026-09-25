@@ -203,6 +203,7 @@ func _bind_audio_controls() -> void:
 		"HUD/GeoOverlayButton",
 		"HUD/GovernorateBar/Row/PreviousButton",
 		"HUD/GovernorateBar/Row/NextButton",
+		"HUD/CommandBar/Row/SelectAllUnitsButton",
 	]:
 		var control := get_node_or_null(path) as Control
 		if control != null:
@@ -2374,6 +2375,10 @@ func _select_governorate(index: int) -> void:
 	if _terrain_mode and not _is_tactical_overview():
 		call_deferred("_refresh_vector_data", true)
 	_refresh_geo_overlay(true)
+
+
+func _on_select_all_units_pressed() -> void:
+	select_all_units()
 
 
 func _on_previous_governorate_pressed() -> void:

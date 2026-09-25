@@ -39,6 +39,16 @@ func _run() -> void:
 		_fail(6, "Strategic unit smoke: RTS radar is missing")
 		return
 
+	var select_all_button := scene.get_node_or_null("HUD/CommandBar/Row/SelectAllUnitsButton") as Button
+	if select_all_button == null:
+		_fail(26, "Strategic unit smoke: select all command button missing")
+		return
+	select_all_button.emit_signal("pressed")
+	if scene.get_selected_unit_count() != 14:
+		_fail(27, "Strategic unit smoke: select all command button failed")
+		return
+	scene.clear_selected_units()
+
 	var first_before: Dictionary = scene._units[0]
 	var second_before: Dictionary = scene._units[1]
 	var first_start := Vector2(float(first_before["lon"]), float(first_before["lat"]))
