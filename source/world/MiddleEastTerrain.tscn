@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://source/world/MiddleEastTerrain.gd" id="1_world"]
+[ext_resource type="Script" path="res://source/world/RTSRadar.gd" id="2_radar"]
 
 [node name="MiddleEastTerrain" type="Node3D"]
 script = ExtResource("1_world")
@@ -127,6 +128,7 @@ text = "الحدود والأسماء: تشغيل"
 
 
 [node name="ZoomWheel" type="PanelContainer" parent="HUD"]
+visible = false
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -82.0
@@ -165,6 +167,20 @@ theme_override_font_sizes/font_size = 13
 text = "−\nسوريا"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="RTSRadar" type="Control" parent="HUD"]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -310.0
+offset_top = -230.0
+offset_right = -20.0
+offset_bottom = -48.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 0
+script = ExtResource("2_radar")
 
 [node name="Info" type="Label" parent="HUD"]
 anchors_preset = 3

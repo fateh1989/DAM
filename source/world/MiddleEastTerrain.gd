@@ -27,6 +27,11 @@ const TACTICAL_SHADER_PATH := "res://source/world/shaders/TacticalGround.gdshade
 const TACTICAL_RELIEF_EXAGGERATION := 1.0
 const TACTICAL_OVERVIEW_ZOOM := 8
 const TACTICAL_OVERVIEW_RELIEF_EXAGGERATION := 60.0
+const RTS_ZOOM_LEVEL_MIN := 1
+const RTS_ZOOM_LEVEL_MAX := 2
+const RTS_ZOOM_NEAR_DISTANCE_SCALE := 0.50
+const RTS_ZOOM_FAR_DISTANCE_SCALE := 1.0
+const GROUP_FORMATION_SPACING_KM := 0.035
 const UNIT_SPEED_KM_PER_SEC := 0.60
 const GOVERNORORATE_TANK_SEED := 14
 const UNIT_SELECT_RADIUS_PX := 54.0
@@ -99,9 +104,12 @@ const VECTOR_REFRESH_DISTANCE_DEG := 0.025
 @onready var geo_overlay_button: Button = $HUD/GeoOverlayButton
 @onready var governorate_label: Label = $HUD/GovernorateBar/Row/GovernorateLabel
 @onready var zoom_wheel: VSlider = $HUD/ZoomWheel/Column/Slider
+@onready var rts_radar: Control = $HUD/RTSRadar
 
 var _terrain_mode := false
 var _map_zoom := DEFAULT_MAP_ZOOM
+var _map_zoom_before_terrain := DEFAULT_MAP_ZOOM
+var _rts_zoom_level := RTS_ZOOM_LEVEL_MIN
 var _governorate_index := DEFAULT_GOVERNORATE_INDEX
 var _center_lon := float(GOVERNORATES[DEFAULT_GOVERNORATE_INDEX]["lon"])
 var _center_lat := float(GOVERNORATES[DEFAULT_GOVERNORATE_INDEX]["lat"])
@@ -152,6 +160,7 @@ var _geo_overlay_label_count := 0
 var _unit_root: Node3D = null
 var _units: Array = []
 var _selected_unit_index := -1
+var _selected_unit_indices: Array[int] = []
 var _touch_press_positions := {}
 var _touch_drag_distance := {}
 var _mouse_press_position := Vector2.ZERO
@@ -167,6 +176,7 @@ func _ready() -> void:
 	_origin_lat = _center_lat
 	_update_governorate_ui()
 	zoom_wheel.set_value_no_signal(float(_map_zoom))
+	zoom_wheel.visible = false
 	_setup_unit_layer()
 	_setup_geo_overlay_layer()
 	_position_camera()
@@ -234,7 +244,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			_pinch_accumulator += new_distance - old_distance
 
 			if abs(_pinch_accumulator) >= 42.0:
-				_set_map_zoom(_map_zoom + (1 if _pinch_accumulator > 0.0 else -1), _map_zoom - 1 <= SYRIA_OVERVIEW_ZOOM)
+				if _terrain_mode:
+					_set_rts_zoom_level(_rts_zoom_level + (1 if _pinch_accumulator > 0.0 else -1))
+				else:
+					_set_map_zoom(_map_zoom + (1 if _pinch_accumulator > 0.0 else -1), _map_zoom - 1 <= SYRIA_OVERVIEW_ZOOM)
 				_pinch_accumulator = 0.0
 
 		get_viewport().set_input_as_handled()
@@ -251,9 +264,15 @@ func _unhandled_input(event: InputEvent) -> void:
 				if _mouse_drag_distance <= TAP_MAX_DRAG_PX:
 					_handle_world_tap(event.position)
 		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_set_map_zoom(_map_zoom + 1)
+			if _terrain_mode:
+				_set_rts_zoom_level(_rts_zoom_level + 1)
+			else:
+				_set_map_zoom(_map_zoom + 1)
 		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_set_map_zoom(_map_zoom - 1, _map_zoom - 1 <= SYRIA_OVERVIEW_ZOOM)
+			if _terrain_mode:
+				_set_rts_zoom_level(_rts_zoom_level - 1)
+			else:
+				_set_map_zoom(_map_zoom - 1, _map_zoom - 1 <= SYRIA_OVERVIEW_ZOOM)
 		get_viewport().set_input_as_handled()
 		return
 
@@ -267,7 +286,7 @@ func _pan_from_screen_delta(delta: Vector2) -> void:
 	var km_per_pixel := 0.0
 
 	if _terrain_mode and not _is_tactical_overview():
-		km_per_pixel = 0.018 * pow(2.4, float(MAX_MAP_ZOOM - _map_zoom))
+		km_per_pixel = 0.018 * _rts_camera_distance_scale()
 	else:
 		km_per_pixel = camera.size / viewport_height
 
@@ -290,7 +309,23 @@ func _pan_from_screen_delta(delta: Vector2) -> void:
 	_sync_unit_visuals()
 	_refresh_geo_overlay(false)
 
+func _rts_camera_distance_scale() -> float:
+	return RTS_ZOOM_NEAR_DISTANCE_SCALE if _rts_zoom_level >= RTS_ZOOM_LEVEL_MAX else RTS_ZOOM_FAR_DISTANCE_SCALE
+
+
+func _set_rts_zoom_level(new_level: int) -> void:
+	new_level = clampi(new_level, RTS_ZOOM_LEVEL_MIN, RTS_ZOOM_LEVEL_MAX)
+	if new_level == _rts_zoom_level:
+		return
+	_rts_zoom_level = new_level
+	_position_camera()
+	_refresh_geo_overlay(true)
+	_update_status()
+
+
 func _set_map_zoom(new_zoom: int, center_syria_at_overview: bool = false) -> void:
+	if _terrain_mode:
+		return
 	new_zoom = clampi(new_zoom, MIN_MAP_ZOOM, MAX_MAP_ZOOM)
 
 	if center_syria_at_overview and new_zoom <= SYRIA_OVERVIEW_ZOOM:
@@ -340,7 +375,7 @@ func _position_camera() -> void:
 			camera.far = 1200.0
 		else:
 			camera.projection = Camera3D.PROJECTION_PERSPECTIVE
-			var distance_scale := 1.0 if _map_zoom >= 10 else 2.45
+			var distance_scale := _rts_camera_distance_scale()
 			camera.position = center + Vector3(0.0, 6.1, 7.2) * distance_scale
 			camera.look_at(center + Vector3(0.0, 0.12, 0.0), Vector3.UP)
 			camera.fov = 40.0
@@ -1896,19 +1931,9 @@ func _create_tank_visual(index: int) -> Node3D:
 
 
 func _tank_visual_scale() -> float:
-	if not _terrain_mode:
-		return maxf(0.55, camera.size * 0.0085)
-	match _map_zoom:
-		10:
-			return 0.0042
-		9:
-			return 0.012
-		8:
-			return 0.70
-		7:
-			return 1.45
-		_:
-			return 2.55
+	if _terrain_mode:
+		return 0.0042
+	return maxf(0.55, camera.size * 0.0085)
 
 
 func _sync_unit_visuals() -> void:
@@ -1945,7 +1970,7 @@ func _sync_unit_visuals() -> void:
 		if marker != null:
 			marker.visible = not _terrain_mode
 		if selection != null:
-			selection.visible = i == _selected_unit_index
+			selection.visible = i in _selected_unit_indices
 
 
 func _local_to_geo(local_position: Vector3) -> Vector2:
@@ -1957,6 +1982,50 @@ func _local_to_geo(local_position: Vector3) -> Vector2:
 		clampf(lon, REGION_WEST, REGION_EAST),
 		clampf(lat, REGION_SOUTH, REGION_NORTH)
 	)
+
+
+func get_radar_units() -> Array:
+	var result: Array = []
+	for i in range(_units.size()):
+		var unit: Dictionary = _units[i]
+		if not bool(unit.get("alive", true)):
+			continue
+		var u := clampf((float(unit["lon"]) - REGION_WEST) / (REGION_EAST - REGION_WEST), 0.0, 1.0)
+		var v := clampf((REGION_NORTH - float(unit["lat"])) / (REGION_NORTH - REGION_SOUTH), 0.0, 1.0)
+		result.append({
+			"uv": Vector2(u, v),
+			"color": _army_color(i),
+			"selected": i in _selected_unit_indices,
+		})
+	return result
+
+
+func get_radar_camera_uv() -> Vector2:
+	return Vector2(
+		clampf((_center_lon - REGION_WEST) / (REGION_EAST - REGION_WEST), 0.0, 1.0),
+		clampf((REGION_NORTH - _center_lat) / (REGION_NORTH - REGION_SOUTH), 0.0, 1.0)
+	)
+
+
+func get_rts_zoom_level() -> int:
+	return _rts_zoom_level
+
+
+func radar_center_on_uv(uv: Vector2) -> void:
+	uv.x = clampf(uv.x, 0.0, 1.0)
+	uv.y = clampf(uv.y, 0.0, 1.0)
+	_center_lon = lerpf(REGION_WEST, REGION_EAST, uv.x)
+	_center_lat = lerpf(REGION_NORTH, REGION_SOUTH, uv.y)
+	_origin_lon = _center_lon
+	_origin_lat = _center_lat
+	_clear_all_world_nodes()
+	_position_camera()
+	_refresh_tiles()
+	_sync_unit_visuals()
+	_refresh_geo_overlay(true)
+	_update_status()
+	if _terrain_mode and not _is_tactical_overview():
+		call_deferred("_refresh_vector_data", true)
 
 
 func _screen_to_ground(screen_position: Vector2):
@@ -1986,18 +2055,56 @@ func _handle_world_tap(screen_position: Vector2) -> void:
 			closest_index = i
 
 	if closest_index >= 0:
-		_selected_unit_index = closest_index
-		_sync_unit_visuals()
+		_toggle_unit_selection(closest_index)
 		return
 
-	if _selected_unit_index < 0 or _selected_unit_index >= _units.size():
+	if _selected_unit_indices.is_empty():
 		return
 
 	var hit = _screen_to_ground(screen_position)
 	if hit == null:
 		return
 	var destination := _local_to_geo(hit)
-	_issue_move_order(_selected_unit_index, destination)
+	_issue_group_move_order(_selected_unit_indices, destination)
+
+
+func _toggle_unit_selection(unit_index: int) -> void:
+	if unit_index < 0 or unit_index >= _units.size():
+		return
+	if unit_index in _selected_unit_indices:
+		_selected_unit_indices.erase(unit_index)
+	else:
+		_selected_unit_indices.append(unit_index)
+	_selected_unit_index = _selected_unit_indices.back() if not _selected_unit_indices.is_empty() else -1
+	_sync_unit_visuals()
+
+
+func get_selected_unit_indices() -> Array[int]:
+	return _selected_unit_indices.duplicate()
+
+
+func _issue_group_move_order(unit_indices: Array[int], destination: Vector2) -> void:
+	if unit_indices.is_empty():
+		return
+	var columns := maxi(1, int(ceil(sqrt(float(unit_indices.size())))))
+	for order_index in range(unit_indices.size()):
+		var row := int(order_index / columns)
+		var column := order_index % columns
+		var centered_column := float(column) - float(columns - 1) * 0.5
+		var rows := int(ceil(float(unit_indices.size()) / float(columns)))
+		var centered_row := float(row) - float(rows - 1) * 0.5
+		var east_km := centered_column * GROUP_FORMATION_SPACING_KM
+		var north_km := -centered_row * GROUP_FORMATION_SPACING_KM
+		var target_lat := destination.y + rad_to_deg(north_km / EARTH_RADIUS_KM)
+		var lon_radius := EARTH_RADIUS_KM * maxf(0.15, cos(deg_to_rad(destination.y)))
+		var target_lon := destination.x + rad_to_deg(east_km / lon_radius)
+		_issue_move_order(
+			unit_indices[order_index],
+			Vector2(
+				clampf(target_lon, REGION_WEST, REGION_EAST),
+				clampf(target_lat, REGION_SOUTH, REGION_NORTH)
+			)
+		)
 
 
 func _issue_move_order(unit_index: int, destination: Vector2) -> void:
@@ -2075,7 +2182,9 @@ func _select_governorate(index: int) -> void:
 	_center_lat = float(gov["lat"])
 	_origin_lon = _center_lon
 	_origin_lat = _center_lat
-	_map_zoom = DEFAULT_MAP_ZOOM
+	_map_zoom = MAX_MAP_ZOOM if _terrain_mode else DEFAULT_MAP_ZOOM
+	if not _terrain_mode:
+		_map_zoom_before_terrain = _map_zoom
 	zoom_wheel.set_value_no_signal(float(_map_zoom))
 
 	_clear_all_world_nodes()
@@ -2868,7 +2977,7 @@ func _note_failure(kind: String) -> void:
 
 func _update_status() -> void:
 	if _terrain_mode:
-		zoom_label.text = "RTS TERRAIN • SYRIA" if _map_zoom <= SYRIA_OVERVIEW_ZOOM else "RTS TERRAIN • Z%d" % _map_zoom
+		zoom_label.text = "RTS CAMERA • %dX" % _rts_zoom_level
 	else:
 		if _map_zoom <= SYRIA_OVERVIEW_ZOOM:
 			zoom_label.text = "SYRIA • STRATEGIC"
@@ -2895,10 +3004,18 @@ func _update_status() -> void:
 
 
 func _on_mode_pressed() -> void:
-	_terrain_mode = not _terrain_mode
+	if not _terrain_mode:
+		_map_zoom_before_terrain = _map_zoom
+		_terrain_mode = true
+		_map_zoom = MAX_MAP_ZOOM
+		_rts_zoom_level = RTS_ZOOM_LEVEL_MIN
+	else:
+		_terrain_mode = false
+		_map_zoom = clampi(_map_zoom_before_terrain, MIN_MAP_ZOOM, MAX_MAP_ZOOM)
 
 	_origin_lon = _center_lon
 	_origin_lat = _center_lat
+	zoom_wheel.set_value_no_signal(float(clampi(_map_zoom, ZOOM_WHEEL_MIN, ZOOM_WHEEL_MAX)))
 	mode_button.text = "MAP" if _terrain_mode else "TERRAIN"
 
 	_clear_all_world_nodes()
@@ -2912,14 +3029,22 @@ func _on_mode_pressed() -> void:
 		call_deferred("_refresh_vector_data", true)
 
 func _on_zoom_in_pressed() -> void:
-	_set_map_zoom(_map_zoom + 1)
+	if _terrain_mode:
+		_set_rts_zoom_level(_rts_zoom_level + 1)
+	else:
+		_set_map_zoom(_map_zoom + 1)
 
 
 func _on_zoom_out_pressed() -> void:
-	_set_map_zoom(_map_zoom - 1, _map_zoom - 1 <= SYRIA_OVERVIEW_ZOOM)
+	if _terrain_mode:
+		_set_rts_zoom_level(_rts_zoom_level - 1)
+	else:
+		_set_map_zoom(_map_zoom - 1, _map_zoom - 1 <= SYRIA_OVERVIEW_ZOOM)
 
 
 func _on_zoom_wheel_changed(value: float) -> void:
+	if _terrain_mode:
+		return
 	var requested_zoom := clampi(int(round(value)), ZOOM_WHEEL_MIN, ZOOM_WHEEL_MAX)
 	_set_map_zoom(requested_zoom, requested_zoom <= SYRIA_OVERVIEW_ZOOM)
 
@@ -2928,7 +3053,12 @@ func _on_reset_pressed() -> void:
 	var gov := _governorate()
 	_center_lon = float(gov["lon"])
 	_center_lat = float(gov["lat"])
-	_map_zoom = DEFAULT_MAP_ZOOM
+	if _terrain_mode:
+		_map_zoom = MAX_MAP_ZOOM
+		_rts_zoom_level = RTS_ZOOM_LEVEL_MIN
+	else:
+		_map_zoom = DEFAULT_MAP_ZOOM
+		_map_zoom_before_terrain = _map_zoom
 	zoom_wheel.set_value_no_signal(float(_map_zoom))
 	_origin_lon = _center_lon
 	_origin_lat = _center_lat
