@@ -156,3 +156,13 @@ func set_logistics(node_id: String, logistics_ratio: float, route_security: floa
 	node["route_security"] = clampf(route_security, 0.0, 1.0)
 	nodes[node_id] = node
 	return true
+
+
+func set_support(node_id: String, power_ratio: float, water_ratio: float) -> bool:
+	if not nodes.has(node_id):
+		return false
+	var node: Dictionary = nodes[node_id]
+	node["power_ratio"] = clampf(power_ratio, 0.0, 1.0)
+	node["water_ratio"] = clampf(water_ratio, 0.0, 1.0)
+	nodes[node_id] = node
+	return true
