@@ -1,0 +1,36 @@
+name: Five Commit Check Experiment
+
+on:
+  push:
+    branches: [five-commit-check-test]
+
+permissions:
+  contents: read
+
+jobs:
+  commit-check:
+    name: Check commit ${{ matrix.slot }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        slot: [1, 2, 3, 4, 5]
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve and check exactly one commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t COMMITS < <(git rev-list --reverse "${{ github.event.before }}..${{ github.sha }}")
+          test "${#COMMITS[@]}" -eq 5
+          SLOT="${{ matrix.slot }}"
+          TARGET="${COMMITS[$((SLOT - 1))]}"
+          echo "Check $SLOT -> $TARGET"
+          git checkout --detach "$TARGET"
+          test "$(tail -n 1 ci/five-checks.txt)" = "commit-$SLOT"
+          git show -s --format='Commit checked: %H %s'
