@@ -2154,6 +2154,7 @@ func _toggle_unit_selection(unit_index: int) -> void:
 		_selected_unit_indices.append(unit_index)
 	_selected_unit_index = _selected_unit_indices.back() if not _selected_unit_indices.is_empty() else -1
 	_sync_unit_visuals()
+	_update_status()
 
 
 func select_units(indices: Array[int]) -> void:
@@ -2167,6 +2168,7 @@ func select_units(indices: Array[int]) -> void:
 			_selected_unit_indices.append(index)
 	_selected_unit_index = _selected_unit_indices.back() if not _selected_unit_indices.is_empty() else -1
 	_sync_unit_visuals()
+	_update_status()
 
 
 func toggle_unit_selection(index: int) -> void:
@@ -2222,6 +2224,7 @@ func clear_selected_units() -> void:
 	_selected_unit_indices.clear()
 	_selected_unit_index = -1
 	_sync_unit_visuals()
+	_update_status()
 
 
 func get_selected_unit_indices() -> Array[int]:
@@ -3236,6 +3239,9 @@ func _update_status() -> void:
 			]
 		else:
 			status_label.text = "SYRIA STRATEGIC READY" if _is_strategic_map() else "%s MAP READY" % _governorate_name()
+
+	if not _selected_unit_indices.is_empty():
+		status_label.text += " • SELECTED %d" % _selected_unit_indices.size()
 
 
 func _on_battle_pressed() -> void:

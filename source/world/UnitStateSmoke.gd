@@ -75,6 +75,9 @@ func _run() -> void:
 	if scene.get_selected_unit_count() != 14:
 		_fail(27, "Strategic unit smoke: select all command button failed")
 		return
+	if "SELECTED 14" not in scene.status_label.text:
+		_fail(45, "Strategic unit smoke: selected unit count missing from status HUD")
+		return
 	var clear_button := scene.get_node_or_null("HUD/CommandBar/Row/ClearSelectionButton") as Button
 	if clear_button == null:
 		_fail(28, "Strategic unit smoke: clear command button missing")
@@ -82,6 +85,9 @@ func _run() -> void:
 	clear_button.emit_signal("pressed")
 	if scene.get_selected_unit_count() != 0:
 		_fail(29, "Strategic unit smoke: clear command button failed")
+		return
+	if "SELECTED" in scene.status_label.text:
+		_fail(46, "Strategic unit smoke: cleared selection remained in status HUD")
 		return
 
 	var previous_button := scene.get_node_or_null("HUD/CommandBar/Row/PreviousUnitButton") as Button
