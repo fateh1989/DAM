@@ -163,6 +163,7 @@ var _touch_press_positions := {}
 var _touch_drag_distance := {}
 var _mouse_press_position := Vector2.ZERO
 var _mouse_drag_distance := 0.0
+var _radar_action_mode := "camera"
 
 
 func _game_state_node() -> Node:
@@ -2036,6 +2037,18 @@ func _local_to_geo(local_position: Vector3) -> Vector2:
 		clampf(lon, REGION_WEST, REGION_EAST),
 		clampf(lat, REGION_SOUTH, REGION_NORTH)
 	)
+
+
+func get_radar_action_mode() -> String:
+	return _radar_action_mode
+
+
+func set_radar_action_mode(mode: String) -> void:
+	_radar_action_mode = "move" if mode == "move" else "camera"
+
+
+func toggle_radar_action_mode() -> void:
+	set_radar_action_mode("move" if _radar_action_mode == "camera" else "camera")
 
 
 func get_radar_units() -> Array:
