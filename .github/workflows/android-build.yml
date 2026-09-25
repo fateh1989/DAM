@@ -3,7 +3,7 @@ name: Build DAM Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, battle-dev]
     paths:
       - "project.godot"
       - "export_presets.cfg"
