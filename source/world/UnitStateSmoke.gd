@@ -59,6 +59,16 @@ func _run() -> void:
 		_fail(59, "Mobile control smoke: " + mobile_error)
 		return
 
+	var province_clock_smoke_script := load("res://source/world/ProvinceClockSmoke.gd") as Script
+	if province_clock_smoke_script == null:
+		_fail(60, "Province clock smoke: contract script missing")
+		return
+	var province_clock_smoke = province_clock_smoke_script.new()
+	var province_clock_error := str(province_clock_smoke.call("run", scene))
+	if not province_clock_error.is_empty():
+		_fail(61, "Province clock smoke: " + province_clock_error)
+		return
+
 	if scene._units.size() != scene.GOVERNORATES.size() or scene._units.size() != 14:
 		_fail(3, "Strategic unit smoke: expected one persistent tank per governorate")
 		return
