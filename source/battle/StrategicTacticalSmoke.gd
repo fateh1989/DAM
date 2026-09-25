@@ -63,6 +63,14 @@ func _run() -> void:
 	await process_frame
 	print("SMOKE checkpoint 5: first frame")
 
+	var battle_context: Dictionary = battle.get_battle_context()
+	if str(battle_context.get("province_id", "")) != "aleppo":
+		_fail(19, "Strategic/tactical smoke: tactical battle lost province id")
+		return
+	if str(battle_context.get("province_name", "")) != "حلب":
+		_fail(20, "Strategic/tactical smoke: tactical battle lost province name")
+		return
+
 	if battle.camera.projection != Camera3D.PROJECTION_ORTHOGONAL:
 		_fail(6, "Strategic/tactical smoke: camera is not orthogonal")
 		return

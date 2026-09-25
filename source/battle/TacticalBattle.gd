@@ -253,6 +253,14 @@ func get_selected_count() -> int:
 	return _selected.size()
 
 
+func get_battle_context() -> Dictionary:
+	var game_state := _game_state_node()
+	if game_state == null:
+		return {}
+	var active_battle: Dictionary = game_state.get("active_battle")
+	return active_battle.duplicate(true)
+
+
 func get_radar_blips() -> Array:
 	var result: Array = []
 	for i in range(_units.size()):
