@@ -236,3 +236,47 @@ func configure_industrial_profile(node_id: String, profile: String) -> bool:
 	node["value_multiplier"] = float(data.get("value_multiplier", 1.0))
 	nodes[node_id] = node
 	return true
+
+
+func reset() -> void:
+	nodes.clear()
+	treasury_income = 0.0
+	elapsed_hours = 0.0
+
+
+func seed_syria_gameplay_baseline() -> void:
+	reset()
+	create_node("aleppo_industry", "industrial", "aleppo", 1.20)
+	configure_industrial_profile("aleppo_industry", "engineering")
+	create_node("aleppo_market", "market", "aleppo", 1.00)
+	create_node("aleppo_sheep", "sheep", "aleppo", 0.90)
+	configure_livestock("aleppo_sheep", 920.0, 0.004)
+	configure_livestock_market("aleppo_sheep", 0.006)
+
+	create_node("hama_grain", "grain", "hama", 1.15)
+	create_node("hama_sheep", "sheep", "hama", 0.95)
+	configure_livestock("hama_sheep", 760.0, 0.004)
+	configure_livestock_market("hama_sheep", 0.006)
+
+	create_node("homs_industry", "industrial", "homs", 1.00)
+	configure_industrial_profile("homs_industry", "chemical")
+	create_node("homs_phosphate", "phosphate", "homs", 0.90)
+
+	create_node("deir_oil", "oil", "deir_ez_zor", 1.10)
+	create_node("deir_gas", "gas", "deir_ez_zor", 1.00)
+	create_node("deir_market", "market", "deir_ez_zor", 0.80)
+
+	create_node("hasakah_grain", "grain", "hasakah", 1.20)
+	create_node("hasakah_sheep", "sheep", "hasakah", 1.00)
+	configure_livestock("hasakah_sheep", 1100.0, 0.004)
+	configure_livestock_market("hasakah_sheep", 0.006)
+
+	create_node("damascus_industry", "industrial", "damascus", 1.15)
+	configure_industrial_profile("damascus_industry", "textile")
+	create_node("damascus_market", "market", "damascus", 1.20)
+	create_node("damascus_power", "electric", "damascus", 1.00)
+	create_node("damascus_water", "water", "damascus", 1.00)
+
+	create_node("latakia_market", "market", "latakia", 0.90)
+	create_node("daraa_grain", "grain", "daraa", 0.85)
+	create_node("raqqa_grain", "grain", "raqqa", 1.05)
