@@ -83,6 +83,19 @@ func _run() -> void:
 	if battle.get_unit_count() != 6 or battle.get_enemy_count() != 6:
 		_fail(8, "Strategic/tactical smoke: expected 6 friendly and 6 enemy tanks")
 		return
+	var friendly_positions: Array[Vector3] = battle.get_friendly_positions()
+	var enemy_positions: Array[Vector3] = battle.get_enemy_positions()
+	if friendly_positions.size() != 6 or enemy_positions.size() != 6:
+		_fail(23, "Strategic/tactical smoke: spawn position counts mismatch")
+		return
+	for position in friendly_positions:
+		if position.z <= 0.0:
+			_fail(24, "Strategic/tactical smoke: friendly spawn crossed battle line")
+			return
+	for position in enemy_positions:
+		if position.z >= 0.0:
+			_fail(25, "Strategic/tactical smoke: enemy spawn crossed battle line")
+			return
 	if battle.get_node_or_null("HUD/BattleRadar") == null:
 		_fail(9, "Strategic/tactical smoke: battle radar missing")
 		return

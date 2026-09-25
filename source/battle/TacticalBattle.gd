@@ -245,6 +245,20 @@ func get_enemy_count() -> int:
 	return _enemies.size()
 
 
+func get_friendly_positions() -> Array[Vector3]:
+	var positions: Array[Vector3] = []
+	for unit in _units:
+		positions.append((unit["node"] as Node3D).position)
+	return positions
+
+
+func get_enemy_positions() -> Array[Vector3]:
+	var positions: Array[Vector3] = []
+	for enemy in _enemies:
+		positions.append((enemy["node"] as Node3D).position)
+	return positions
+
+
 func get_alive_enemy_count() -> int:
 	var count := 0
 	for enemy in _enemies:
