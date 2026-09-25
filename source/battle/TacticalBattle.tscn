@@ -58,11 +58,28 @@ custom_minimum_size = Vector2(130, 48)
 layout_mode = 2
 text = "ZOOM 1X"
 
-[node name="Hint" type="Label" parent="HUD"]
+[node name="CommandBar" type="HBoxContainer" parent="HUD"]
 offset_left = 16.0
 offset_top = 84.0
+offset_right = 360.0
+offset_bottom = 136.0
+theme_override_constants/separation = 10
+
+[node name="SelectAllButton" type="Button" parent="HUD/CommandBar"]
+custom_minimum_size = Vector2(160, 48)
+layout_mode = 2
+text = "SELECT ALL"
+
+[node name="StopButton" type="Button" parent="HUD/CommandBar"]
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+text = "STOP"
+
+[node name="Hint" type="Label" parent="HUD"]
+offset_left = 16.0
+offset_top = 144.0
 offset_right = 760.0
-offset_bottom = 120.0
+offset_bottom = 180.0
 theme_override_font_sizes/font_size = 16
 text = "Tap green tanks to select • tap red tank to attack • tap ground to move • drag to pan"
 
@@ -82,3 +99,5 @@ script = ExtResource("2_radar")
 
 [connection signal="pressed" from="HUD/TopBar/Row/BackButton" to="." method="_on_back_pressed"]
 [connection signal="pressed" from="HUD/TopBar/Row/ZoomButton" to="." method="_on_zoom_pressed"]
+[connection signal="pressed" from="HUD/CommandBar/SelectAllButton" to="." method="_on_select_all_pressed"]
+[connection signal="pressed" from="HUD/CommandBar/StopButton" to="." method="_on_stop_pressed"]
