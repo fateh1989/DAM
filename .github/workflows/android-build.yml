@@ -220,7 +220,10 @@ jobs:
         run: godot --headless --path . --script source/world/AleppoSmoke.gd
 
       - name: Persistent units and RTS/map view smoke
-        run: godot --headless --path . --script source/world/UnitStateSmoke.gd
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 60s godot --headless --path . --script source/world/UnitStateSmoke.gd
 
       - name: Export APK
         shell: bash
