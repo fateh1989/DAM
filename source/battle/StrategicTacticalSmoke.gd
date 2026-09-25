@@ -130,9 +130,14 @@ func _run() -> void:
 	if before_move.distance_to(after_move) < 1.0:
 		_fail(26, "Strategic/tactical smoke: selected group did not move")
 		return
+	var enemy_health_before: float = battle.get_enemy_health(0)
 	battle.issue_attack_order(0)
 	for _i in range(100):
 		battle._process(0.1)
+	var enemy_health_after: float = battle.get_enemy_health(0)
+	if enemy_health_after >= enemy_health_before:
+		_fail(27, "Strategic/tactical smoke: attack order did not reduce enemy health")
+		return
 	if battle.get_alive_enemy_count() >= 6:
 		_fail(14, "Strategic/tactical smoke: selected units did not damage enemy")
 		return

@@ -259,6 +259,12 @@ func get_enemy_positions() -> Array[Vector3]:
 	return positions
 
 
+func get_enemy_health(index: int) -> float:
+	if index < 0 or index >= _enemies.size():
+		return -1.0
+	return float(_enemies[index].get("hp", 0.0))
+
+
 func get_alive_enemy_count() -> int:
 	var count := 0
 	for enemy in _enemies:
