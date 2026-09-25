@@ -55,6 +55,7 @@ func create_node(
 		"revenue_total": 0.0,
 		"head_count": 0.0,
 		"growth_rate": 0.0,
+		"market_sale_rate": 0.0,
 	}
 	return true
 
@@ -125,6 +126,11 @@ func tick(hours: float) -> Dictionary:
 		var node: Dictionary = nodes[node_id]
 		var kind := str(node.get("kind", ""))
 		var catalog: Dictionary = RESOURCE_CATALOG.get(kind, {})
+		if kind == "sheep":
+			var head_count := float(node.get("head_count", 0.0))
+			var growth_rate := maxf(0.0, float(node.get("growth_rate", 0.0)))
+			node["head_count"] = head_count + head_count * growth_rate * hours / 24.0 * get_node_throughput(str(node_id))
+			nodes[node_id] = node
 		var production := float(catalog.get("base_output", 0.0)) * get_node_throughput(str(node_id)) * hours
 		node["stored_output"] = float(node.get("stored_output", 0.0)) + production
 		nodes[node_id] = node
@@ -164,5 +170,17 @@ func set_support(node_id: String, power_ratio: float, water_ratio: float) -> boo
 	var node: Dictionary = nodes[node_id]
 	node["power_ratio"] = clampf(power_ratio, 0.0, 1.0)
 	node["water_ratio"] = clampf(water_ratio, 0.0, 1.0)
+	nodes[node_id] = node
+	return true
+
+
+func configure_livestock(node_id: String, head_count: float, daily_growth_rate: float) -> bool:
+	if not nodes.has(node_id):
+		return false
+	var node: Dictionary = nodes[node_id]
+	if str(node.get("kind", "")) != "sheep":
+		return false
+	node["head_count"] = maxf(0.0, head_count)
+	node["growth_rate"] = maxf(0.0, daily_growth_rate)
 	nodes[node_id] = node
 	return true
