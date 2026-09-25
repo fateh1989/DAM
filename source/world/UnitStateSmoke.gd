@@ -83,6 +83,13 @@ func _run() -> void:
 		_fail(22, "Strategic unit smoke: select previous did not go back")
 		return
 	scene.select_units(selected_indices)
+	if not scene.focus_selected_units():
+		_fail(23, "Strategic unit smoke: focus selected control failed")
+		return
+	var focus_uv: Vector2 = scene.get_radar_camera_uv()
+	if focus_uv.x < 0.0 or focus_uv.x > 1.0 or focus_uv.y < 0.0 or focus_uv.y > 1.0:
+		_fail(24, "Strategic unit smoke: focus selected escaped map bounds")
+		return
 	scene.issue_selected_group_move(Vector2(first_start.x + 0.08, first_start.y))
 	if scene.are_selected_units_stopped():
 		_fail(15, "Strategic unit smoke: move command did not arm movement")

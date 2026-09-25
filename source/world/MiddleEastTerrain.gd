@@ -2203,6 +2203,31 @@ func get_selected_unit_count() -> int:
 	return _selected_unit_indices.size()
 
 
+func focus_selected_units() -> bool:
+	var lon_sum := 0.0
+	var lat_sum := 0.0
+	var count := 0
+	for index in _selected_unit_indices:
+		if index < 0 or index >= _units.size():
+			continue
+		var unit: Dictionary = _units[index]
+		if not bool(unit.get("alive", true)):
+			continue
+		lon_sum += float(unit["lon"])
+		lat_sum += float(unit["lat"])
+		count += 1
+	if count == 0:
+		return false
+	_center_lon = clampf(lon_sum / float(count), REGION_WEST, REGION_EAST)
+	_center_lat = clampf(lat_sum / float(count), REGION_SOUTH, REGION_NORTH)
+	_origin_lon = _center_lon
+	_origin_lat = _center_lat
+	_position_camera()
+	_sync_unit_visuals()
+	_update_status()
+	return true
+
+
 func issue_selected_group_move(destination: Vector2) -> void:
 	_issue_group_move_order(_selected_unit_indices, destination)
 
