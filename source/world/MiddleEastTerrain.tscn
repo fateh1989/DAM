@@ -117,6 +117,15 @@ text = ">"
 
 
 
+[node name="GeoOverlayButton" type="Button" parent="HUD"]
+offset_left = 12.0
+offset_top = 202.0
+offset_right = 190.0
+offset_bottom = 252.0
+theme_override_font_sizes/font_size = 16
+text = "الحدود والأسماء: تشغيل"
+
+
 [node name="ZoomWheel" type="PanelContainer" parent="HUD"]
 anchor_left = 1.0
 anchor_right = 1.0
@@ -179,6 +188,7 @@ horizontal_alignment = 2
 [connection signal="pressed" from="HUD/TopBar/Row/ZoomInButton" to="." method="_on_zoom_in_pressed"]
 
 [connection signal="pressed" from="HUD/ModeButton" to="." method="_on_mode_pressed"]
+[connection signal="pressed" from="HUD/GeoOverlayButton" to="." method="_on_geo_overlay_pressed"]
 [connection signal="value_changed" from="HUD/ZoomWheel/Column/Slider" to="." method="_on_zoom_wheel_changed"]
 
 [connection signal="pressed" from="HUD/GovernorateBar/Row/PreviousButton" to="." method="_on_previous_governorate_pressed"]
