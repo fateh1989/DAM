@@ -2155,6 +2155,19 @@ func select_single_unit(index: int) -> void:
 	select_units(indices)
 
 
+func select_previous_unit() -> void:
+	if _units.is_empty():
+		clear_selected_units()
+		return
+	var start := _selected_unit_index if _selected_unit_index >= 0 else 0
+	for step in range(1, _units.size() + 1):
+		var index := posmod(start - step, _units.size())
+		if bool(_units[index].get("alive", true)):
+			select_single_unit(index)
+			return
+	clear_selected_units()
+
+
 func select_next_unit() -> void:
 	if _units.is_empty():
 		clear_selected_units()
