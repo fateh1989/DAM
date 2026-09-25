@@ -14,6 +14,9 @@ const DEFAULT_MAP_ZOOM := 9
 const ZOOM_WHEEL_MIN := 6
 const ZOOM_WHEEL_MAX := 10
 const SYRIA_OVERVIEW_ZOOM := 6
+const STRATEGIC_GRID := 28
+const STRATEGIC_TILE_RADIUS := 1
+const STRATEGIC_CAMERA_MARGIN := 1.18
 
 const TERRAIN_ZOOM := 13
 const TERRAIN_TILE_RADIUS := 1
@@ -253,16 +256,24 @@ func _position_camera() -> void:
 		camera.far = 1000.0
 	else:
 		camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-		camera.size = _map_tile_width_km() * 4.7
+		if _is_strategic_map():
+			var syria_height_km := EARTH_RADIUS_KM * deg_to_rad(REGION_NORTH - REGION_SOUTH)
+			camera.size = syria_height_km * STRATEGIC_CAMERA_MARGIN
+		else:
+			camera.size = _map_tile_width_km() * 4.7
 		camera.position = center + Vector3(0.0, 500.0, 0.01)
 		camera.look_at(center, Vector3(0.0, 0.0, -1.0))
 		camera.near = 0.1
 		camera.far = 1000.0
 
 
+func _is_strategic_map() -> bool:
+	return not _terrain_mode and _map_zoom <= SYRIA_OVERVIEW_ZOOM
+
+
 func _refresh_tiles() -> void:
 	var zoom := TERRAIN_ZOOM if _terrain_mode else _map_zoom
-	var radius := TERRAIN_TILE_RADIUS if _terrain_mode else MAP_TILE_RADIUS
+	var radius := TERRAIN_TILE_RADIUS if _terrain_mode else (STRATEGIC_TILE_RADIUS if _is_strategic_map() else MAP_TILE_RADIUS)
 	var keep_radius := radius + KEEP_EXTRA
 	var center_tile := _lon_lat_to_tile(_center_lon, _center_lat, zoom)
 	var max_index := int(pow(2.0, float(zoom))) - 1
@@ -313,7 +324,7 @@ func _begin_tile(z: int, x: int, y: int, key: String) -> void:
 	# Always draw a placeholder immediately so terrain mode is never blank.
 	_rebuild_tile(key)
 
-	if _terrain_mode:
+	if _terrain_mode or _is_strategic_map():
 		var dem_cache := _dem_cache_path(z, x, y)
 		if FileAccess.file_exists(dem_cache):
 			var bytes := _read_bytes(dem_cache)
@@ -454,7 +465,10 @@ func _rebuild_tile(key: String) -> void:
 	var map_texture: Texture2D = state.get("map_texture")
 
 	if not _terrain_mode:
-		_build_map_quad(state, key, z, x, y, map_texture)
+		if _is_strategic_map():
+			_build_strategic_tile(state, key, z, x, y, dem_image)
+		else:
+			_build_map_quad(state, key, z, x, y, map_texture)
 		return
 
 	# Real DEM stays authoritative. We only quantize and art-direct its visual
@@ -716,6 +730,130 @@ func _cliff_color(elevation_m: float, x: int, y: int) -> Color:
 func _hash_noise(x: int, y: int) -> float:
 	var value := sin(float(x) * 12.9898 + float(y) * 78.233) * 43758.5453
 	return value - floor(value)
+
+func _strategic_ground_color(
+	elevation_m: float,
+	hillshade: float,
+	global_x: int,
+	global_y: int
+) -> Color:
+	# Strategic view deliberately discards street-map/GIS styling. Real DEM
+	# controls relief while an RTS macro palette makes the country readable.
+	var grass := Color("#4A6B3D")
+	var dry_grass := Color("#A69258")
+	var soil := Color("#6B4F3A")
+	var rock := Color("#5A6268")
+	var desert := Color("#C2A676")
+
+	var base := desert
+	if elevation_m < 180.0:
+		base = dry_grass
+	elif elevation_m < 450.0:
+		base = dry_grass.lerp(soil, 0.28)
+	elif elevation_m < 850.0:
+		base = soil.lerp(grass, 0.22)
+	elif elevation_m < 1400.0:
+		base = soil.lerp(rock, 0.38)
+	else:
+		base = rock
+
+	# Very broad, deterministic variation only; no cell-scale visual noise.
+	var macro := _hash_noise(int(floor(float(global_x) / 3.0)), int(floor(float(global_y) / 3.0)))
+	if macro > 0.70:
+		base = base.lerp(dry_grass, 0.10)
+	elif macro < 0.18:
+		base = base.lerp(grass, 0.08)
+
+	var light := clampf(hillshade, 0.68, 1.18)
+	return Color(
+		clampf(base.r * light, 0.0, 1.0),
+		clampf(base.g * light, 0.0, 1.0),
+		clampf(base.b * light, 0.0, 1.0),
+		1.0
+	)
+
+
+func _build_strategic_tile(
+	state: Dictionary,
+	key: String,
+	z: int,
+	x: int,
+	y: int,
+	dem_image: Image
+) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+	for gy in range(STRATEGIC_GRID):
+		var v0 := float(gy) / float(STRATEGIC_GRID)
+		var v1 := float(gy + 1) / float(STRATEGIC_GRID)
+		var vc := (v0 + v1) * 0.5
+
+		for gx in range(STRATEGIC_GRID):
+			var u0 := float(gx) / float(STRATEGIC_GRID)
+			var u1 := float(gx + 1) / float(STRATEGIC_GRID)
+			var uc := (u0 + u1) * 0.5
+
+			var elevation_m := 260.0
+			var west := elevation_m
+			var east := elevation_m
+			var north := elevation_m
+			var south := elevation_m
+
+			if dem_image != null:
+				var du := 1.0 / float(STRATEGIC_GRID)
+				var dv := du
+				elevation_m = _sample_dem(dem_image, uc, vc)
+				west = _sample_dem(dem_image, clampf(uc - du, 0.0, 1.0), vc)
+				east = _sample_dem(dem_image, clampf(uc + du, 0.0, 1.0), vc)
+				north = _sample_dem(dem_image, uc, clampf(vc - dv, 0.0, 1.0))
+				south = _sample_dem(dem_image, uc, clampf(vc + dv, 0.0, 1.0))
+
+			# Directional macro hillshade: mountains read from country scale
+			# without sending dense geometry to the GPU.
+			var directional_relief := (west - east) * 0.00055 + (south - north) * 0.00038
+			var hillshade := 0.94 + clampf(directional_relief, -0.26, 0.24)
+			var color := _strategic_ground_color(
+				elevation_m,
+				hillshade,
+				x * STRATEGIC_GRID + gx,
+				y * STRATEGIC_GRID + gy
+			)
+
+			var nw := _tile_fraction_to_lon_lat(z, x, y, u0, v0)
+			var ne := _tile_fraction_to_lon_lat(z, x, y, u1, v0)
+			var sw := _tile_fraction_to_lon_lat(z, x, y, u0, v1)
+			var se := _tile_fraction_to_lon_lat(z, x, y, u1, v1)
+
+			var p00 := _geo_to_local(nw.x, nw.y, 0.0)
+			var p10 := _geo_to_local(ne.x, ne.y, 0.0)
+			var p01 := _geo_to_local(sw.x, sw.y, 0.0)
+			var p11 := _geo_to_local(se.x, se.y, 0.0)
+
+			_add_colored_triangle(st, p00, p01, p10, color)
+			_add_colored_triangle(st, p10, p01, p11, color)
+
+	var mesh := st.commit()
+	if mesh == null:
+		return
+
+	var node: MeshInstance3D = state.get("node")
+	if not is_instance_valid(node):
+		node = MeshInstance3D.new()
+		node.name = "StrategicTile_%d_%d_%d" % [z, x, y]
+		terrain_root.add_child(node)
+
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	material.vertex_color_use_as_albedo = true
+	material.roughness = 1.0
+	node.mesh = mesh
+	node.material_override = material
+	state["node"] = node
+	state["strategic_dem"] = dem_image != null
+	_tiles[key] = state
+
 
 func _build_map_quad(
 	state: Dictionary,
@@ -1693,7 +1831,7 @@ func _update_status() -> void:
 		zoom_label.text = "REAL TERRAIN"
 	else:
 		if _map_zoom <= SYRIA_OVERVIEW_ZOOM:
-			zoom_label.text = "SYRIA • ZOOM %d" % _map_zoom
+			zoom_label.text = "SYRIA • STRATEGIC"
 		else:
 			zoom_label.text = "ZOOM %d / %d" % [_map_zoom, MAX_MAP_ZOOM]
 
@@ -1713,7 +1851,7 @@ func _update_status() -> void:
 				_tree_instance_count
 			]
 		else:
-			status_label.text = "%s MAP READY" % _governorate_name()
+			status_label.text = "SYRIA STRATEGIC READY" if _is_strategic_map() else "%s MAP READY" % _governorate_name()
 
 
 func _on_mode_pressed() -> void:
