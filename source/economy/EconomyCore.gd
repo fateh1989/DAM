@@ -87,6 +87,19 @@ func get_node_throughput(node_id: String) -> float:
 	return maxf(0.0, float(node.get("capacity", 0.0)) * damage_factor * _support_ratio(node))
 
 
+func _auto_sell_node(node_id: String) -> float:
+	var node: Dictionary = nodes[node_id]
+	var kind := str(node.get("kind", ""))
+	var catalog: Dictionary = RESOURCE_CATALOG.get(kind, {})
+	var sale_ratio := clampf(float(catalog.get("sale_ratio", 0.0)), 0.0, 1.0)
+	var amount := float(node.get("stored_output", 0.0)) * sale_ratio
+	var income := amount * float(catalog.get("unit_value", 0.0))
+	node["stored_output"] = float(node.get("stored_output", 0.0)) - amount
+	node["revenue_total"] = float(node.get("revenue_total", 0.0)) + income
+	nodes[node_id] = node
+	return income
+
+
 func tick(hours: float) -> Dictionary:
 	hours = maxf(0.0, hours)
 	if hours <= 0.0:
@@ -99,6 +112,10 @@ func tick(hours: float) -> Dictionary:
 		var production := float(catalog.get("base_output", 0.0)) * get_node_throughput(str(node_id)) * hours
 		node["stored_output"] = float(node.get("stored_output", 0.0)) + production
 		nodes[node_id] = node
-		produced_total += production
+			produced_total += production
+	var income_total := 0.0
+	for node_id in nodes.keys():
+		income_total += _auto_sell_node(str(node_id))
+	treasury_income += income_total
 	elapsed_hours += hours
-	return {"hours": hours, "produced": produced_total, "income": 0.0}
+	return {"hours": hours, "produced": produced_total, "income": income_total}
