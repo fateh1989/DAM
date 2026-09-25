@@ -130,7 +130,7 @@ jobs:
           test -s source/world/generated/syria_macro.png
           test -s source/world/generated/syria_macro_height.png
           test -s source/world/generated/syria_macro_variation.png
-          file source/world/generated/syria_macro*.png
+          ls -lh source/world/generated/syria_macro*.png
 
 
       - name: Import project
