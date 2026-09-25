@@ -24,9 +24,11 @@ func _ensure_service(node_name: String, script_path: String) -> Node:
 
 
 func _run() -> void:
+	print("SMOKE checkpoint 1: services")
 	var game_state := _ensure_service("GameState", "res://source/state/GameState.gd")
 	var audio := _ensure_service("AudioFocusManager", "res://source/audio/AudioFocusManager.gd")
 	await process_frame
+	print("SMOKE checkpoint 2: services ready")
 
 	if game_state == null or not bool(game_state.call("ensure_started")):
 		_fail(2, "Strategic/tactical smoke: GameState failed")
@@ -49,6 +51,7 @@ func _run() -> void:
 		_fail(4, "Strategic/tactical smoke: battle did not start")
 		return
 
+	print("SMOKE checkpoint 3: state ready")
 	var packed := load("res://source/battle/TacticalBattle.tscn")
 	if packed == null:
 		_fail(5, "Strategic/tactical smoke: tactical scene load failed")
@@ -56,7 +59,9 @@ func _run() -> void:
 
 	var battle = packed.instantiate()
 	root.add_child(battle)
+	print("SMOKE checkpoint 4: battle added")
 	await process_frame
+	print("SMOKE checkpoint 5: first frame")
 
 	if battle.camera.projection != Camera3D.PROJECTION_ORTHOGONAL:
 		_fail(6, "Strategic/tactical smoke: camera is not orthogonal")
@@ -84,6 +89,7 @@ func _run() -> void:
 		_fail(12, "Strategic/tactical smoke: close zoom did not reduce camera size")
 		return
 
+	print("SMOKE checkpoint 6: camera/radar basic checks")
 	battle.select_units([0, 1])
 	if battle.get_selected_count() != 2:
 		_fail(13, "Strategic/tactical smoke: multi-select failed")
@@ -95,6 +101,7 @@ func _run() -> void:
 		_fail(14, "Strategic/tactical smoke: selected units did not damage enemy")
 		return
 
+	print("SMOKE checkpoint 7: combat simulated")
 	var before_uv: Vector2 = battle.get_radar_camera_uv()
 	battle.radar_center_on_uv(Vector2(0.6, 0.6))
 	var after_uv: Vector2 = battle.get_radar_camera_uv()
@@ -102,6 +109,7 @@ func _run() -> void:
 		_fail(15, "Strategic/tactical smoke: radar camera jump failed")
 		return
 
+	print("SMOKE checkpoint 8: radar moved")
 	game_state.call("finish_battle", {"result": "test"})
 	var active_battle: Dictionary = game_state.get("active_battle")
 	if not active_battle.is_empty():
