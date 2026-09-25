@@ -56,6 +56,25 @@ func _run() -> void:
 		_fail(29, "Strategic unit smoke: clear command button failed")
 		return
 
+	var previous_button := scene.get_node_or_null("HUD/CommandBar/Row/PreviousUnitButton") as Button
+	var next_button := scene.get_node_or_null("HUD/CommandBar/Row/NextUnitButton") as Button
+	if previous_button == null or next_button == null:
+		_fail(30, "Strategic unit smoke: previous/next unit command buttons missing")
+		return
+	next_button.emit_signal("pressed")
+	if scene.get_selected_unit_indices()[0] != 0:
+		_fail(31, "Strategic unit smoke: next unit command button did not select first unit")
+		return
+	next_button.emit_signal("pressed")
+	if scene.get_selected_unit_indices()[0] != 1:
+		_fail(32, "Strategic unit smoke: next unit command button did not advance")
+		return
+	previous_button.emit_signal("pressed")
+	if scene.get_selected_unit_indices()[0] != 0:
+		_fail(33, "Strategic unit smoke: previous unit command button did not go back")
+		return
+	scene.clear_selected_units()
+
 	var first_before: Dictionary = scene._units[0]
 	var second_before: Dictionary = scene._units[1]
 	var first_start := Vector2(float(first_before["lon"]), float(first_before["lat"]))
