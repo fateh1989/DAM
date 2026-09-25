@@ -2105,7 +2105,7 @@ func select_nearest_unit_uv(uv: Vector2, max_distance: float = 0.06) -> int:
 			best_distance = distance
 			best_index = int(item.get("index", -1))
 	if best_index >= 0:
-		select_single_unit(best_index)
+		select_unit(best_index, false)
 	return best_index
 
 
@@ -2164,7 +2164,7 @@ func _handle_world_tap(screen_position: Vector2) -> void:
 			closest_index = i
 
 	if closest_index >= 0:
-		_toggle_unit_selection(closest_index)
+		select_unit(closest_index, true)
 		return
 
 	if _selected_unit_indices.is_empty():
@@ -2187,6 +2187,18 @@ func _toggle_unit_selection(unit_index: int) -> void:
 	_selected_unit_index = _selected_unit_indices.back() if not _selected_unit_indices.is_empty() else -1
 	_sync_unit_visuals()
 	_update_status()
+
+
+func select_unit(index: int, additive: bool = false) -> bool:
+	if index < 0 or index >= _units.size():
+		return false
+	if not bool(_units[index].get("alive", true)):
+		return false
+	if additive:
+		toggle_unit_selection(index)
+	else:
+		select_single_unit(index)
+	return index in _selected_unit_indices
 
 
 func select_units(indices: Array[int]) -> void:

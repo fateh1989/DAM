@@ -19,6 +19,16 @@ func _run() -> void:
 	root.add_child(scene)
 	await process_frame
 
+	var selection_contract_script := load("res://source/world/SelectionCoreSmoke.gd") as Script
+	if selection_contract_script == null:
+		_fail(52, "Selection core smoke: contract script missing")
+		return
+	var selection_contract = selection_contract_script.new()
+	var selection_error := str(selection_contract.call("run", scene))
+	if not selection_error.is_empty():
+		_fail(53, "Selection core smoke: " + selection_error)
+		return
+
 	if scene._units.size() != scene.GOVERNORATES.size() or scene._units.size() != 14:
 		_fail(3, "Strategic unit smoke: expected one persistent tank per governorate")
 		return
