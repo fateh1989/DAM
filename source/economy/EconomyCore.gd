@@ -303,3 +303,16 @@ func get_governorate_snapshot(governorate_id: String) -> Dictionary:
 		result["livestock"] = float(result["livestock"]) + float(node.get("head_count", 0.0))
 		(result["nodes"] as Array).append(node.duplicate(true))
 	return result
+
+
+func apply_area_damage(governorate_id: String, severity: float, kind_filter: String = "") -> int:
+	var affected := 0
+	for node_id in nodes.keys():
+		var node: Dictionary = nodes[node_id]
+		if str(node.get("governorate_id", "")) != governorate_id:
+			continue
+		if not kind_filter.is_empty() and str(node.get("kind", "")) != kind_filter:
+			continue
+		if apply_damage(str(node_id), severity):
+			affected += 1
+	return affected
