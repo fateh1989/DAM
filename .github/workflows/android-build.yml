@@ -157,6 +157,13 @@ jobs:
           test -s source/world/generated/syria_macro_variation.png
           godot --headless --path . --script source/world/StrategicViewSmoke.gd
 
+      - name: RTS overview and geographic overlay smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s source/world/generated/syria_geo_overlay.json
+          godot --headless --path . --script source/world/GeoOverlaySmoke.gd
+
       - name: DAM Native Core smoke
         shell: bash
         run: |
