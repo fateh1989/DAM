@@ -45,9 +45,8 @@ func _run() -> void:
 	var second_start := Vector2(float(second_before["lon"]), float(second_before["lat"]))
 
 	var selected_indices: Array[int] = [0, 1]
-	scene._selected_unit_indices = selected_indices
-	scene._selected_unit_index = 1
-	scene._issue_group_move_order(selected_indices, Vector2(first_start.x + 0.08, first_start.y))
+	scene.select_units(selected_indices)
+	scene.issue_selected_group_move(Vector2(first_start.x + 0.08, first_start.y))
 	scene._process(1.0)
 
 	var first_after: Dictionary = scene._units[0]
