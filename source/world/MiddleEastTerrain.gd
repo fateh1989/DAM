@@ -2030,7 +2030,8 @@ func _sync_unit_visuals() -> void:
 			var is_selected := i in _selected_unit_indices
 			var is_primary := is_selected and i == _selected_unit_index
 			selection.visible = is_selected
-			selection.scale = Vector3.ONE * (1.28 if is_primary else 1.0)
+			var ring_scale: float = 1.28 if is_primary else (0.92 if is_selected and _selected_unit_indices.size() > 1 else 1.0)
+			selection.scale = Vector3.ONE * ring_scale
 
 
 func _local_to_geo(local_position: Vector3) -> Vector2:

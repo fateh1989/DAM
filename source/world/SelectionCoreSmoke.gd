@@ -26,14 +26,20 @@ func run(scene: Node) -> String:
 	if not bool(scene.call("clear_selection_on_empty_ground")) or int(scene.call("get_selected_unit_count")) != 0:
 		return "empty-ground selection clear failed"
 
-	scene.call("select_single_unit", 2)
+	var group: Array[int] = [0, 1]
+	scene.call("select_units", group)
 	units = scene.get("_units")
-	var selected_unit: Dictionary = units[2]
-	var selected_node := selected_unit.get("node") as Node3D
-	var primary_ring := selected_node.get_node_or_null("Selection") as Node3D
-	if primary_ring == null or not primary_ring.visible:
-		return "primary selection ring is not visible"
-	if primary_ring.scale.x < 1.20:
-		return "primary selection ring is not emphasized"
+	var secondary_unit: Dictionary = units[0]
+	var primary_unit: Dictionary = units[1]
+	var secondary_node := secondary_unit.get("node") as Node3D
+	var primary_node := primary_unit.get("node") as Node3D
+	var secondary_ring := secondary_node.get_node_or_null("Selection") as Node3D
+	var primary_ring := primary_node.get_node_or_null("Selection") as Node3D
+	if secondary_ring == null or primary_ring == null:
+		return "group selection rings are missing"
+	if not secondary_ring.visible or not primary_ring.visible:
+		return "group selection rings are not visible"
+	if not (primary_ring.scale.x > secondary_ring.scale.x):
+		return "primary and group selection rings are not visually distinct"
 	scene.call("clear_selected_units")
 	return ""
