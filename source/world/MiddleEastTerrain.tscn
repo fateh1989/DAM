@@ -116,6 +116,47 @@ layout_mode = 2
 text = ">"
 
 
+
+[node name="ZoomWheel" type="PanelContainer" parent="HUD"]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -82.0
+offset_top = 112.0
+offset_right = -16.0
+offset_bottom = 430.0
+
+[node name="Column" type="VBoxContainer" parent="HUD/ZoomWheel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="NearLabel" type="Label" parent="HUD/ZoomWheel/Column"]
+custom_minimum_size = Vector2(58, 30)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "+\nبلدة"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Slider" type="VSlider" parent="HUD/ZoomWheel/Column"]
+custom_minimum_size = Vector2(58, 220)
+layout_mode = 2
+size_flags_vertical = 3
+min_value = 6.0
+max_value = 10.0
+step = 1.0
+value = 9.0
+scrollable = false
+tick_count = 5
+ticks_on_borders = true
+
+[node name="FarLabel" type="Label" parent="HUD/ZoomWheel/Column"]
+custom_minimum_size = Vector2(58, 30)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "−\nسوريا"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="Info" type="Label" parent="HUD"]
 anchors_preset = 3
 anchor_left = 1.0
@@ -138,6 +179,7 @@ horizontal_alignment = 2
 [connection signal="pressed" from="HUD/TopBar/Row/ZoomInButton" to="." method="_on_zoom_in_pressed"]
 
 [connection signal="pressed" from="HUD/ModeButton" to="." method="_on_mode_pressed"]
+[connection signal="value_changed" from="HUD/ZoomWheel/Column/Slider" to="." method="_on_zoom_wheel_changed"]
 
 [connection signal="pressed" from="HUD/GovernorateBar/Row/PreviousButton" to="." method="_on_previous_governorate_pressed"]
 [connection signal="pressed" from="HUD/GovernorateBar/Row/NextButton" to="." method="_on_next_governorate_pressed"]

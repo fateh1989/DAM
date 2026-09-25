@@ -11,6 +11,9 @@ extends Node3D
 const MIN_MAP_ZOOM := 4
 const MAX_MAP_ZOOM := 10
 const DEFAULT_MAP_ZOOM := 9
+const ZOOM_WHEEL_MIN := 6
+const ZOOM_WHEEL_MAX := 10
+const SYRIA_OVERVIEW_ZOOM := 6
 
 const TERRAIN_ZOOM := 13
 const TERRAIN_TILE_RADIUS := 1
@@ -74,6 +77,7 @@ const VECTOR_REFRESH_DISTANCE_DEG := 0.025
 @onready var status_label: Label = $HUD/TopBar/Row/StatusLabel
 @onready var mode_button: Button = $HUD/ModeButton
 @onready var governorate_label: Label = $HUD/GovernorateBar/Row/GovernorateLabel
+@onready var zoom_wheel: VSlider = $HUD/ZoomWheel/Column/Slider
 
 var _terrain_mode := false
 var _map_zoom := DEFAULT_MAP_ZOOM
@@ -119,6 +123,7 @@ func _ready() -> void:
 	_origin_lon = _center_lon
 	_origin_lat = _center_lat
 	_update_governorate_ui()
+	zoom_wheel.set_value_no_signal(float(_map_zoom))
 	_position_camera()
 	_refresh_tiles()
 	_update_status()
@@ -216,11 +221,20 @@ func _pan_from_screen_delta(delta: Vector2) -> void:
 	_refresh_tiles()
 
 
-func _set_map_zoom(new_zoom: int) -> void:
+func _set_map_zoom(new_zoom: int, center_syria_at_overview: bool = false) -> void:
 	new_zoom = clampi(new_zoom, MIN_MAP_ZOOM, MAX_MAP_ZOOM)
-	if new_zoom == _map_zoom:
-		return
+
+	if center_syria_at_overview and new_zoom <= SYRIA_OVERVIEW_ZOOM:
+		_center_lon = (REGION_WEST + REGION_EAST) * 0.5
+		_center_lat = (REGION_SOUTH + REGION_NORTH) * 0.5
+
+	var changed := new_zoom != _map_zoom
 	_map_zoom = new_zoom
+	zoom_wheel.set_value_no_signal(float(clampi(_map_zoom, ZOOM_WHEEL_MIN, ZOOM_WHEEL_MAX)))
+
+	if not changed and not center_syria_at_overview:
+		return
+
 	_clear_tiles()
 	_position_camera()
 	_refresh_tiles()
@@ -873,6 +887,7 @@ func _select_governorate(index: int) -> void:
 	_origin_lon = _center_lon
 	_origin_lat = _center_lat
 	_map_zoom = DEFAULT_MAP_ZOOM
+	zoom_wheel.set_value_no_signal(float(_map_zoom))
 
 	_clear_all_world_nodes()
 	_update_governorate_ui()
@@ -1677,7 +1692,10 @@ func _update_status() -> void:
 	if _terrain_mode:
 		zoom_label.text = "REAL TERRAIN"
 	else:
-		zoom_label.text = "ZOOM %d / %d" % [_map_zoom, MAX_MAP_ZOOM]
+		if _map_zoom <= SYRIA_OVERVIEW_ZOOM:
+			zoom_label.text = "SYRIA • ZOOM %d" % _map_zoom
+		else:
+			zoom_label.text = "ZOOM %d / %d" % [_map_zoom, MAX_MAP_ZOOM]
 
 	var loading := _active_requests + _pending.size()
 	if _terrain_mode and _vector_inflight:
@@ -1724,11 +1742,25 @@ func _on_zoom_out_pressed() -> void:
 		_set_map_zoom(_map_zoom - 1)
 
 
+func _on_zoom_wheel_changed(value: float) -> void:
+	var requested_zoom := clampi(int(round(value)), ZOOM_WHEEL_MIN, ZOOM_WHEEL_MAX)
+
+	# The wheel is the strategic Syria <-> town zoom control. If the player
+	# moves it while inspecting local 3D terrain, return to the map view first.
+	if _terrain_mode:
+		_terrain_mode = false
+		mode_button.text = "TERRAIN"
+		_clear_all_world_nodes()
+
+	_set_map_zoom(requested_zoom, requested_zoom <= SYRIA_OVERVIEW_ZOOM)
+
+
 func _on_reset_pressed() -> void:
 	var gov := _governorate()
 	_center_lon = float(gov["lon"])
 	_center_lat = float(gov["lat"])
 	_map_zoom = DEFAULT_MAP_ZOOM
+	zoom_wheel.set_value_no_signal(float(_map_zoom))
 	_origin_lon = _center_lon
 	_origin_lat = _center_lat
 	_clear_all_world_nodes()

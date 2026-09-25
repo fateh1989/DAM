@@ -240,3 +240,8 @@ DAM Renderer
   6. عند طلب APK: تنزيل Artifact الصحيح، استخراجه، التحقق منه، ثم إعطاء الرابط.
 - آخر قرار للمستخدم يتغلب على أي قرار أقدم.
 - زمن الوصول لاختبار فعلي مهم؛ اختر خطوات تعطي نتيجة قابلة للتجربة بسرعة.
+
+
+### Strategic zoom wheel
+
+The Syria world HUD now includes an always-visible vertical zoom wheel. It covers the practical strategic range from national overview to town-level map detail. Dragging the wheel to its Syria end recenters the camera on the Syria region so the country can be viewed as a whole. Governorate selection remains independent. Moving the wheel while in local 3D terrain mode returns to the strategic map and applies the requested zoom.
