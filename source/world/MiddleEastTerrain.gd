@@ -2232,6 +2232,15 @@ func issue_selected_group_move(destination: Vector2) -> void:
 	_issue_group_move_order(_selected_unit_indices, destination)
 
 
+func issue_selected_group_move_uv(uv: Vector2) -> void:
+	var clamped := Vector2(clampf(uv.x, 0.0, 1.0), clampf(uv.y, 0.0, 1.0))
+	var destination := Vector2(
+		lerpf(REGION_WEST, REGION_EAST, clamped.x),
+		lerpf(REGION_NORTH, REGION_SOUTH, clamped.y)
+	)
+	_issue_group_move_order(_selected_unit_indices, destination)
+
+
 func stop_selected_units() -> void:
 	for index in _selected_unit_indices:
 		if index < 0 or index >= _units.size():

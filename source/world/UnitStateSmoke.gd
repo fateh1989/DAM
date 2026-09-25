@@ -83,6 +83,11 @@ func _run() -> void:
 		_fail(22, "Strategic unit smoke: select previous did not go back")
 		return
 	scene.select_units(selected_indices)
+	scene.issue_selected_group_move_uv(Vector2(0.80, 0.80))
+	if scene.are_selected_units_stopped():
+		_fail(25, "Strategic unit smoke: radar move control did not arm movement")
+		return
+	scene.stop_selected_units()
 	if not scene.focus_selected_units():
 		_fail(23, "Strategic unit smoke: focus selected control failed")
 		return
