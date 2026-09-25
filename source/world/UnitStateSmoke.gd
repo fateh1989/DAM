@@ -67,6 +67,15 @@ func _run() -> void:
 		_fail(44, "Strategic unit smoke: radar camera mode label did not restore")
 		return
 
+	scene.set_radar_action_mode("select")
+	if scene.get_radar_action_mode() != "select":
+		_fail(49, "Strategic unit smoke: radar select mode was rejected")
+		return
+	scene.cycle_radar_action_mode()
+	if scene.get_radar_action_mode() != "camera":
+		_fail(50, "Strategic unit smoke: radar mode cycle did not wrap to camera")
+		return
+
 	var first_radar_item: Dictionary = scene.get_radar_units()[0]
 	scene.clear_selected_units()
 	var nearest_index: int = scene.select_nearest_unit_uv(first_radar_item.get("uv", Vector2.ZERO))

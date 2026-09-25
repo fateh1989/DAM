@@ -2046,12 +2046,22 @@ func get_radar_action_mode() -> String:
 
 
 func set_radar_action_mode(mode: String) -> void:
-	_radar_action_mode = "move" if mode == "move" else "camera"
+	if mode in ["camera", "move", "select"]:
+		_radar_action_mode = mode
+	else:
+		_radar_action_mode = "camera"
 	_update_radar_mode_ui()
 
 
 func toggle_radar_action_mode() -> void:
 	set_radar_action_mode("move" if _radar_action_mode == "camera" else "camera")
+
+
+func cycle_radar_action_mode() -> void:
+	match _radar_action_mode:
+		"camera": set_radar_action_mode("move")
+		"move": set_radar_action_mode("select")
+		_: set_radar_action_mode("camera")
 
 
 func _update_radar_mode_ui() -> void:
