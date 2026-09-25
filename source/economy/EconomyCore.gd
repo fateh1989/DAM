@@ -85,3 +85,20 @@ func get_node_throughput(node_id: String) -> float:
 		return 0.0
 	var damage_factor := 1.0 - clampf(float(node.get("damage_ratio", 0.0)), 0.0, 1.0)
 	return maxf(0.0, float(node.get("capacity", 0.0)) * damage_factor * _support_ratio(node))
+
+
+func tick(hours: float) -> Dictionary:
+	hours = maxf(0.0, hours)
+	if hours <= 0.0:
+		return {"hours": 0.0, "produced": 0.0, "income": 0.0}
+	var produced_total := 0.0
+	for node_id in nodes.keys():
+		var node: Dictionary = nodes[node_id]
+		var kind := str(node.get("kind", ""))
+		var catalog: Dictionary = RESOURCE_CATALOG.get(kind, {})
+		var production := float(catalog.get("base_output", 0.0)) * get_node_throughput(str(node_id)) * hours
+		node["stored_output"] = float(node.get("stored_output", 0.0)) + production
+		nodes[node_id] = node
+		produced_total += production
+	elapsed_hours += hours
+	return {"hours": hours, "produced": produced_total, "income": 0.0}
