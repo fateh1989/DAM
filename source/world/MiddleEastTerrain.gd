@@ -2167,14 +2167,13 @@ func _handle_world_tap(screen_position: Vector2) -> void:
 		select_unit(closest_index, true)
 		return
 
-	if _selected_unit_indices.is_empty():
-		return
+	clear_selection_on_empty_ground()
 
-	var hit = _screen_to_ground(screen_position)
-	if hit == null:
-		return
-	var destination := _local_to_geo(hit)
-	_issue_group_move_order(_selected_unit_indices, destination)
+
+func clear_selection_on_empty_ground() -> bool:
+	var had_selection := not _selected_unit_indices.is_empty()
+	clear_selected_units()
+	return had_selection
 
 
 func _toggle_unit_selection(unit_index: int) -> void:

@@ -18,9 +18,13 @@ func run(scene: Node) -> String:
 	scene.set("_units", units)
 	if bool(scene.call("select_unit", 0, false)):
 		return "dead unit was accepted by selection"
-	if int(scene.call("get_selected_unit_count")) != 0:
-		return "dead unit changed selection state"
 	probe["alive"] = true
 	units[0] = probe
 	scene.set("_units", units)
+
+	scene.call("select_unit", 1, false)
+	if not bool(scene.call("clear_selection_on_empty_ground")):
+		return "empty-ground clear did not report an active selection"
+	if int(scene.call("get_selected_unit_count")) != 0:
+		return "empty-ground tap behavior left units selected"
 	return ""
