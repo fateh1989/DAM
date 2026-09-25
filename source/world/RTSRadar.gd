@@ -131,10 +131,21 @@ func _move_camera_from_pointer(local_position: Vector2) -> void:
 	apply_action_uv(_point_to_uv(local_position))
 
 
+func is_continuous_pointer_mode(mode: String) -> bool:
+	return mode == "camera"
+
+
+func _current_pointer_mode() -> String:
+	if _world != null and is_instance_valid(_world) and _world.has_method("get_radar_action_mode"):
+		return str(_world.call("get_radar_action_mode"))
+	return "camera"
+
+
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed:
-			_dragging = true
+			var mode := _current_pointer_mode()
+			_dragging = is_continuous_pointer_mode(mode)
 			_move_camera_from_pointer(event.position)
 		else:
 			_dragging = false
@@ -143,9 +154,12 @@ func _gui_input(event: InputEvent) -> void:
 		_move_camera_from_pointer(event.position)
 		accept_event()
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		_dragging = event.pressed
 		if event.pressed:
+			var mode := _current_pointer_mode()
+			_dragging = is_continuous_pointer_mode(mode)
 			_move_camera_from_pointer(event.position)
+		else:
+			_dragging = false
 		accept_event()
 	elif event is InputEventMouseMotion and _dragging:
 		_move_camera_from_pointer(event.position)
