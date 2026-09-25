@@ -5,8 +5,10 @@ signal battle_started(province_id: String)
 signal battle_finished(province_id: String, result: Dictionary)
 
 const ArmyCombatCoreScript = preload("res://source/combat/ArmyCombatCore.gd")
+const EconomyCoreScript = preload("res://source/economy/EconomyCore.gd")
 
 var army_core = null
+var economy_core = null
 var selected_province_id := "aleppo"
 var selected_province_name := "حلب"
 var active_battle: Dictionary = {}
@@ -41,6 +43,10 @@ func ensure_started() -> bool:
 				"fighter": 4,
 			}
 		)
+
+	if economy_core == null:
+		economy_core = EconomyCoreScript.new()
+		economy_core.seed_syria_gameplay_baseline()
 
 	_started = true
 	return true
@@ -83,3 +89,21 @@ func get_country_snapshot(country_id: String = "syria") -> Dictionary:
 	if not ensure_started():
 		return {}
 	return army_core.get_country_snapshot(country_id)
+
+
+func tick_economy(hours: float) -> Dictionary:
+	if not ensure_started() or economy_core == null:
+		return {}
+	return economy_core.tick(hours)
+
+
+func get_economy_snapshot() -> Dictionary:
+	if not ensure_started() or economy_core == null:
+		return {}
+	return economy_core.get_snapshot()
+
+
+func damage_economy_area(governorate_id: String, severity: float, kind_filter: String = "") -> int:
+	if not ensure_started() or economy_core == null:
+		return 0
+	return economy_core.apply_area_damage(governorate_id, severity, kind_filter)
