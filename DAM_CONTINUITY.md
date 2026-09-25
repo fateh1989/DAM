@@ -375,3 +375,19 @@ RTS Terrain + Cliffs + Roads + Vegetation + Lighting
 - Tactical Terrain لم يتغير في هذه الخطوة.
 
 هذا هو أول Pass تجريبي، وليس الشكل النهائي. الحكم النهائي يكون من لقطة الهاتف بعد Build أخضر.
+
+
+### تنفيذ استشارة Gemini — Global Macro Texture + Stylized Height-Color Shader
+
+تم تنفيذ المقترح كما هو كمرحلة Strategic:
+- Global Macro Texture واحدة بحجم 2048×2048 تغطي نطاق سوريا.
+- توليدها أثناء CI من DEM Terrarium الحقيقي مع تصنيف لوني عسكري وفق Palette DAM، وإضافة landcover واسع من OSM للغابات والبساتين والزراعة.
+- Global Macro Height Map منفصلة لإعادة بناء relief موحد لسوريا.
+- Macro Variation Texture منخفضة التردد لكسر التكرار.
+- Strategic Syria أصبحت Mesh واحدة موحدة 96×96 بدلاً من بلاطات العرض البعيدة.
+- Shader يستخدم World-Space UV على كامل سوريا، Macro Variation، Hillshade باتجاه عالمي، وDistance Fade.
+- Color Grading موحد عبر WorldEnvironment (contrast/saturation).
+- العرض الاستراتيجي لا يحمل الأشجار الفردية أو المباني أو الطرق الفرعية.
+- CI يتحقق من توليد الأصول ثم يشغل StrategicViewSmoke للتأكد من وجود Global Macro Mesh + Shader.
+
+الحكم البصري النهائي يبقى من الهاتف بعد Build أخضر.

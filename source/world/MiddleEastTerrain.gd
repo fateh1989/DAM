@@ -14,9 +14,14 @@ const DEFAULT_MAP_ZOOM := 9
 const ZOOM_WHEEL_MIN := 6
 const ZOOM_WHEEL_MAX := 10
 const SYRIA_OVERVIEW_ZOOM := 6
-const STRATEGIC_GRID := 28
-const STRATEGIC_TILE_RADIUS := 1
+const STRATEGIC_GRID := 96
 const STRATEGIC_CAMERA_MARGIN := 1.18
+const STRATEGIC_RELIEF_EXAGGERATION := 6.0
+const STRATEGIC_MAX_HEIGHT_M := 4000.0
+const STRATEGIC_MACRO_PATH := "res://source/world/generated/syria_macro.png"
+const STRATEGIC_VARIATION_PATH := "res://source/world/generated/syria_macro_variation.png"
+const STRATEGIC_HEIGHT_PATH := "res://source/world/generated/syria_macro_height.png"
+const STRATEGIC_SHADER_PATH := "res://source/world/shaders/StrategicMacro.gdshader"
 
 const TERRAIN_ZOOM := 13
 const TERRAIN_TILE_RADIUS := 1
@@ -117,6 +122,8 @@ var _landcover_feature_count := 0
 var _tree_instance_count := 0
 var _cliff_face_count := 0
 var _native_core: Object = null
+var _strategic_node: MeshInstance3D = null
+var _strategic_material: ShaderMaterial = null
 
 
 func _ready() -> void:
@@ -140,6 +147,10 @@ func _setup_environment() -> void:
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.ambient_light_color = Color(0.70, 0.68, 0.58, 1.0)
 	environment.ambient_light_energy = 0.58
+	environment.adjustment_enabled = true
+	environment.adjustment_brightness = 1.0
+	environment.adjustment_contrast = 1.08
+	environment.adjustment_saturation = 0.88
 	world_environment.environment = environment
 
 
@@ -272,8 +283,19 @@ func _is_strategic_map() -> bool:
 
 
 func _refresh_tiles() -> void:
+	if _is_strategic_map():
+		_pending.clear()
+		_queued.clear()
+		_required_keys.clear()
+		_keep_keys.clear()
+		_build_strategic_world()
+		_update_status()
+		return
+
+	_clear_strategic_world()
+
 	var zoom := TERRAIN_ZOOM if _terrain_mode else _map_zoom
-	var radius := TERRAIN_TILE_RADIUS if _terrain_mode else (STRATEGIC_TILE_RADIUS if _is_strategic_map() else MAP_TILE_RADIUS)
+	var radius := TERRAIN_TILE_RADIUS if _terrain_mode else MAP_TILE_RADIUS
 	var keep_radius := radius + KEEP_EXTRA
 	var center_tile := _lon_lat_to_tile(_center_lon, _center_lat, zoom)
 	var max_index := int(pow(2.0, float(zoom))) - 1
@@ -324,7 +346,7 @@ func _begin_tile(z: int, x: int, y: int, key: String) -> void:
 	# Always draw a placeholder immediately so terrain mode is never blank.
 	_rebuild_tile(key)
 
-	if _terrain_mode or _is_strategic_map():
+	if _terrain_mode:
 		var dem_cache := _dem_cache_path(z, x, y)
 		if FileAccess.file_exists(dem_cache):
 			var bytes := _read_bytes(dem_cache)
@@ -465,10 +487,7 @@ func _rebuild_tile(key: String) -> void:
 	var map_texture: Texture2D = state.get("map_texture")
 
 	if not _terrain_mode:
-		if _is_strategic_map():
-			_build_strategic_tile(state, key, z, x, y, dem_image)
-		else:
-			_build_map_quad(state, key, z, x, y, map_texture)
+		_build_map_quad(state, key, z, x, y, map_texture)
 		return
 
 	# Real DEM stays authoritative. We only quantize and art-direct its visual
@@ -731,128 +750,99 @@ func _hash_noise(x: int, y: int) -> float:
 	var value := sin(float(x) * 12.9898 + float(y) * 78.233) * 43758.5453
 	return value - floor(value)
 
-func _strategic_ground_color(
-	elevation_m: float,
-	hillshade: float,
-	global_x: int,
-	global_y: int
-) -> Color:
-	# Strategic view deliberately discards street-map/GIS styling. Real DEM
-	# controls relief while an RTS macro palette makes the country readable.
-	var grass := Color("#4A6B3D")
-	var dry_grass := Color("#A69258")
-	var soil := Color("#6B4F3A")
-	var rock := Color("#5A6268")
-	var desert := Color("#C2A676")
-
-	var base := desert
-	if elevation_m < 180.0:
-		base = dry_grass
-	elif elevation_m < 450.0:
-		base = dry_grass.lerp(soil, 0.28)
-	elif elevation_m < 850.0:
-		base = soil.lerp(grass, 0.22)
-	elif elevation_m < 1400.0:
-		base = soil.lerp(rock, 0.38)
-	else:
-		base = rock
-
-	# Very broad, deterministic variation only; no cell-scale visual noise.
-	var macro := _hash_noise(int(floor(float(global_x) / 3.0)), int(floor(float(global_y) / 3.0)))
-	if macro > 0.70:
-		base = base.lerp(dry_grass, 0.10)
-	elif macro < 0.18:
-		base = base.lerp(grass, 0.08)
-
-	var light := clampf(hillshade, 0.68, 1.18)
-	return Color(
-		clampf(base.r * light, 0.0, 1.0),
-		clampf(base.g * light, 0.0, 1.0),
-		clampf(base.b * light, 0.0, 1.0),
-		1.0
-	)
+func _clear_strategic_world() -> void:
+	if is_instance_valid(_strategic_node):
+		_strategic_node.queue_free()
+	_strategic_node = null
+	_strategic_material = null
 
 
-func _build_strategic_tile(
-	state: Dictionary,
-	key: String,
-	z: int,
-	x: int,
-	y: int,
-	dem_image: Image
-) -> void:
+func _strategic_height_at(image: Image, u: float, v: float) -> float:
+	if image == null or image.is_empty():
+		return 0.0
+	var px := clampi(int(round(u * float(image.get_width() - 1))), 0, image.get_width() - 1)
+	var py := clampi(int(round(v * float(image.get_height() - 1))), 0, image.get_height() - 1)
+	return clampf(image.get_pixel(px, py).r * STRATEGIC_MAX_HEIGHT_M, 0.0, STRATEGIC_MAX_HEIGHT_M)
+
+
+func _build_strategic_world() -> void:
+	if is_instance_valid(_strategic_node):
+		return
+
+	var macro_texture := load(STRATEGIC_MACRO_PATH) as Texture2D
+	var variation_texture := load(STRATEGIC_VARIATION_PATH) as Texture2D
+	var height_texture := load(STRATEGIC_HEIGHT_PATH) as Texture2D
+	var strategic_shader := load(STRATEGIC_SHADER_PATH) as Shader
+
+	if macro_texture == null or variation_texture == null or height_texture == null or strategic_shader == null:
+		push_error("DAM Strategic: generated Macro Texture assets are missing")
+		return
+
+	var height_image := height_texture.get_image()
+	if height_image == null or height_image.is_empty():
+		push_error("DAM Strategic: Macro height image is unreadable")
+		return
+
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var base_color := Color("#A69258")
 
 	for gy in range(STRATEGIC_GRID):
 		var v0 := float(gy) / float(STRATEGIC_GRID)
 		var v1 := float(gy + 1) / float(STRATEGIC_GRID)
-		var vc := (v0 + v1) * 0.5
-
 		for gx in range(STRATEGIC_GRID):
 			var u0 := float(gx) / float(STRATEGIC_GRID)
 			var u1 := float(gx + 1) / float(STRATEGIC_GRID)
-			var uc := (u0 + u1) * 0.5
 
-			var elevation_m := 260.0
-			var west := elevation_m
-			var east := elevation_m
-			var north := elevation_m
-			var south := elevation_m
+			var lon0 := lerpf(REGION_WEST, REGION_EAST, u0)
+			var lon1 := lerpf(REGION_WEST, REGION_EAST, u1)
+			var lat0 := lerpf(REGION_NORTH, REGION_SOUTH, v0)
+			var lat1 := lerpf(REGION_NORTH, REGION_SOUTH, v1)
 
-			if dem_image != null:
-				var du := 1.0 / float(STRATEGIC_GRID)
-				var dv := du
-				elevation_m = _sample_dem(dem_image, uc, vc)
-				west = _sample_dem(dem_image, clampf(uc - du, 0.0, 1.0), vc)
-				east = _sample_dem(dem_image, clampf(uc + du, 0.0, 1.0), vc)
-				north = _sample_dem(dem_image, uc, clampf(vc - dv, 0.0, 1.0))
-				south = _sample_dem(dem_image, uc, clampf(vc + dv, 0.0, 1.0))
+			var h00 := _strategic_height_at(height_image, u0, v0) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
+			var h10 := _strategic_height_at(height_image, u1, v0) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
+			var h01 := _strategic_height_at(height_image, u0, v1) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
+			var h11 := _strategic_height_at(height_image, u1, v1) / 1000.0 * STRATEGIC_RELIEF_EXAGGERATION
 
-			# Directional macro hillshade: mountains read from country scale
-			# without sending dense geometry to the GPU.
-			var directional_relief := (west - east) * 0.00055 + (south - north) * 0.00038
-			var hillshade := 0.94 + clampf(directional_relief, -0.26, 0.24)
-			var color := _strategic_ground_color(
-				elevation_m,
-				hillshade,
-				x * STRATEGIC_GRID + gx,
-				y * STRATEGIC_GRID + gy
-			)
+			var p00 := _geo_to_local(lon0, lat0, h00)
+			var p10 := _geo_to_local(lon1, lat0, h10)
+			var p01 := _geo_to_local(lon0, lat1, h01)
+			var p11 := _geo_to_local(lon1, lat1, h11)
 
-			var nw := _tile_fraction_to_lon_lat(z, x, y, u0, v0)
-			var ne := _tile_fraction_to_lon_lat(z, x, y, u1, v0)
-			var sw := _tile_fraction_to_lon_lat(z, x, y, u0, v1)
-			var se := _tile_fraction_to_lon_lat(z, x, y, u1, v1)
+			st.set_color(base_color); st.set_uv(Vector2(u0, v0)); st.add_vertex(p00)
+			st.set_color(base_color); st.set_uv(Vector2(u0, v1)); st.add_vertex(p01)
+			st.set_color(base_color); st.set_uv(Vector2(u1, v0)); st.add_vertex(p10)
 
-			var p00 := _geo_to_local(nw.x, nw.y, 0.0)
-			var p10 := _geo_to_local(ne.x, ne.y, 0.0)
-			var p01 := _geo_to_local(sw.x, sw.y, 0.0)
-			var p11 := _geo_to_local(se.x, se.y, 0.0)
+			st.set_color(base_color); st.set_uv(Vector2(u1, v0)); st.add_vertex(p10)
+			st.set_color(base_color); st.set_uv(Vector2(u0, v1)); st.add_vertex(p01)
+			st.set_color(base_color); st.set_uv(Vector2(u1, v1)); st.add_vertex(p11)
 
-			_add_colored_triangle(st, p00, p01, p10, color)
-			_add_colored_triangle(st, p10, p01, p11, color)
-
+	st.generate_normals()
 	var mesh := st.commit()
 	if mesh == null:
+		push_error("DAM Strategic: failed to build Syria macro mesh")
 		return
 
-	var node: MeshInstance3D = state.get("node")
-	if not is_instance_valid(node):
-		node = MeshInstance3D.new()
-		node.name = "StrategicTile_%d_%d_%d" % [z, x, y]
-		terrain_root.add_child(node)
+	_strategic_node = MeshInstance3D.new()
+	_strategic_node.name = "StrategicSyriaMacro"
+	_strategic_node.mesh = mesh
+	terrain_root.add_child(_strategic_node)
 
-	var material := StandardMaterial3D.new()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	material.vertex_color_use_as_albedo = true
-	material.roughness = 1.0
-	node.mesh = mesh
-	node.material_override = material
-	state["node"] = node
-	state["strategic_dem"] = dem_image != null
-	_tiles[key] = state
+	_strategic_material = ShaderMaterial.new()
+	_strategic_material.shader = strategic_shader
+	_strategic_material.set_shader_parameter("global_macro_tex", macro_texture)
+	_strategic_material.set_shader_parameter("macro_variation", variation_texture)
+
+	var nw := _geo_to_local(REGION_WEST, REGION_NORTH, 0.0)
+	var se := _geo_to_local(REGION_EAST, REGION_SOUTH, 0.0)
+	var origin_m := Vector2(nw.x, nw.z) * 1000.0
+	var size_m := Vector2(se.x - nw.x, se.z - nw.z) * 1000.0
+	_strategic_material.set_shader_parameter("world_origin", origin_m)
+	_strategic_material.set_shader_parameter("world_size_meters", size_m)
+	_strategic_material.set_shader_parameter("detail_fade_start_m", 60000.0)
+	_strategic_material.set_shader_parameter("detail_fade_end_m", 220000.0)
+
+	_strategic_node.material_override = _strategic_material
 
 
 func _build_map_quad(
@@ -1791,6 +1781,7 @@ func _remove_tile(key: String) -> void:
 func _clear_tiles() -> void:
 	for key in _tiles.keys().duplicate():
 		_remove_tile(key)
+	_clear_strategic_world()
 	_required_keys.clear()
 	_keep_keys.clear()
 	_pending.clear()
