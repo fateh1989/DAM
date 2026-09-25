@@ -1435,29 +1435,169 @@ func _commit_geo_boundary_batch(st: SurfaceTool, level: int, count: int) -> void
 	_geo_overlay_root.add_child(node)
 
 
-func _add_geo_overlay_label(item: Dictionary, screen_points: Array) -> bool:
-	var lon := float(item.get("lon", 0.0))
-	var lat := float(item.get("lat", 0.0))
-	var world := _geo_to_local(lon, lat, _overlay_height_at_geo(lon, lat) + 0.10)
+func _geo_overlay_label_allowed(item: Dictionary) -> bool:
+	if _map_zoom < int(item.get("min_zoom", 10)):
+		return false
+	if not (_terrain_mode and _is_tactical_overview()):
+		return true
+
+	var kind: String = str(item.get("kind", ""))
+	if kind == "place":
+		var place_type: String = str(item.get("type", ""))
+		if _map_zoom <= 6:
+			return place_type == "city"
+		if _map_zoom == 7:
+			return place_type in ["city", "town"]
+		return place_type in ["city", "town"]
+
+	if kind == "admin":
+		var level: int = int(item.get("level", 99))
+		if _map_zoom <= 7:
+			return level <= 4
+		return level <= 6
+
+	return true
+
+
+func _geo_overlay_label_priority(item: Dictionary) -> int:
+	var kind: String = str(item.get("kind", ""))
+	if kind == "place":
+		match str(item.get("type", "")):
+			"city":
+				return 0
+			"town":
+				return 2
+			"village":
+				return 5
+			_:
+				return 8
+	if kind == "admin":
+		match int(item.get("level", 99)):
+			2:
+				return 1
+			4:
+				return 3
+			6:
+				return 6
+			_:
+				return 9
+	return 10
+
+
+func _sort_geo_overlay_labels(a, b) -> bool:
+	var left: Dictionary = a
+	var right: Dictionary = b
+	return _geo_overlay_label_priority(left) < _geo_overlay_label_priority(right)
+
+
+func _geo_overlay_label_font_size(item: Dictionary) -> int:
+	if str(item.get("kind", "")) == "place":
+		match str(item.get("type", "")):
+			"city":
+				return 26
+			"town":
+				return 22
+			"village":
+				return 18
+			_:
+				return 16
+
+	match int(item.get("level", 99)):
+		2:
+			return 25
+		4:
+			return 21
+		6:
+			return 17
+		_:
+			return 15
+
+
+func _geo_overlay_label_pixel_size(item: Dictionary) -> float:
+	if _terrain_mode and _is_tactical_overview():
+		var viewport_height: float = maxf(1.0, float(get_viewport().get_visible_rect().size.y))
+		var world_per_pixel: float = float(camera.size) / viewport_height
+		var scale_factor: float = 0.90
+		if _geo_overlay_label_priority(item) <= 1:
+			scale_factor = 1.0
+		elif _geo_overlay_label_priority(item) >= 6:
+			scale_factor = 0.82
+		return world_per_pixel * scale_factor
+
+	match str(item.get("type", "")):
+		"city":
+			return 0.0024
+		"town":
+			return 0.0021
+		_:
+			return 0.0018
+
+
+func _geo_overlay_label_padding_px() -> float:
+	match _map_zoom:
+		6:
+			return 34.0
+		7:
+			return 26.0
+		8:
+			return 20.0
+		9:
+			return 14.0
+		_:
+			return 10.0
+
+
+func _geo_overlay_label_limit() -> int:
+	match _map_zoom:
+		6:
+			return 14
+		7:
+			return 24
+		8:
+			return 36
+		9:
+			return 58
+		_:
+			return 72
+
+
+func _add_geo_overlay_label(item: Dictionary, screen_boxes: Array) -> bool:
+	var label_text: String = str(item.get("name", ""))
+	if label_text.is_empty():
+		return false
+
+	var lon: float = float(item.get("lon", 0.0))
+	var lat: float = float(item.get("lat", 0.0))
+	var world: Vector3 = _geo_to_local(lon, lat, _overlay_height_at_geo(lon, lat) + 0.10)
 	if camera.is_position_behind(world):
 		return false
-	var screen := camera.unproject_position(world)
-	for p in screen_points:
-		if screen.distance_to(p) < 72.0:
+
+	var screen: Vector2 = camera.unproject_position(world)
+	var font_size: int = _geo_overlay_label_font_size(item)
+	var estimated_width: float = clampf(float(label_text.length()) * float(font_size) * 0.58, 54.0, 250.0)
+	var estimated_height: float = maxf(28.0, float(font_size) * 1.45)
+	var padding: float = _geo_overlay_label_padding_px()
+	var box := Rect2(
+		screen - Vector2(estimated_width, estimated_height) * 0.5 - Vector2.ONE * padding,
+		Vector2(estimated_width, estimated_height) + Vector2.ONE * padding * 2.0
+	)
+	for occupied in screen_boxes:
+		if box.intersects(occupied):
 			return false
-	screen_points.append(screen)
+	screen_boxes.append(box)
 
 	var label := Label3D.new()
-	label.text = str(item.get("name", ""))
-	if label.text.is_empty():
-		return false
+	label.text = label_text
 	label.position = world
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.fixed_size = true
-	label.font_size = 28 if int(item.get("min_zoom", 10)) <= 7 else 23
-	label.outline_size = 6
-	label.modulate = Color(1.0, 0.97, 0.84, 0.98)
-	label.outline_modulate = Color(0.05, 0.06, 0.05, 0.96)
+	# World-space text is required on Android. fixed_size caused labels to
+	# explode to hundreds of pixels and cover the battlefield at Z7-Z10.
+	label.fixed_size = false
+	label.font_size = font_size
+	label.pixel_size = _geo_overlay_label_pixel_size(item)
+	label.outline_size = 4 if _geo_overlay_label_priority(item) <= 3 else 3
+	label.modulate = Color(1.0, 0.97, 0.84, 0.96)
+	label.outline_modulate = Color(0.05, 0.06, 0.05, 0.92)
 	_geo_overlay_root.add_child(label)
 	return true
 
@@ -1508,17 +1648,27 @@ func _refresh_geo_overlay(force: bool = false) -> void:
 		_commit_geo_boundary_batch(st, level, segment_count)
 		_geo_overlay_boundary_count += segment_count
 
-	var screen_points: Array = []
-	for item in _geo_overlay_data.get("labels", []):
-		if _map_zoom < int(item.get("min_zoom", 10)):
+	var label_candidates: Array = []
+	for raw_item in _geo_overlay_data.get("labels", []):
+		if typeof(raw_item) != TYPE_DICTIONARY:
 			continue
-		var lon := float(item.get("lon", 0.0))
-		var lat := float(item.get("lat", 0.0))
+		var item: Dictionary = raw_item
+		if not _geo_overlay_label_allowed(item):
+			continue
+		var lon: float = float(item.get("lon", 0.0))
+		var lat: float = float(item.get("lat", 0.0))
 		if not _geo_point_in_bounds(lon, lat, bounds, 0.02):
 			continue
-		if _add_geo_overlay_label(item, screen_points):
+		label_candidates.append(item)
+
+	label_candidates.sort_custom(_sort_geo_overlay_labels)
+	var screen_boxes: Array = []
+	var label_limit: int = _geo_overlay_label_limit()
+	for raw_item in label_candidates:
+		var item: Dictionary = raw_item
+		if _add_geo_overlay_label(item, screen_boxes):
 			_geo_overlay_label_count += 1
-			if _geo_overlay_label_count >= 90:
+			if _geo_overlay_label_count >= label_limit:
 				break
 
 

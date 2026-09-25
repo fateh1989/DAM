@@ -66,6 +66,21 @@ func _run() -> void:
 	if scene._geo_overlay_boundary_count < 1 or scene._geo_overlay_label_count < 1:
 		_fail(10, "Geo overlay smoke: boundaries or labels did not render at Z8")
 		return
+
+	var checked_world_space_label := false
+	for child in scene._geo_overlay_root.get_children():
+		if child is Label3D:
+			checked_world_space_label = true
+			if child.fixed_size:
+				_fail(14, "Geo overlay smoke: fixed-size Label3D regression")
+				return
+			if child.pixel_size <= 0.0:
+				_fail(15, "Geo overlay smoke: invalid world-space label scale")
+				return
+	if not checked_world_space_label:
+		_fail(16, "Geo overlay smoke: no geographic Label3D rendered")
+		return
+
 	if not _visible_world_fits(scene):
 		_fail(11, "Geo overlay smoke: Z8 camera can see outside the terrain world")
 		return
