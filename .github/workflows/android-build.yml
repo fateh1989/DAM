@@ -100,6 +100,15 @@ jobs:
           echo "Preflight: automatic economy foundation"
           timeout 30s godot --headless --path . --script source/economy/EconomySmoke.gd
 
+      - name: Critical GDScript parse preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Preflight: parse critical gameplay scripts before expensive work"
+          godot --headless --path . --script source/world/UnitStateSmoke.gd --check-only
+          godot --headless --path . --script source/battle/StrategicTacticalSmoke.gd --check-only
+          godot --headless --path . --script source/economy/EconomySmoke.gd --check-only
+
       - name: Build DAM native C++ core
         shell: bash
         run: |
