@@ -82,10 +82,10 @@ text = "+"
 [node name="ModeButton" type="Button" parent="HUD"]
 offset_left = 12.0
 offset_top = 82.0
-offset_right = 150.0
+offset_right = 180.0
 offset_bottom = 132.0
 theme_override_font_sizes/font_size = 17
-text = "TERRAIN"
+text = "START BATTLE"
 
 
 [node name="GovernorateBar" type="PanelContainer" parent="HUD"]
@@ -203,7 +203,7 @@ horizontal_alignment = 2
 [connection signal="pressed" from="HUD/TopBar/Row/ZoomOutButton" to="." method="_on_zoom_out_pressed"]
 [connection signal="pressed" from="HUD/TopBar/Row/ZoomInButton" to="." method="_on_zoom_in_pressed"]
 
-[connection signal="pressed" from="HUD/ModeButton" to="." method="_on_mode_pressed"]
+[connection signal="pressed" from="HUD/ModeButton" to="." method="_on_battle_pressed"]
 [connection signal="pressed" from="HUD/GeoOverlayButton" to="." method="_on_geo_overlay_pressed"]
 [connection signal="value_changed" from="HUD/ZoomWheel/Column/Slider" to="." method="_on_zoom_wheel_changed"]
 

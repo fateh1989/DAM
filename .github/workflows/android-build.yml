@@ -110,6 +110,10 @@ jobs:
         run: |
           godot --headless --path . --script source/combat/ArmyCombatSmoke.gd
 
+      - name: Strategic tactical split smoke
+        run: |
+          godot --headless --path . --script source/battle/StrategicTacticalSmoke.gd
+
       - name: Clean generated Godot cache
         run: |
           rm -rf .godot

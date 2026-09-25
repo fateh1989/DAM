@@ -1,7 +1,5 @@
 extends Node3D
 
-const ArmyCombatCoreScript = preload("res://source/combat/ArmyCombatCore.gd")
-
 # DAM world prototype:
 # MAP = Syria strategic geography with accurate governorate/city anchors.
 # TERRAIN = an art-directed RTS battlefield. Real DEM/OSM terrain is no longer
@@ -1713,27 +1711,11 @@ func _refresh_geo_overlay(force: bool = false) -> void:
 
 
 func _setup_army_combat_core() -> void:
-	_army_core = ArmyCombatCoreScript.new()
-	if not _army_core.load_catalogs():
-		push_error("DAM Army Core: unit/weapon catalogs failed to load")
+	if not GameState.ensure_started():
+		push_error("DAM GameState: persistent army failed to initialize")
 		_army_core = null
 		return
-
-	# Prototype scenario seed only. These are game values, not real-world force
-	# counts or prices. The architecture supports one persistent army per country.
-	_army_core.create_country(
-		"syria",
-		"سوريا",
-		50000,
-		{
-			"tank": GOVERNORORATE_TANK_SEED,
-			"infantry_squad": 24,
-			"artillery": 6,
-			"air_defense": 6,
-			"helicopter": 4,
-			"fighter": 4,
-		}
-	)
+	_army_core = GameState.army_core
 
 
 func get_country_army_snapshot(country_id: String = "syria") -> Dictionary:
@@ -3001,6 +2983,15 @@ func _update_status() -> void:
 			]
 		else:
 			status_label.text = "SYRIA STRATEGIC READY" if _is_strategic_map() else "%s MAP READY" % _governorate_name()
+
+
+func _on_battle_pressed() -> void:
+	var gov := _governorate()
+	var province_id := str(gov.get("slug", "unknown"))
+	var province_name := str(gov.get("name_ar", gov.get("name_en", province_id)))
+	GameState.select_province(province_id, province_name)
+	if GameState.begin_battle(province_id, province_name):
+		get_tree().change_scene_to_file("res://source/battle/TacticalBattle.tscn")
 
 
 func _on_mode_pressed() -> void:
