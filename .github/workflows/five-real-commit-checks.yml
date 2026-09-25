@@ -1,15 +1,15 @@
-name: Five Real Commit Checks
+name: DAM Fast Per-Commit Checks
 
 on:
   push:
-    branches: [battle-5check-real]
+    branches: ['battle-fast-*']
 
 permissions:
   contents: read
 
 jobs:
   commit-check:
-    name: Commit ${{ matrix.slot }} - Strategic controls
+    name: Commit ${{ matrix.slot }} - Fast gameplay check
     runs-on: ubuntu-latest
     timeout-minutes: 8
     strategy:
