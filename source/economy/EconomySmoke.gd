@@ -67,5 +67,17 @@ func _run() -> void:
 		_fail(12, "Economy smoke: governorate snapshot missing nodes")
 		return
 
+	var node_count_before := int(economy.get_snapshot().get("node_count", 0))
+	for _day in range(30):
+		economy.tick(24.0)
+	var month: Dictionary = economy.get_snapshot()
+	if int(month.get("node_count", 0)) != node_count_before:
+		_fail(13, "Economy smoke: long recovery simulation removed persistent nodes")
+		return
+	if int((month.get("state_counts", {}) as Dictionary).get("disabled", 0)) > 0:
+		_fail(14, "Economy smoke: recoverable nodes stayed permanently disabled")
+		return
+
+	print("CHECKPOINT economy-foundation-01 PASSED")
 	print("Economy smoke: automatic production + income + damage + recovery + logistics OK")
 	quit(0)
