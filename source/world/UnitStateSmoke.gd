@@ -122,6 +122,13 @@ func _run() -> void:
 	if scene.get_selected_unit_count() != 2:
 		_fail(12, "Strategic unit smoke: public multi-selection control failed")
 		return
+	scene.set_radar_action_mode("move")
+	radar.call("apply_action_uv", Vector2(0.75, 0.75))
+	if scene.are_selected_units_stopped():
+		_fail(42, "Strategic unit smoke: radar move mode did not issue group movement")
+		return
+	scene.stop_selected_units()
+	scene.set_radar_action_mode("camera")
 	scene.clear_selected_units()
 	if scene.get_selected_unit_count() != 0:
 		_fail(13, "Strategic unit smoke: clear selection control failed")

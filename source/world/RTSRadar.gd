@@ -72,11 +72,25 @@ func _draw() -> void:
 		draw_rect(Rect2(center - indicator_size * 0.5, indicator_size), Color(0.95, 0.95, 0.80, 0.95), false, 2.0)
 
 
-func _move_camera_from_pointer(local_position: Vector2) -> void:
+func apply_action_uv(uv: Vector2) -> void:
 	if _world == null or not is_instance_valid(_world):
 		return
+	var mode := "camera"
+	if _world.has_method("get_radar_action_mode"):
+		mode = str(_world.call("get_radar_action_mode"))
+	if mode == "move" and _world.has_method("issue_selected_group_move_uv"):
+		var selected_count := 0
+		if _world.has_method("get_selected_unit_count"):
+			selected_count = int(_world.call("get_selected_unit_count"))
+		if selected_count > 0:
+			_world.call("issue_selected_group_move_uv", uv)
+			return
 	if _world.has_method("radar_center_on_uv"):
-		_world.radar_center_on_uv(_point_to_uv(local_position))
+		_world.call("radar_center_on_uv", uv)
+
+
+func _move_camera_from_pointer(local_position: Vector2) -> void:
+	apply_action_uv(_point_to_uv(local_position))
 
 
 func _gui_input(event: InputEvent) -> void:
