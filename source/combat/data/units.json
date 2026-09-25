@@ -1,0 +1,83 @@
+{
+  "tank": {
+    "name_ar": "دبابة",
+    "category": "armor",
+    "domain": "ground",
+    "cost": 1200,
+    "hp": 1200,
+    "armor": 0.55,
+    "speed_km_sec": 0.6,
+    "weapons": [
+      "tank_cannon",
+      "coax_mg"
+    ],
+    "audio_profile": "tracked_diesel"
+  },
+  "infantry_squad": {
+    "name_ar": "مشاة",
+    "category": "infantry",
+    "domain": "ground",
+    "cost": 220,
+    "hp": 280,
+    "armor": 0.08,
+    "speed_km_sec": 0.12,
+    "weapons": [
+      "rifle"
+    ],
+    "audio_profile": "infantry"
+  },
+  "artillery": {
+    "name_ar": "مدفعية",
+    "category": "artillery",
+    "domain": "ground",
+    "cost": 950,
+    "hp": 650,
+    "armor": 0.25,
+    "speed_km_sec": 0.35,
+    "weapons": [
+      "artillery_shell"
+    ],
+    "audio_profile": "tracked_diesel"
+  },
+  "air_defense": {
+    "name_ar": "دفاع جوي",
+    "category": "air_defense",
+    "domain": "ground",
+    "cost": 850,
+    "hp": 700,
+    "armor": 0.3,
+    "speed_km_sec": 0.32,
+    "weapons": [
+      "sam"
+    ],
+    "audio_profile": "tracked_diesel"
+  },
+  "helicopter": {
+    "name_ar": "مروحية",
+    "category": "rotary_wing",
+    "domain": "air",
+    "cost": 1800,
+    "hp": 750,
+    "armor": 0.18,
+    "speed_km_sec": 2.5,
+    "weapons": [
+      "helicopter_rocket",
+      "air_to_air_missile"
+    ],
+    "audio_profile": "helicopter"
+  },
+  "fighter": {
+    "name_ar": "طائرة مقاتلة",
+    "category": "fixed_wing",
+    "domain": "air",
+    "cost": 2600,
+    "hp": 900,
+    "armor": 0.14,
+    "speed_km_sec": 6,
+    "weapons": [
+      "air_to_air_missile",
+      "air_to_ground_missile"
+    ],
+    "audio_profile": "jet"
+  }
+}

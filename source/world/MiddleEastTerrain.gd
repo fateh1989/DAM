@@ -1,5 +1,7 @@
 extends Node3D
 
+const ArmyCombatCoreScript = preload("res://source/combat/ArmyCombatCore.gd")
+
 # DAM world prototype:
 # MAP = Syria strategic geography with accurate governorate/city anchors.
 # TERRAIN = an art-directed RTS battlefield. Real DEM/OSM terrain is no longer
@@ -26,6 +28,7 @@ const TACTICAL_RELIEF_EXAGGERATION := 1.0
 const TACTICAL_OVERVIEW_ZOOM := 8
 const TACTICAL_OVERVIEW_RELIEF_EXAGGERATION := 60.0
 const UNIT_SPEED_KM_PER_SEC := 0.60
+const GOVERNORORATE_TANK_SEED := 14
 const UNIT_SELECT_RADIUS_PX := 54.0
 const TAP_MAX_DRAG_PX := 18.0
 const ART_ROAD_WIDTH_KM := 0.090
@@ -132,6 +135,7 @@ var _landcover_feature_count := 0
 var _tree_instance_count := 0
 var _cliff_face_count := 0
 var _native_core: Object = null
+var _army_core = null
 var _strategic_node: MeshInstance3D = null
 var _strategic_material: ShaderMaterial = null
 var _tactical_ground_material: ShaderMaterial = null
@@ -157,6 +161,7 @@ var _mouse_drag_distance := 0.0
 func _ready() -> void:
 	if ClassDB.class_exists("DAMNativeCore"):
 		_native_core = ClassDB.instantiate("DAMNativeCore")
+	_setup_army_combat_core()
 	_setup_environment()
 	_origin_lon = _center_lon
 	_origin_lat = _center_lat
@@ -1672,6 +1677,81 @@ func _refresh_geo_overlay(force: bool = false) -> void:
 				break
 
 
+func _setup_army_combat_core() -> void:
+	_army_core = ArmyCombatCoreScript.new()
+	if not _army_core.load_catalogs():
+		push_error("DAM Army Core: unit/weapon catalogs failed to load")
+		_army_core = null
+		return
+
+	# Prototype scenario seed only. These are game values, not real-world force
+	# counts or prices. The architecture supports one persistent army per country.
+	_army_core.create_country(
+		"syria",
+		"سوريا",
+		50000,
+		{
+			"tank": GOVERNORORATE_TANK_SEED,
+			"infantry_squad": 24,
+			"artillery": 6,
+			"air_defense": 6,
+			"helicopter": 4,
+			"fighter": 4,
+		}
+	)
+
+
+func get_country_army_snapshot(country_id: String = "syria") -> Dictionary:
+	if _army_core == null:
+		return {}
+	return _army_core.get_country_snapshot(country_id)
+
+
+func purchase_country_units(unit_type: String, quantity: int = 1, country_id: String = "syria") -> Dictionary:
+	if _army_core == null:
+		return {"ok": false, "reason": "army_core_unavailable"}
+	return _army_core.purchase(country_id, unit_type, quantity)
+
+
+func resolve_unit_attack(attacker_index: int, target_index: int, weapon_id: String = "tank_cannon") -> Dictionary:
+	if _army_core == null:
+		return {"ok": false, "reason": "army_core_unavailable"}
+	if attacker_index < 0 or attacker_index >= _units.size():
+		return {"ok": false, "reason": "invalid_attacker"}
+	if target_index < 0 or target_index >= _units.size():
+		return {"ok": false, "reason": "invalid_target"}
+	if attacker_index == target_index:
+		return {"ok": false, "reason": "same_unit"}
+
+	var attacker: Dictionary = _units[attacker_index]
+	var target: Dictionary = _units[target_index]
+	if not bool(attacker.get("alive", true)) or not bool(target.get("alive", true)):
+		return {"ok": false, "reason": "unit_destroyed"}
+
+	var result: Dictionary = _army_core.resolve_shot(
+		attacker.get("combat_state", {}),
+		target.get("combat_state", {}),
+		weapon_id
+	)
+	if not bool(result.get("ok", false)):
+		return result
+
+	var updated_state: Dictionary = result.get("target", {})
+	target["combat_state"] = updated_state
+	target["hp"] = float(updated_state.get("hp", 0.0))
+	target["alive"] = bool(updated_state.get("alive", false))
+	if not bool(target["alive"]):
+		target["moving"] = false
+		_army_core.record_loss(
+			str(target.get("country_id", "syria")),
+			str(target.get("unit_type", "tank")),
+			1
+		)
+	_units[target_index] = target
+	_sync_unit_visuals()
+	return result
+
+
 func _setup_unit_layer() -> void:
 	if is_instance_valid(_unit_root):
 		return
@@ -1684,14 +1764,26 @@ func _setup_unit_layer() -> void:
 		var gov: Dictionary = GOVERNORATES[i]
 		var node := _create_tank_visual(i)
 		_unit_root.add_child(node)
+		var combat_state: Dictionary = {}
+		if _army_core != null:
+			var deployed: Dictionary = _army_core.deploy("syria", "tank", 1)
+			if bool(deployed.get("ok", false)):
+				combat_state = _army_core.create_unit_state("tank", "syria")
+		var tank_spec: Dictionary = _army_core.unit_spec("tank") if _army_core != null else {}
 		_units.append({
 			"army_id": i + 1,
+			"country_id": "syria",
+			"unit_type": "tank",
 			"governorate_index": i,
 			"lon": float(gov["lon"]),
 			"lat": float(gov["lat"]),
 			"target_lon": float(gov["lon"]),
 			"target_lat": float(gov["lat"]),
 			"moving": false,
+			"alive": bool(combat_state.get("alive", true)),
+			"hp": float(combat_state.get("hp", tank_spec.get("hp", 1200.0))),
+			"combat_state": combat_state,
+			"speed_km_sec": float(combat_state.get("speed_km_sec", UNIT_SPEED_KM_PER_SEC)),
 			"node": node,
 		})
 
@@ -1735,6 +1827,7 @@ func _create_tank_visual(index: int) -> Node3D:
 	turret_mesh.height = 0.38
 	turret_mesh.radial_segments = 12
 	var turret := MeshInstance3D.new()
+	turret.name = "Turret"
 	turret.mesh = turret_mesh
 	turret.position.y = 0.68
 	turret.material_override = _solid_unshaded_material(army_color)
@@ -1743,6 +1836,7 @@ func _create_tank_visual(index: int) -> Node3D:
 	var barrel_mesh := BoxMesh.new()
 	barrel_mesh.size = Vector3(0.16, 0.16, 1.55)
 	var barrel := MeshInstance3D.new()
+	barrel.name = "Barrel"
 	barrel.mesh = barrel_mesh
 	barrel.position = Vector3(0.0, 0.72, -1.02)
 	barrel.material_override = _solid_unshaded_material(army_color.lightened(0.08))
@@ -1784,6 +1878,20 @@ func _create_tank_visual(index: int) -> Node3D:
 	selection.visible = false
 	root_node.add_child(selection)
 
+	# Dedicated 3D audio channels are present from the start so movement,
+	# weapons and impacts can receive real assets without changing unit logic.
+	var engine_audio := AudioStreamPlayer3D.new()
+	engine_audio.name = "EngineAudio"
+	engine_audio.max_distance = 42.0
+	engine_audio.unit_size = 3.0
+	root_node.add_child(engine_audio)
+
+	var weapon_audio := AudioStreamPlayer3D.new()
+	weapon_audio.name = "WeaponAudio"
+	weapon_audio.max_distance = 65.0
+	weapon_audio.unit_size = 4.0
+	root_node.add_child(weapon_audio)
+
 	return root_node
 
 
@@ -1812,6 +1920,9 @@ func _sync_unit_visuals() -> void:
 		var unit: Dictionary = _units[i]
 		var node: Node3D = unit["node"]
 		if not is_instance_valid(node):
+			continue
+		node.visible = bool(unit.get("alive", true))
+		if not node.visible:
 			continue
 
 		var lon := float(unit["lon"])
@@ -1913,7 +2024,8 @@ func _process(delta: float) -> void:
 		var target := _geo_to_local(float(unit["target_lon"]), float(unit["target_lat"]), 0.0)
 		var flat_delta := Vector2(target.x - current.x, target.z - current.z)
 		var distance_km := flat_delta.length()
-		var step_km := UNIT_SPEED_KM_PER_SEC * delta
+		var speed_km_per_sec: float = maxf(0.0, float(unit.get("speed_km_sec", UNIT_SPEED_KM_PER_SEC)))
+		var step_km := speed_km_per_sec * delta
 
 		if distance_km <= maxf(0.001, step_km):
 			unit["lon"] = float(unit["target_lon"])

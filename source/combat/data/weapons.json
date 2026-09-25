@@ -1,0 +1,122 @@
+{
+  "tank_cannon": {
+    "name_ar": "مدفع دبابة",
+    "damage": 420,
+    "armor_penetration": 0.42,
+    "range_km": 2.2,
+    "cooldown_s": 3.8,
+    "projectile": "shell",
+    "projectile_speed_km_s": 0.75,
+    "splash_km": 0.018,
+    "targets": [
+      "ground"
+    ],
+    "fire_sound": "tank_cannon",
+    "impact_effect": "heavy_impact"
+  },
+  "coax_mg": {
+    "name_ar": "رشاش متحد المحور",
+    "damage": 45,
+    "armor_penetration": 0.03,
+    "range_km": 0.9,
+    "cooldown_s": 0.16,
+    "projectile": "bullet",
+    "projectile_speed_km_s": 0.9,
+    "splash_km": 0,
+    "targets": [
+      "ground"
+    ],
+    "fire_sound": "machine_gun",
+    "impact_effect": "light_impact"
+  },
+  "rifle": {
+    "name_ar": "سلاح مشاة",
+    "damage": 22,
+    "armor_penetration": 0.01,
+    "range_km": 0.35,
+    "cooldown_s": 0.35,
+    "projectile": "bullet",
+    "projectile_speed_km_s": 0.85,
+    "splash_km": 0,
+    "targets": [
+      "ground"
+    ],
+    "fire_sound": "rifle",
+    "impact_effect": "light_impact"
+  },
+  "artillery_shell": {
+    "name_ar": "قذيفة مدفعية",
+    "damage": 520,
+    "armor_penetration": 0.24,
+    "range_km": 8,
+    "cooldown_s": 7,
+    "projectile": "arc_shell",
+    "projectile_speed_km_s": 0.45,
+    "splash_km": 0.085,
+    "targets": [
+      "ground"
+    ],
+    "fire_sound": "artillery",
+    "impact_effect": "heavy_explosion"
+  },
+  "sam": {
+    "name_ar": "صاروخ دفاع جوي",
+    "damage": 480,
+    "armor_penetration": 0.28,
+    "range_km": 6,
+    "cooldown_s": 4.5,
+    "projectile": "guided_missile",
+    "projectile_speed_km_s": 1.1,
+    "splash_km": 0.025,
+    "targets": [
+      "air"
+    ],
+    "fire_sound": "missile_launch",
+    "impact_effect": "air_explosion"
+  },
+  "helicopter_rocket": {
+    "name_ar": "صاروخ مروحية",
+    "damage": 210,
+    "armor_penetration": 0.18,
+    "range_km": 2,
+    "cooldown_s": 0.8,
+    "projectile": "rocket",
+    "projectile_speed_km_s": 0.55,
+    "splash_km": 0.045,
+    "targets": [
+      "ground"
+    ],
+    "fire_sound": "rocket_launch",
+    "impact_effect": "medium_explosion"
+  },
+  "air_to_air_missile": {
+    "name_ar": "صاروخ جو-جو",
+    "damage": 520,
+    "armor_penetration": 0.3,
+    "range_km": 5,
+    "cooldown_s": 4.2,
+    "projectile": "guided_missile",
+    "projectile_speed_km_s": 1.5,
+    "splash_km": 0.02,
+    "targets": [
+      "air"
+    ],
+    "fire_sound": "missile_launch",
+    "impact_effect": "air_explosion"
+  },
+  "air_to_ground_missile": {
+    "name_ar": "صاروخ جو-أرض",
+    "damage": 600,
+    "armor_penetration": 0.48,
+    "range_km": 4,
+    "cooldown_s": 5,
+    "projectile": "guided_missile",
+    "projectile_speed_km_s": 1.2,
+    "splash_km": 0.055,
+    "targets": [
+      "ground"
+    ],
+    "fire_sound": "missile_launch",
+    "impact_effect": "heavy_explosion"
+  }
+}

@@ -106,6 +106,10 @@ jobs:
         run: |
           godot --headless --path . --script source/EngineV2Smoke.gd
 
+      - name: Army and combat core smoke
+        run: |
+          godot --headless --path . --script source/combat/ArmyCombatSmoke.gd
+
       - name: Clean generated Godot cache
         run: |
           rm -rf .godot
