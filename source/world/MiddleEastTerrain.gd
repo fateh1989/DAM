@@ -2225,6 +2225,10 @@ func _append_governorate_unit(governorate_index: int, unit_type: String) -> bool
 		logical_state = game_state.call("get_heavy_unit", logical_unit_id)
 	var spawn_lon := float(logical_state.get("lon", float(gov["lon"]) + offset.x))
 	var spawn_lat := float(logical_state.get("lat", float(gov["lat"]) + offset.y))
+	if not logical_state.is_empty() and not combat_state.is_empty():
+		combat_state["hp"] = float(logical_state.get("hp", combat_state.get("hp", unit_spec.get("hp", 100.0))))
+		combat_state["max_hp"] = float(logical_state.get("max_hp", combat_state.get("max_hp", unit_spec.get("hp", 100.0))))
+		combat_state["alive"] = bool(logical_state.get("alive", combat_state.get("alive", true)))
 	_units.append({
 		"army_id": governorate_index + 1,
 		"country_id": "syria",
