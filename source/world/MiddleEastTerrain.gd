@@ -3443,6 +3443,38 @@ func select_governorate_logical_heavy_units(governorate_index: int, unit_type: S
 
 
 
+
+func select_governorate_force_mix(governorate_index: int, tanks: int, artillery: int, launchers: int) -> int:
+	var game_state := _game_state_node()
+	if game_state == null or governorate_index < 0 or governorate_index >= GOVERNORATES.size():
+		return 0
+	var requested := {
+		"tank": maxi(0, tanks),
+		"artillery": maxi(0, artillery),
+		"rocket_launcher": maxi(0, launchers),
+	}
+	var remaining := requested.duplicate()
+	_selected_logical_unit_ids.clear()
+	var roster_units: Array = game_state.call("get_heavy_units_for_governorate", governorate_index, true)
+	for raw_unit in roster_units:
+		var logical: Dictionary = raw_unit
+		var unit_type: String = str(logical.get("unit_type", ""))
+		if not remaining.has(unit_type) or int(remaining[unit_type]) <= 0:
+			continue
+		var logical_id: String = str(logical.get("id", ""))
+		if logical_id.is_empty():
+			continue
+		_selected_logical_unit_ids.append(logical_id)
+		remaining[unit_type] = int(remaining[unit_type]) - 1
+	var expected: int = int(requested["tank"]) + int(requested["artillery"]) + int(requested["rocket_launcher"])
+	if _selected_logical_unit_ids.size() != expected:
+		_selected_logical_unit_ids.clear()
+		return 0
+	_sync_unit_visuals()
+	_sync_detail_unit_lod()
+	_update_status()
+	return _selected_logical_unit_ids.size()
+
 func issue_selected_logical_group_move(destination: Vector2) -> int:
 	if _selected_logical_unit_ids.is_empty() or not _is_move_destination_valid(destination):
 		return 0
