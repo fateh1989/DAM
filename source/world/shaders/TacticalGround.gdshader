@@ -9,6 +9,7 @@ uniform vec3 pale_soil : source_color = vec3(0.58, 0.45, 0.27);
 uniform vec3 rock : source_color = vec3(0.37, 0.36, 0.31);
 uniform float detail_lod : hint_range(0.0, 1.0) = 1.0;
 uniform float slope_detail_strength : hint_range(0.0, 1.0) = 1.0;
+uniform float macro_variation_strength : hint_range(0.0, 1.5) = 1.0;
 
 varying vec3 world_normal;
 
@@ -50,12 +51,14 @@ void fragment() {
 	float detail_far = fbm(UV * 3200.0 + vec2(4.0, 29.0));
 	float detail = mix(detail_far, detail_near, detail_lod);
 
-	float green = smoothstep(0.36, 0.69, macro + broad * 0.28);
-	float dry = smoothstep(0.48, 0.78, broad);
+	float macro_mix = mix(0.5, macro, macro_variation_strength);
+	float broad_mix = mix(0.5, broad, macro_variation_strength);
+	float green = smoothstep(0.36, 0.69, macro_mix + broad_mix * 0.28);
+	float dry = smoothstep(0.48, 0.78, broad_mix);
 	float soil_patch = smoothstep(0.64, 0.88, detail + broad * 0.16);
 
 	vec3 ground = mix(dry_grass, grass_mid, green);
-	ground = mix(ground, grass_deep, smoothstep(0.62, 0.84, macro) * 0.55);
+	ground = mix(ground, grass_deep, smoothstep(0.62, 0.84, macro_mix) * 0.55);
 	ground = mix(ground, pale_soil, dry * (1.0 - green) * 0.42);
 	ground = mix(ground, warm_soil, soil_patch * 0.46);
 
