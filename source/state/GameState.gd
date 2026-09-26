@@ -231,3 +231,9 @@ func update_heavy_unit_position(unit_id: String, lon: float, lat: float) -> bool
 	if heavy_force_roster == null:
 		return false
 	return heavy_force_roster.set_unit_position(unit_id, lon, lat)
+
+
+func get_heavy_units_for_governorate(governorate_index: int, alive_only: bool = true) -> Array[Dictionary]:
+	if heavy_force_roster == null:
+		return []
+	return heavy_force_roster.get_governorate_units(governorate_index, alive_only)
