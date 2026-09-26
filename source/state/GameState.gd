@@ -6,9 +6,11 @@ signal battle_finished(province_id: String, result: Dictionary)
 
 const ArmyCombatCoreScript = preload("res://source/combat/ArmyCombatCore.gd")
 const EconomyCoreScript = preload("res://source/economy/EconomyCore.gd")
+const HeavyForceRosterScript = preload("res://source/state/HeavyForceRoster.gd")
 
 var army_core = null
 var economy_core = null
+var heavy_force_roster = null
 var selected_province_id := "aleppo"
 var selected_province_name := "حلب"
 var active_battle: Dictionary = {}
