@@ -2989,6 +2989,17 @@ func _update_radar_mode_ui() -> void:
 		_: button.text = "RADAR CAMERA"
 
 
+func get_wreck_count() -> int:
+	var count := 0
+	for unit in _units:
+		if bool(unit.get("alive", true)):
+			continue
+		var node = unit.get("node")
+		if node is Node3D and is_instance_valid(node) and bool(node.get_meta("is_wreck", false)):
+			count += 1
+	return count
+
+
 func get_radar_units() -> Array:
 	var result: Array = []
 	for i in range(_units.size()):
