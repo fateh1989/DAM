@@ -423,5 +423,15 @@ func _run() -> void:
 		_fail(76, "World continuity smoke: " + continuity_error)
 		return
 
+	var logical_selection_smoke_script := load("res://source/world/LogicalHeavySelectionSmoke.gd") as Script
+	if logical_selection_smoke_script == null:
+		_fail(89, "Logical heavy selection smoke: contract script missing")
+		return
+	var logical_selection_smoke = logical_selection_smoke_script.new()
+	var logical_selection_error := str(logical_selection_smoke.call("run", scene))
+	if not logical_selection_error.is_empty():
+		_fail(90, "Logical heavy selection smoke: " + logical_selection_error)
+		return
+
 	print("Strategic unit smoke: 14 armies / 42 heavy representatives + radar + group movement OK")
 	quit(0)
