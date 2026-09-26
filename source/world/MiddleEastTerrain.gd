@@ -2487,6 +2487,7 @@ func _sync_unit_visuals() -> void:
 
 		node.position = _geo_to_local(lon, lat, height)
 		node.scale = Vector3.ONE * scale_value
+		_orient_unit_hull_to_target(node, unit)
 
 		var model := node.get_node_or_null("TankModel")
 		var marker := node.get_node_or_null("MapMarker")
