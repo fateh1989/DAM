@@ -35,6 +35,10 @@ func run(scene: Node) -> String:
 		return "RTS macro terrain lost west-to-east biome contrast"
 	if Vector3(south.r - north.r, south.g - north.g, south.b - north.b).length() < 0.08:
 		return "RTS macro terrain lost south-to-north biome contrast"
+	var central := scene.call("_continuous_macro_color", 220.0, 36.75, 35.15) as Color
+	var plateau := scene.call("_continuous_macro_color", 220.0, 38.25, 35.15) as Color
+	if Vector3(central.r - plateau.r, central.g - plateau.g, central.b - plateau.b).length() < 0.05:
+		return "RTS macro terrain lost fertile-to-plateau transition"
 
 	var source := FileAccess.get_file_as_string("res://source/world/MiddleEastTerrain.gd")
 	if 'width_km * 1.72' not in source:
