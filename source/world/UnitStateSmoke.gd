@@ -270,6 +270,39 @@ func _run() -> void:
 		_fail(50, "Strategic unit smoke: radar mode cycle did not wrap to camera")
 		return
 
+	var initial_radar_units: Array = scene.get_radar_units()
+	if initial_radar_units.size() < 3:
+		_fail(126, "Radar army-color smoke: insufficient representative units")
+		return
+	var gov_zero_colors: Array[Color] = []
+	for raw_radar_item in initial_radar_units:
+		var radar_item: Dictionary = raw_radar_item
+		if int(radar_item.get("governorate_index", -1)) == 0:
+			gov_zero_colors.append(radar_item.get("color", Color.WHITE))
+	if gov_zero_colors.size() != 3:
+		_fail(127, "Radar army-color smoke: governorate representatives missing")
+		return
+	for color in gov_zero_colors:
+		if color != gov_zero_colors[0]:
+			_fail(128, "Radar army-color smoke: one governorate has multiple army colors")
+			return
+
+	var game_state_for_radar := scene.get_node_or_null("/root/GameState")
+	var detail_radar_id := "G01-tank-002"
+	if game_state_for_radar == null or not bool(scene.call("select_logical_heavy_unit", detail_radar_id, false)):
+		_fail(129, "Radar logical-detail smoke: could not select persistent unit")
+		return
+	var found_detail_radar := false
+	for raw_radar_item in scene.get_radar_units():
+		var radar_item: Dictionary = raw_radar_item
+		if str(radar_item.get("logical_id", "")) == detail_radar_id and bool(radar_item.get("logical_detail", false)):
+			found_detail_radar = true
+			break
+	if not found_detail_radar:
+		_fail(130, "Radar logical-detail smoke: selected persistent unit is invisible")
+		return
+	scene.call("clear_logical_heavy_selection")
+
 	var first_radar_item: Dictionary = scene.get_radar_units()[0]
 	scene.clear_selected_units()
 	var nearest_index: int = scene.select_nearest_unit_uv(first_radar_item.get("uv", Vector2.ZERO))
