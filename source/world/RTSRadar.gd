@@ -70,11 +70,11 @@ func get_blip_style(item: Dictionary) -> Dictionary:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.025, 0.045, 0.045, 0.92), true)
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.58, 0.72, 0.57, 0.95), false, 2.0)
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0.018, 0.030, 0.025, 0.96), true)
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0.40, 0.82, 0.42, 0.96), false, 2.0)
 	var inner := _inner_rect()
-	draw_rect(inner, Color(0.08, 0.12, 0.10, 0.95), true)
-	draw_rect(inner, Color(0.28, 0.42, 0.28, 0.9), false, 1.0)
+	draw_rect(inner, Color(0.045, 0.075, 0.055, 0.97), true)
+	draw_rect(inner, Color(0.20, 0.48, 0.22, 0.92), false, 1.0)
 
 	if _world == null or not is_instance_valid(_world):
 		return
@@ -98,13 +98,13 @@ func _draw() -> void:
 				0.0,
 				TAU,
 				18,
-				Color(1.0, 0.92, 0.20, 1.0),
+				Color(0.25, 1.0, 0.34, 1.0),
 				float(style.get("ring_width", 1.5))
 			)
 
 	var indicator := get_camera_indicator_rect()
 	if indicator.size.x > 0.0 and indicator.size.y > 0.0:
-		draw_rect(indicator, Color(0.95, 0.95, 0.80, 0.95), false, 2.0)
+		draw_rect(indicator, Color(0.92, 0.98, 0.90, 0.98), false, 2.0)
 
 
 func apply_action_uv(uv: Vector2) -> void:
