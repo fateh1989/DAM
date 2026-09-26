@@ -878,7 +878,8 @@ func _is_strategic_map() -> bool:
 
 
 func _is_tactical_overview() -> bool:
-	return _terrain_mode and _map_zoom <= TACTICAL_OVERVIEW_ZOOM
+	# Far/near views are camera + LOD states inside the same RTS world.
+	return false
 
 
 func _refresh_tiles() -> void:
