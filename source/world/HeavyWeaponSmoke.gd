@@ -66,6 +66,12 @@ func run(scene: Node) -> String:
 		if artillery.get_part("TurretPivot") == null or artillery.get_part("BarrelPivot") == null:
 			artillery.free()
 			return "artillery visual lacks turret and elevation pivot"
+		if family_name == "west" and artillery.get_part("RearAmmoBox") == null:
+			artillery.free()
+			return "western artillery lacks rear ammunition housing"
+		if family_name == "east" and artillery.get_part("CommanderCupola") == null:
+			artillery.free()
+			return "eastern artillery lacks compact cupola silhouette"
 		artillery.free()
 
 	return ""

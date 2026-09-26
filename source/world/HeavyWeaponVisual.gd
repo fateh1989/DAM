@@ -133,7 +133,11 @@ func _build_artillery(parent: Node3D, palette: Dictionary) -> void:
 	turret_pivot.name = "TurretPivot"
 	turret_pivot.position = Vector3(0, 0.84, 0.18)
 	parent.add_child(turret_pivot)
-	_box(turret_pivot, "Turret", Vector3(0, 0, 0), Vector3(1.35 if western else 1.18, 0.52, 1.30), _mat(palette["body"].lightened(0.04)))
+	_box(turret_pivot, "Turret", Vector3(0, 0, 0), Vector3(1.35 if western else 1.18, 0.52 if western else 0.46, 1.30 if western else 1.18), _mat(palette["body"].lightened(0.04)))
+	if western:
+		_box(turret_pivot, "RearAmmoBox", Vector3(0, 0.04, 0.72), Vector3(1.08, 0.34, 0.34), _mat(palette["dark"]))
+	else:
+		_cylinder(turret_pivot, "CommanderCupola", Vector3(0.34, 0.34, 0.10), 0.15, 0.16, _mat(palette["dark"]), 10)
 	var barrel_pivot := Node3D.new()
 	barrel_pivot.name = "BarrelPivot"
 	barrel_pivot.position = Vector3(0, 0.04, -0.58)
