@@ -3431,6 +3431,53 @@ func get_selected_logical_heavy_count() -> int:
 	return _selected_logical_unit_ids.size()
 
 
+func select_logical_heavy_units_in_screen_rect(screen_rect: Rect2, additive: bool = false) -> int:
+	var game_state := _game_state_node()
+	if game_state == null or camera == null:
+		return 0
+	var normalized := screen_rect.abs()
+	if normalized.size.x <= 1.0 or normalized.size.y <= 1.0:
+		return 0
+	if not additive:
+		_selected_logical_unit_ids.clear()
+
+	var candidate_ids := {}
+	for raw_unit in _units:
+		var unit: Dictionary = raw_unit
+		var logical_id := str(unit.get("logical_unit_id", ""))
+		var node = unit.get("node")
+		if logical_id.is_empty() or not (node is Node3D) or not is_instance_valid(node):
+			continue
+		if not bool(unit.get("alive", true)) or not node.visible or camera.is_position_behind(node.global_position):
+			continue
+		var screen_point := camera.unproject_position(node.global_position)
+		if normalized.has_point(screen_point):
+			candidate_ids[logical_id] = true
+
+	if _rts_zoom_level >= RTS_DETAIL_UNIT_LOD_MIN:
+		for node in _detail_unit_nodes:
+			if not is_instance_valid(node) or not node.visible or camera.is_position_behind(node.global_position):
+				continue
+			var logical_id := str(node.get_meta("logical_unit_id", ""))
+			if logical_id.is_empty():
+				continue
+			var screen_point := camera.unproject_position(node.global_position)
+			if normalized.has_point(screen_point):
+				candidate_ids[logical_id] = true
+
+	for logical_id in candidate_ids.keys():
+		var logical: Dictionary = game_state.call("get_heavy_unit", str(logical_id))
+		if logical.is_empty() or not bool(logical.get("alive", true)):
+			continue
+		if str(logical_id) not in _selected_logical_unit_ids:
+			_selected_logical_unit_ids.append(str(logical_id))
+
+	_sync_unit_visuals()
+	_sync_detail_unit_lod()
+	_update_status()
+	return _selected_logical_unit_ids.size()
+
+
 func select_logical_heavy_unit(unit_id: String, additive: bool = false) -> bool:
 	var game_state := _game_state_node()
 	if game_state == null:
