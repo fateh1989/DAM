@@ -2184,10 +2184,13 @@ func resolve_unit_attack(attacker_index: int, target_index: int, weapon_id: Stri
 	target["combat_state"] = updated_state
 	target["hp"] = float(updated_state.get("hp", 0.0))
 	target["alive"] = bool(updated_state.get("alive", false))
+	var logical_id := str(target.get("logical_unit_id", ""))
+	var game_state := _game_state_node()
+	if bool(target["alive"]) and not logical_id.is_empty() and game_state != null:
+		if not bool(game_state.call("update_heavy_surviving_hp", logical_id, float(target["hp"]))):
+			return {"ok": false, "reason": "persistent_hp_failed"}
 	if not bool(target["alive"]):
 		target["moving"] = false
-		var logical_id := str(target.get("logical_unit_id", ""))
-		var game_state := _game_state_node()
 		if not logical_id.is_empty() and game_state != null:
 			if not bool(game_state.call("record_heavy_loss", logical_id)):
 				return {"ok": false, "reason": "persistent_loss_failed"}
