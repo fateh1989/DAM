@@ -3253,6 +3253,12 @@ func stop_selected_units() -> int:
 		if not logical_id.is_empty():
 			var game_state := _game_state_node()
 			if game_state != null:
+				game_state.call(
+					"update_heavy_unit_position",
+					logical_id,
+					float(unit.get("lon", 0.0)),
+					float(unit.get("lat", 0.0))
+				)
 				game_state.call("stop_heavy_unit", logical_id)
 		unit["moving"] = false
 		unit["target_lon"] = float(unit["lon"])
