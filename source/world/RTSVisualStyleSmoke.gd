@@ -52,7 +52,7 @@ func run(scene: Node) -> String:
 	if vector_root == null:
 		return "RTS terrain vector root is missing"
 	for required_node in ["ArtDirtRoads", "ArtFields", "ArtRocks", "ArtSettlement"]:
-		if vector_root.get_node_or_null(required_node) == null:
+		if not bool(scene.call("has_art_battlefield_layer", required_node)):
 			return "RTS battlefield missing " + required_node
 	var feature_snapshot: Dictionary = scene.call("get_art_battlefield_feature_snapshot")
 	if int(feature_snapshot.get("roads", 0)) < 3:
