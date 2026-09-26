@@ -2810,6 +2810,20 @@ func _default_heavy_weapon(unit_type: String) -> String:
 		"rocket_launcher": return "rocket_salvo"
 		_: return "tank_cannon"
 
+func _weapon_range_km(weapon_id: String) -> float:
+	if _army_core == null:
+		return 0.0
+	var spec: Dictionary = _army_core.weapon_spec(weapon_id)
+	return maxf(0.0, float(spec.get("range_km", 0.0)))
+
+
+func _heavy_attack_distance_km(attacker: Dictionary, target: Dictionary) -> float:
+	return _geo_distance_km(
+		Vector2(float(attacker.get("lon", 0.0)), float(attacker.get("lat", 0.0))),
+		Vector2(float(target.get("lon", 0.0)), float(target.get("lat", 0.0)))
+	)
+
+
 
 func resolve_unit_attack(attacker_index: int, target_index: int, weapon_id: String = "tank_cannon") -> Dictionary:
 	if _army_core == null:
