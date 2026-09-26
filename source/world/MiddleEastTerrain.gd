@@ -470,8 +470,13 @@ func _pan_from_screen_delta(delta: Vector2) -> void:
 	_sync_unit_visuals()
 	_refresh_geo_overlay(false)
 
+func get_rts_camera_distance_scale(level: int = _rts_zoom_level) -> float:
+	var clamped_level := clampi(level, RTS_ZOOM_LEVEL_MIN, RTS_ZOOM_LEVEL_MAX)
+	return float(RTS_ZOOM_DISTANCE_SCALES[clamped_level - RTS_ZOOM_LEVEL_MIN])
+
+
 func _rts_camera_distance_scale() -> float:
-	return RTS_ZOOM_NEAR_DISTANCE_SCALE if _rts_zoom_level >= RTS_ZOOM_LEVEL_MAX else RTS_ZOOM_FAR_DISTANCE_SCALE
+	return get_rts_camera_distance_scale(_rts_zoom_level)
 
 
 func _set_rts_zoom_level(new_level: int) -> void:
