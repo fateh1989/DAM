@@ -4763,7 +4763,7 @@ func _note_failure(kind: String) -> void:
 
 
 func _update_command_buttons_state() -> void:
-	var has_selection := not _selected_unit_indices.is_empty()
+	var has_selection := not _selected_unit_indices.is_empty() or not _selected_logical_unit_ids.is_empty()
 	var clear_button := get_node_or_null("HUD/CommandBar/Row/ClearSelectionButton") as Button
 	var focus_button := get_node_or_null("HUD/CommandBar/Row/FocusUnitsButton") as Button
 	var stop_button := get_node_or_null("HUD/CommandBar/Row/StopUnitsButton") as Button
