@@ -2774,14 +2774,11 @@ func _select_governorate(index: int) -> void:
 	var gov := _governorate()
 	_center_lon = float(gov["lon"])
 	_center_lat = float(gov["lat"])
-	_origin_lon = _center_lon
-	_origin_lat = _center_lat
 	_map_zoom = MAX_MAP_ZOOM if _terrain_mode else DEFAULT_MAP_ZOOM
 	if not _terrain_mode:
 		_map_zoom_before_terrain = _map_zoom
 	zoom_wheel.set_value_no_signal(float(_map_zoom))
 
-	_clear_all_world_nodes()
 	_update_governorate_ui()
 	_position_camera()
 	_refresh_tiles()
