@@ -1960,6 +1960,51 @@ func _add_bridge_crossing_visual(crossing: Dictionary) -> void:
 		bridge.add_child(rail)
 
 
+func _add_ford_crossing_visual(crossing: Dictionary) -> void:
+	var lon := float(crossing.get("lon", 0.0))
+	var lat := float(crossing.get("lat", 0.0))
+	var river_id := str(crossing.get("river_id", ""))
+	var river_width := _river_width_for_id(river_id)
+
+	var ford := Node3D.new()
+	ford.name = "FordCrossing"
+	ford.position = _geo_to_local(lon, lat, _designed_height_m(lon, lat) / 1000.0 + 0.0018)
+	ford.set_meta("crossing_kind", "ford")
+	ford.set_meta("river_id", river_id)
+	ford.set_meta("source_id", str(crossing.get("source_id", "")))
+	_hydrology_root.add_child(ford)
+
+	var bed_mesh := CylinderMesh.new()
+	bed_mesh.top_radius = maxf(0.022, river_width * 0.72)
+	bed_mesh.bottom_radius = bed_mesh.top_radius
+	bed_mesh.height = 0.002
+	bed_mesh.radial_segments = 18
+	var bed := MeshInstance3D.new()
+	bed.name = "ShallowBed"
+	bed.mesh = bed_mesh
+	var bed_material := StandardMaterial3D.new()
+	bed_material.albedo_color = Color(0.54, 0.44, 0.29, 0.88)
+	bed_material.roughness = 1.0
+	bed_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	bed.material_override = bed_material
+	ford.add_child(bed)
+
+	var marker_mesh := CylinderMesh.new()
+	marker_mesh.top_radius = maxf(0.010, river_width * 0.14)
+	marker_mesh.bottom_radius = marker_mesh.top_radius
+	marker_mesh.height = 0.004
+	marker_mesh.radial_segments = 12
+	var marker := MeshInstance3D.new()
+	marker.name = "FordMarker"
+	marker.mesh = marker_mesh
+	marker.position.y = 0.0025
+	var marker_material := StandardMaterial3D.new()
+	marker_material.albedo_color = Color(0.73, 0.62, 0.39, 1.0)
+	marker_material.roughness = 0.95
+	marker.material_override = marker_material
+	ford.add_child(marker)
+
+
 func _refresh_hydrology(force: bool = false) -> void:
 	if not is_instance_valid(_hydrology_root):
 		return
@@ -2004,8 +2049,11 @@ func _refresh_hydrology(force: bool = false) -> void:
 		if typeof(raw_crossing) != TYPE_DICTIONARY:
 			continue
 		var crossing: Dictionary = raw_crossing
-		if str(crossing.get("kind", "")) == "bridge":
-			_add_bridge_crossing_visual(crossing)
+		match str(crossing.get("kind", "")):
+			"bridge":
+				_add_bridge_crossing_visual(crossing)
+			"ford":
+				_add_ford_crossing_visual(crossing)
 
 
 func _setup_geo_overlay_layer() -> void:
