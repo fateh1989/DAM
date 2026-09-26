@@ -2464,6 +2464,25 @@ func _create_launcher_visual(index: int) -> Node3D:
 	pod.material_override = _solid_unshaded_material(army_color)
 	elevation_pivot.add_child(pod)
 
+	for row in range(3):
+		for column in range(4):
+			var tube_mesh := CylinderMesh.new()
+			tube_mesh.top_radius = 0.075
+			tube_mesh.bottom_radius = 0.082
+			tube_mesh.height = 0.72
+			tube_mesh.radial_segments = 10
+			var tube := MeshInstance3D.new()
+			tube.name = "Tube_%02d" % (row * 4 + column)
+			tube.mesh = tube_mesh
+			tube.rotation_degrees = Vector3(90.0, 0.0, 0.0)
+			tube.position = Vector3(
+				(float(column) - 1.5) * 0.24,
+				0.18 + (float(row) - 1.0) * 0.18,
+				-1.00
+			)
+			tube.material_override = _solid_unshaded_material(Color(0.11, 0.12, 0.10, 1.0))
+			elevation_pivot.add_child(tube)
+
 	var marker := Node3D.new()
 	marker.name = "MapMarker"
 	root_node.add_child(marker)
