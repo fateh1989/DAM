@@ -268,6 +268,7 @@ def main():
             "lat": round(q[1], 6),
             "heading_rad": round(heading_rad, 6),
             "bridge_length_m": round(bridge_length_m, 1),
+            "path": [[round(lon, 6), round(lat, 6)] for lon, lat in pts],
         })
 
     for ford in handler.ford_nodes:
