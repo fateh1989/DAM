@@ -89,6 +89,16 @@ func _run() -> void:
 		_fail(65, "Province landmark smoke: " + landmark_error)
 		return
 
+	var battle_terrain_smoke_script := load("res://source/battle/BattleTerrainSmoke.gd") as Script
+	if battle_terrain_smoke_script == null:
+		_fail(66, "Battle terrain smoke: contract script missing")
+		return
+	var battle_terrain_smoke = battle_terrain_smoke_script.new()
+	var battle_terrain_error := str(battle_terrain_smoke.call("run", scene))
+	if not battle_terrain_error.is_empty():
+		_fail(67, "Battle terrain smoke: " + battle_terrain_error)
+		return
+
 	if scene._units.size() != scene.GOVERNORATES.size() or scene._units.size() != 14:
 		_fail(3, "Strategic unit smoke: expected one persistent tank per governorate")
 		return

@@ -1,6 +1,8 @@
 extends Node3D
 
-const BATTLEFIELD_SIZE := 2000.0
+const BATTLEFIELD_SIZE := 10000.0
+const BATTLEFIELD_HALF := BATTLEFIELD_SIZE * 0.5
+const CAMERA_BACK_OFFSET_Z := 720.0
 const ZOOM_NORMAL := 1100.0
 const ZOOM_CLOSE := 550.0
 const UNIT_SPEED := 150.0
@@ -325,16 +327,19 @@ func _world_to_uv(position: Vector3) -> Vector2:
 
 
 func get_radar_camera_uv() -> Vector2:
-	return _world_to_uv(Vector3(camera.position.x, 0.0, camera.position.z - 720.0))
+	return _world_to_uv(Vector3(camera.position.x, 0.0, camera.position.z - CAMERA_BACK_OFFSET_Z))
 
 
 func radar_center_on_uv(uv: Vector2) -> void:
 	uv.x = clampf(uv.x, 0.0, 1.0)
 	uv.y = clampf(uv.y, 0.0, 1.0)
 	camera.position.x = (uv.x - 0.5) * BATTLEFIELD_SIZE
-	camera.position.z = (uv.y - 0.5) * BATTLEFIELD_SIZE + 720.0
-	camera.position.x = clampf(camera.position.x, -700.0, 700.0)
-	camera.position.z = clampf(camera.position.z, 150.0, 1450.0)
+	camera.position.z = (uv.y - 0.5) * BATTLEFIELD_SIZE + CAMERA_BACK_OFFSET_Z
+	_clamp_camera_to_battlefield()
+
+
+func get_battlefield_size() -> float:
+	return BATTLEFIELD_SIZE
 
 
 func _screen_to_ground(screen_position: Vector2):
@@ -487,11 +492,26 @@ func _issue_group_move(center: Vector3) -> void:
 		_units[index] = unit
 
 
+func _camera_target_half_extents() -> Vector2:
+	var viewport := get_viewport().get_visible_rect().size
+	var aspect := maxf(0.25, viewport.x / maxf(1.0, viewport.y))
+	return Vector2(camera.size * aspect * 0.5, camera.size * 0.5)
+
+
+func _clamp_camera_to_battlefield() -> void:
+	var half_view := _camera_target_half_extents()
+	var max_x := maxf(0.0, BATTLEFIELD_HALF - half_view.x)
+	var max_z := maxf(0.0, BATTLEFIELD_HALF - half_view.y)
+	camera.position.x = clampf(camera.position.x, -max_x, max_x)
+	var target_z := camera.position.z - CAMERA_BACK_OFFSET_Z
+	target_z = clampf(target_z, -max_z, max_z)
+	camera.position.z = target_z + CAMERA_BACK_OFFSET_Z
+
+
 func _pan_camera(relative: Vector2) -> void:
 	var scale_factor := camera.size / maxf(1.0, float(get_viewport().get_visible_rect().size.y))
 	camera.position += Vector3(-relative.x * scale_factor, 0.0, -relative.y * scale_factor)
-	camera.position.x = clampf(camera.position.x, -700.0, 700.0)
-	camera.position.z = clampf(camera.position.z, 150.0, 1450.0)
+	_clamp_camera_to_battlefield()
 
 
 func _unhandled_input(event: InputEvent) -> void:
