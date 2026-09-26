@@ -35,4 +35,6 @@ func run(scene: Node) -> String:
 		return "tactical terrain shader is missing detail LOD control"
 	if "uniform float slope_detail_strength" not in shader_text:
 		return "tactical terrain shader is missing slope rock detail control"
+	if "uniform float macro_variation_strength" not in shader_text:
+		return "tactical terrain shader is missing macro variation control"
 	return ""
