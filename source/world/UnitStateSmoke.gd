@@ -358,6 +358,9 @@ func _run() -> void:
 	var detail_lod_min := int(scene.call("get_rts_detail_lod_min"))
 	scene.call("_set_rts_zoom_level", detail_lod_min)
 	var detail_radar_id := "G01-tank-002"
+	if int(scene.call("get_rts_zoom_level")) < detail_lod_min:
+		_fail(155, "Radar logical-detail smoke: detail zoom was not applied")
+		return
 	if game_state_for_radar == null or not bool(scene.call("select_logical_heavy_unit", detail_radar_id, false)):
 		_fail(129, "Radar logical-detail smoke: could not select persistent unit")
 		return
