@@ -10,6 +10,7 @@ uniform vec3 rock : source_color = vec3(0.37, 0.36, 0.31);
 uniform float detail_lod : hint_range(0.0, 1.0) = 1.0;
 uniform float slope_detail_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float macro_variation_strength : hint_range(0.0, 1.5) = 1.0;
+uniform float micro_detail_strength : hint_range(0.0, 1.0) = 1.0;
 
 varying vec3 world_normal;
 
@@ -67,7 +68,7 @@ void fragment() {
 	float rock_mask = smoothstep(0.18, 0.48, slope) * slope_breakup;
 	ground = mix(ground, rock, rock_mask * 0.68);
 
-	float micro = 0.92 + detail * 0.16;
+	float micro = 1.0 + (detail - 0.5) * 0.16 * micro_detail_strength;
 	ALBEDO = ground * micro;
 	ROUGHNESS = 0.96;
 	SPECULAR = 0.12;

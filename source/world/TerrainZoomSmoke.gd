@@ -37,4 +37,6 @@ func run(scene: Node) -> String:
 		return "tactical terrain shader is missing slope rock detail control"
 	if "uniform float macro_variation_strength" not in shader_text:
 		return "tactical terrain shader is missing macro variation control"
+	if "uniform float micro_detail_strength" not in shader_text:
+		return "tactical terrain shader is missing micro detail control"
 	return ""
