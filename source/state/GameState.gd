@@ -110,3 +110,16 @@ func damage_economy_area(governorate_id: String, severity: float, kind_filter: S
 	if not ensure_started() or economy_core == null:
 		return 0
 	return economy_core.apply_area_damage(governorate_id, severity, kind_filter)
+
+
+func ensure_heavy_force_roster(governorates: Array) -> bool:
+	if not ensure_started():
+		return false
+	if heavy_force_roster == null:
+		heavy_force_roster = HeavyForceRosterScript.new()
+	var specs := {}
+	for unit_type in ["tank", "rocket_launcher", "artillery"]:
+		specs[unit_type] = army_core.unit_spec(unit_type)
+	if not heavy_force_roster.seed(governorates, specs):
+		return false
+	return str(heavy_force_roster.validate()).is_empty()
