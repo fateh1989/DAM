@@ -4392,6 +4392,18 @@ func _group_formation_spacing_km(unit_count: int) -> float:
 	return clampf(GROUP_FORMATION_SPACING_KM + sqrt(float(count)) * 0.004, 0.04, 0.08)
 
 
+func _selected_logical_group_centroid(game_state: Node) -> Vector2:
+	var sum := Vector2.ZERO
+	var count := 0
+	for logical_id in _selected_logical_unit_ids:
+		var logical: Dictionary = game_state.call("get_heavy_unit", str(logical_id))
+		if logical.is_empty() or not bool(logical.get("alive", true)):
+			continue
+		sum += Vector2(float(logical.get("lon", 0.0)), float(logical.get("lat", 0.0)))
+		count += 1
+	return sum / float(count) if count > 0 else Vector2.ZERO
+
+
 func issue_selected_logical_group_move(destination: Vector2) -> int:
 	if _selected_logical_unit_ids.is_empty() or not _is_move_destination_valid(destination):
 		return 0
@@ -4404,6 +4416,11 @@ func issue_selected_logical_group_move(destination: Vector2) -> int:
 	)
 	_move_order_serial += 1
 	var issued_count: int = 0
+	var centroid := _selected_logical_group_centroid(game_state)
+	var lon_scale_km := 111.32 * maxf(0.15, cos(deg_to_rad(centroid.y)))
+	var travel := Vector2((destination.x - centroid.x) * lon_scale_km, (destination.y - centroid.y) * 111.32)
+	var forward := travel.normalized() if travel.length_squared() > 0.000001 else Vector2(0.0, 1.0)
+	var right := Vector2(forward.y, -forward.x)
 	var formation_spacing_km := _group_formation_spacing_km(_selected_logical_unit_ids.size())
 	var columns: int = maxi(1, int(ceil(sqrt(float(_selected_logical_unit_ids.size())))))
 	var rows: int = int(ceil(float(_selected_logical_unit_ids.size()) / float(columns)))
@@ -4412,8 +4429,10 @@ func issue_selected_logical_group_move(destination: Vector2) -> int:
 		var column: int = order_index % columns
 		var centered_column: float = float(column) - float(columns - 1) * 0.5
 		var centered_row: float = float(row) - float(rows - 1) * 0.5
-		var east_km: float = centered_column * formation_spacing_km
-		var north_km: float = -centered_row * formation_spacing_km
+		var lateral_km := centered_column * formation_spacing_km
+		var depth_km := -centered_row * formation_spacing_km
+		var east_km: float = right.x * lateral_km + forward.x * depth_km
+		var north_km: float = right.y * lateral_km + forward.y * depth_km
 		var target_lat: float = destination.y + rad_to_deg(north_km / EARTH_RADIUS_KM)
 		var lon_radius: float = EARTH_RADIUS_KM * maxf(0.15, cos(deg_to_rad(destination.y)))
 		var target_lon: float = destination.x + rad_to_deg(east_km / lon_radius)
