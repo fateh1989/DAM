@@ -403,6 +403,16 @@ func _run() -> void:
 		_fail(11, "Strategic unit smoke: radar camera did not move")
 		return
 
+	var game_visual_aim_smoke_script := load("res://source/world/GameVisualAimSmoke.gd") as Script
+	if game_visual_aim_smoke_script == null:
+		_fail(97, "Game visual aim smoke: contract script missing")
+		return
+	var game_visual_aim_smoke = game_visual_aim_smoke_script.new()
+	var game_visual_aim_error := str(game_visual_aim_smoke.call("run", scene))
+	if not game_visual_aim_error.is_empty():
+		_fail(98, "Game visual aim smoke: " + game_visual_aim_error)
+		return
+
 	var visible_combat_smoke_script := load("res://source/world/VisibleCombatPersistenceSmoke.gd") as Script
 	if visible_combat_smoke_script == null:
 		_fail(85, "Visible combat persistence smoke: contract script missing")
