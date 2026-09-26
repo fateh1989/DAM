@@ -391,8 +391,9 @@ func _run() -> void:
 		_fail(131, "Radar logical-detail smoke: radar node missing")
 		return
 	radar_for_detail.call("apply_action_uv", detail_radar_uv)
-	if int(scene.call("get_selected_logical_heavy_count")) != 1:
-		_fail(132, "Radar logical-detail smoke: tap did not select persistent unit")
+	var selected_detail_ids: Array[String] = scene.call("get_selected_logical_heavy_ids")
+	if selected_detail_ids.size() != 1 or selected_detail_ids[0] != detail_radar_id:
+		_fail(132, "Radar logical-detail smoke: tap did not select exact persistent unit")
 		return
 	var move_uv := Vector2(clampf(detail_radar_uv.x + 0.002, 0.0, 1.0), detail_radar_uv.y)
 	scene.set_radar_action_mode("move")
