@@ -54,8 +54,11 @@ func run(scene: Node) -> String:
 	for required_node in ["ArtDirtRoads", "ArtFields", "ArtRocks", "ArtSettlement"]:
 		if vector_root.get_node_or_null(required_node) == null:
 			return "RTS battlefield missing " + required_node
-	if int(scene.get("_road_feature_count")) < 3:
+	var feature_snapshot: Dictionary = scene.call("get_art_battlefield_feature_snapshot")
+	if int(feature_snapshot.get("roads", 0)) < 3:
 		return "RTS battlefield lost feeder road network"
-	if int(scene.get("_building_feature_count")) < 40:
+	if int(feature_snapshot.get("buildings", 0)) < 40:
 		return "RTS battlefield settlement density became too sparse"
+	if int(feature_snapshot.get("vector_children", 0)) < 7:
+		return "RTS battlefield vector layer batch is incomplete"
 	return ""
