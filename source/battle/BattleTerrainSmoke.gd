@@ -77,6 +77,13 @@ func run(_world_scene: Node) -> String:
 		if not bool(battle.call("terrain_coverage_ok_for_camera_size", guarded_size)):
 			battle.free()
 			return "terrain coverage guard failed at camera size %.0f" % guarded_size
+	battle.call("set_camera_size_safely", 900.0)
+	var radar_close: Rect2 = battle.call("get_radar_camera_rect_uv")
+	battle.call("set_camera_size_safely", 4800.0)
+	var radar_far: Rect2 = battle.call("get_radar_camera_rect_uv")
+	if radar_far.size.x <= radar_close.size.x or radar_far.size.y <= radar_close.size.y:
+		battle.free()
+		return "radar camera rectangle does not expand with outward zoom"
 	battle.camera.size = battle.ZOOM_NORMAL
 	battle.call("_sync_terrain_chunk_visibility")
 	battle.call("radar_center_on_uv", Vector2(0.94, 0.94))

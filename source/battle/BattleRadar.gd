@@ -58,7 +58,12 @@ func _draw() -> void:
 		if selected:
 			draw_arc(point, 7.5, 0.0, TAU, 16, Color(1.0, 0.90, 0.20, 1.0), 1.5)
 
-	if _battle.has_method("get_radar_camera_uv"):
+	if _battle.has_method("get_radar_camera_rect_uv"):
+		var camera_rect: Rect2 = _battle.get_radar_camera_rect_uv()
+		var top_left := _uv_to_point(camera_rect.position)
+		var bottom_right := _uv_to_point(camera_rect.position + camera_rect.size)
+		draw_rect(Rect2(top_left, bottom_right - top_left), Color(1.0, 1.0, 0.82, 0.95), false, 2.0)
+	elif _battle.has_method("get_radar_camera_uv"):
 		var center := _uv_to_point(_battle.get_radar_camera_uv())
 		draw_rect(Rect2(center - Vector2(22, 16), Vector2(44, 32)), Color(1.0, 1.0, 0.82, 0.95), false, 2.0)
 

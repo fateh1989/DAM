@@ -553,6 +553,24 @@ func get_radar_camera_uv() -> Vector2:
 	return _world_to_uv(Vector3(camera.position.x, 0.0, camera.position.z - CAMERA_BACK_OFFSET_Z))
 
 
+func get_radar_camera_rect_uv() -> Rect2:
+	var center := get_radar_camera_uv()
+	var half_view := _camera_target_half_extents()
+	var half_uv := Vector2(
+		clampf(half_view.x / BATTLEFIELD_SIZE, 0.0, 0.5),
+		clampf(half_view.y / BATTLEFIELD_SIZE, 0.0, 0.5)
+	)
+	var minimum := Vector2(
+		clampf(center.x - half_uv.x, 0.0, 1.0),
+		clampf(center.y - half_uv.y, 0.0, 1.0)
+	)
+	var maximum := Vector2(
+		clampf(center.x + half_uv.x, 0.0, 1.0),
+		clampf(center.y + half_uv.y, 0.0, 1.0)
+	)
+	return Rect2(minimum, maximum - minimum)
+
+
 func radar_center_on_uv(uv: Vector2) -> void:
 	uv.x = clampf(uv.x, 0.0, 1.0)
 	uv.y = clampf(uv.y, 0.0, 1.0)
