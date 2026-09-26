@@ -186,8 +186,19 @@ func _build_facade_details(palette: Dictionary) -> void:
 		_detail_nodes.append(panel)
 
 
+func _style_massing() -> Vector3:
+	match style_id:
+		"damascene": return Vector3(1.05, 0.92, 1.05)
+		"aleppine": return Vector3(1.00, 1.05, 1.00)
+		"coastal": return Vector3(0.90, 1.22, 0.92)
+		"eastern": return Vector3(1.12, 0.76, 1.10)
+		"southern": return Vector3(1.02, 0.96, 1.02)
+		_: return Vector3.ONE
+
+
 func _build_residential_rings(palette: Dictionary) -> void:
 	var wall_mat := _material(palette["wall"])
+	var massing := _style_massing()
 	var roof_mat := _material(palette["roof"])
 	for ring_index in range(RING_RADII.size()):
 		var radius: float = float(RING_RADII[ring_index])
@@ -199,9 +210,9 @@ func _build_residential_rings(palette: Dictionary) -> void:
 				continue
 			var radial_jitter := (_hash01(seed, 2.9) - 0.5) * 0.025
 			var r := radius + radial_jitter
-			var width := 0.048 + _hash01(seed, 4.1) * 0.028
-			var depth := 0.046 + _hash01(seed, 5.7) * 0.030
-			var height := 0.050 + _hash01(seed, 7.3) * 0.075
+			var width := (0.048 + _hash01(seed, 4.1) * 0.028) * massing.x
+			var depth := (0.046 + _hash01(seed, 5.7) * 0.030) * massing.z
+			var height := (0.050 + _hash01(seed, 7.3) * 0.075) * massing.y
 			var p := Vector3(cos(angle) * r, height * 0.5 + 0.012, sin(angle) * r)
 			var building := _add_box(_body_root, p, Vector3(width, height, depth), wall_mat, "Building_%02d_%02d" % [ring_index, slot])
 			building.rotation.y = -angle + PI * 0.5
@@ -476,6 +487,17 @@ func get_collapsed_building_count() -> int:
 
 func get_rubble_count() -> int:
 	return 0 if _rubble_root == null else _rubble_root.get_child_count()
+
+
+func get_average_building_height() -> float:
+	if _building_nodes.is_empty():
+		return 0.0
+	var total := 0.0
+	for building in _building_nodes:
+		var box := building.mesh as BoxMesh
+		if box != null:
+			total += box.size.y
+	return total / float(_building_nodes.size())
 
 
 func get_building_count() -> int:

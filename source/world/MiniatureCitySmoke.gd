@@ -39,6 +39,17 @@ func run(scene: Node) -> String:
 	if int(sample.call("get_decoration_count")) < 20:
 		sample.free()
 		return "miniature city lacks plazas and small tree clusters"
+	var coastal := CITY_SCRIPT.new()
+	coastal.setup(5, "اللاذقية", "coastal")
+	var eastern := CITY_SCRIPT.new()
+	eastern.setup(9, "دير الزور", "eastern")
+	if float(coastal.call("get_average_building_height")) <= float(eastern.call("get_average_building_height")):
+		coastal.free()
+		eastern.free()
+		sample.free()
+		return "regional city styles do not change building massing"
+	coastal.free()
+	eastern.free()
 	sample.call("set_city_health", 0.45)
 	if int(sample.call("get_damage_stage")) != 2:
 		sample.free()
