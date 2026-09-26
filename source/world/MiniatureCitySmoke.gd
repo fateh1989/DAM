@@ -20,6 +20,9 @@ func run(scene: Node) -> String:
 	if int(sample.call("get_street_count")) != 4:
 		sample.free()
 		return "miniature city lacks four readable radial access streets"
+	if int(sample.call("get_industrial_count")) != 4:
+		sample.free()
+		return "miniature city lacks industrial buildings on the outer edge"
 	sample.free()
 	var cities: Array = scene.call("get_city_markers")
 	if cities.size() != 14:
