@@ -556,6 +556,24 @@ func _finish_box_selection(screen_position: Vector2) -> int:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
+		if event.pressed and _box_select_mode and not _box_select_active:
+			_focus_world_audio(event.position)
+			_touches[event.index] = event.position
+			_touch_press_positions[event.index] = event.position
+			_touch_drag_distance[event.index] = 0.0
+			_begin_box_selection(event.index, event.position)
+			get_viewport().set_input_as_handled()
+			return
+		if not event.pressed and _box_select_active and event.index == _box_select_pointer_id:
+			_finish_box_selection(event.position)
+			_touches.erase(event.index)
+			_touch_press_positions.erase(event.index)
+			_touch_drag_distance.erase(event.index)
+			if _touches.is_empty():
+				_multi_touch_gesture_active = false
+			_pinch_accumulator = 0.0
+			get_viewport().set_input_as_handled()
+			return
 		if event.pressed:
 			_focus_world_audio(event.position)
 			_touches[event.index] = event.position
@@ -577,6 +595,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventScreenDrag:
+		if _box_select_active and event.index == _box_select_pointer_id:
+			_touches[event.index] = event.position
+			_touch_drag_distance[event.index] = float(_touch_drag_distance.get(event.index, 0.0)) + event.relative.length()
+			_update_box_selection(event.position)
+			get_viewport().set_input_as_handled()
+			return
 		if not _touches.has(event.index):
 			_touches[event.index] = event.position - event.relative
 			_touch_press_positions[event.index] = event.position - event.relative
