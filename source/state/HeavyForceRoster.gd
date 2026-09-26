@@ -164,3 +164,13 @@ func record_destroyed(unit_id: String) -> bool:
 	unit["target_lat"] = float(unit.get("lat", 0.0))
 	_units[index] = unit
 	return true
+
+
+func set_current_governorate(unit_id: String, governorate_index: int) -> bool:
+	if not _index_by_id.has(unit_id) or governorate_index < 0 or governorate_index >= 14:
+		return false
+	var index := int(_index_by_id[unit_id])
+	var unit: Dictionary = _units[index]
+	unit["current_governorate_index"] = governorate_index
+	_units[index] = unit
+	return true
