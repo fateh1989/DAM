@@ -134,11 +134,17 @@ func apply_action_uv(uv: Vector2) -> void:
 		if _world.has_method("select_nearest_unit_uv"):
 			_world.call("select_nearest_unit_uv", uv)
 			return
-	if mode == "move" and _world.has_method("issue_selected_group_move_uv"):
+	if mode == "move":
+		var logical_selected_count := 0
+		if _world.has_method("get_selected_logical_heavy_count"):
+			logical_selected_count = int(_world.call("get_selected_logical_heavy_count"))
+		if logical_selected_count > 0 and _world.has_method("issue_selected_logical_group_move_uv"):
+			_world.call("issue_selected_logical_group_move_uv", uv)
+			return
 		var selected_count := 0
 		if _world.has_method("get_selected_unit_count"):
 			selected_count = int(_world.call("get_selected_unit_count"))
-		if selected_count > 0:
+		if selected_count > 0 and _world.has_method("issue_selected_group_move_uv"):
 			_world.call("issue_selected_group_move_uv", uv)
 			return
 	if _world.has_method("radar_center_on_uv"):
