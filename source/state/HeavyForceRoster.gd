@@ -122,3 +122,29 @@ func set_unit_position(unit_id: String, lon: float, lat: float) -> bool:
 	unit["lat"] = lat
 	_units[index] = unit
 	return true
+
+
+func issue_move(unit_id: String, target_lon: float, target_lat: float) -> bool:
+	if not _index_by_id.has(unit_id):
+		return false
+	var index := int(_index_by_id[unit_id])
+	var unit: Dictionary = _units[index]
+	if not bool(unit.get("alive", true)):
+		return false
+	unit["target_lon"] = target_lon
+	unit["target_lat"] = target_lat
+	unit["moving"] = true
+	_units[index] = unit
+	return true
+
+
+func stop_unit(unit_id: String) -> bool:
+	if not _index_by_id.has(unit_id):
+		return false
+	var index := int(_index_by_id[unit_id])
+	var unit: Dictionary = _units[index]
+	unit["target_lon"] = float(unit.get("lon", 0.0))
+	unit["target_lat"] = float(unit.get("lat", 0.0))
+	unit["moving"] = false
+	_units[index] = unit
+	return true
