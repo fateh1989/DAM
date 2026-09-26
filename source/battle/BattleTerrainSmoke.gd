@@ -18,5 +18,10 @@ func run(_world_scene: Node) -> String:
 	if int(battle.call("get_ground_chunk_count")) != 25:
 		battle.free()
 		return "large battlefield was not divided into twenty five terrain chunks"
+	var height_a := float(battle.call("terrain_height_at", -1400.0, -900.0))
+	var height_b := float(battle.call("terrain_height_at", 1700.0, 1300.0))
+	if absf(height_a - height_b) < 5.0:
+		battle.free()
+		return "battle terrain relief is effectively flat"
 	battle.free()
 	return ""
