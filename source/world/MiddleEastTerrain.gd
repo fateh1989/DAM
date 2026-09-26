@@ -2202,6 +2202,10 @@ func _append_governorate_unit(governorate_index: int, unit_type: String) -> bool
 		combat_state = _army_core.create_unit_state(unit_type, "syria")
 
 	var unit_spec: Dictionary = _army_core.unit_spec(unit_type) if _army_core != null else {}
+	var game_state := _game_state_node()
+	var logical_unit_id := ""
+	if game_state != null:
+		logical_unit_id = str(game_state.call("get_heavy_representative_id", governorate_index, unit_type))
 	var offset := _unit_type_spawn_offset(unit_type)
 	var spawn_lon := float(gov["lon"]) + offset.x
 	var spawn_lat := float(gov["lat"]) + offset.y
@@ -2209,6 +2213,7 @@ func _append_governorate_unit(governorate_index: int, unit_type: String) -> bool
 		"army_id": governorate_index + 1,
 		"country_id": "syria",
 		"unit_type": unit_type,
+		"logical_unit_id": logical_unit_id,
 		"governorate_index": governorate_index,
 		"lon": spawn_lon,
 		"lat": spawn_lat,
