@@ -3,6 +3,8 @@ extends RefCounted
 func run(scene: Node) -> String:
 	if scene.RTS_ZOOM_LEVEL_MIN != 1 or scene.RTS_ZOOM_LEVEL_MAX != 8:
 		return "RTS terrain zoom range is not eight levels"
+	if scene.RTS_DETAIL_UNIT_LOD_MIN != 6:
+		return "real heavy unit detail LOD does not begin at level six"
 	if scene.RTS_ZOOM_DISTANCE_SCALES.size() != 8:
 		return "RTS terrain zoom scale table does not contain eight levels"
 	var last := 999.0
@@ -31,9 +33,13 @@ func run(scene: Node) -> String:
 	scene.call("_set_rts_zoom_level", 8)
 	if int(scene.call("get_rts_zoom_level")) != 8:
 		return "RTS terrain zoom setter did not reach level eight"
+	if int(scene.call("get_detail_unit_visual_count")) != 97:
+		return "near LOD did not render 97 exact roster units beside the three representatives"
 	scene.call("_set_rts_zoom_level", 1)
 	if int(scene.call("get_rts_zoom_level")) != 1:
 		return "RTS terrain zoom setter did not return to level one"
+	if int(scene.call("get_detail_unit_visual_count")) != 0:
+		return "far LOD kept detailed roster unit nodes alive"
 	var shader_text := FileAccess.get_file_as_string("res://source/world/shaders/TacticalGround.gdshader")
 	if "uniform float detail_lod" not in shader_text:
 		return "tactical terrain shader is missing detail LOD control"
