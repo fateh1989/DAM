@@ -4000,6 +4000,34 @@ func get_radar_units() -> Array:
 	return result
 
 
+func _append_selected_logical_radar_units(result: Array, represented_ids: Dictionary) -> void:
+	var game_state := _game_state_node()
+	if game_state == null:
+		return
+	for logical_id in _selected_logical_unit_ids:
+		if represented_ids.has(logical_id):
+			continue
+		var logical: Dictionary = game_state.call("get_heavy_unit", logical_id)
+		if logical.is_empty() or not bool(logical.get("alive", true)):
+			continue
+		var lon := float(logical.get("lon", 0.0))
+		var lat := float(logical.get("lat", 0.0))
+		var u := clampf((lon - REGION_WEST) / (REGION_EAST - REGION_WEST), 0.0, 1.0)
+		var v := clampf((REGION_NORTH - lat) / (REGION_NORTH - REGION_SOUTH), 0.0, 1.0)
+		var governorate_index := int(logical.get("current_governorate_index", logical.get("home_governorate_index", 0)))
+		result.append({
+			"index": -1,
+			"logical_id": logical_id,
+			"governorate_index": governorate_index,
+			"unit_type": str(logical.get("unit_type", "tank")),
+			"uv": Vector2(u, v),
+			"color": _army_color(governorate_index),
+			"selected": true,
+			"primary": not _selected_logical_unit_ids.is_empty() and logical_id == _selected_logical_unit_ids.back(),
+			"logical_detail": true,
+		})
+
+
 func select_nearest_unit_uv(uv: Vector2, max_distance: float = 0.06) -> int:
 	var target := Vector2(clampf(uv.x, 0.0, 1.0), clampf(uv.y, 0.0, 1.0))
 	var best_index := -1
