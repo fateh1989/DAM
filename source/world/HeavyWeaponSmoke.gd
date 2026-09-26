@@ -66,6 +66,15 @@ func run(scene: Node) -> String:
 		if absf(float(tank.call("get_aim_yaw")) - 73.0) > 0.01:
 			tank.free()
 			return "tank turret does not rotate independently"
+		var tank_barrel := tank.get_part("Barrel") as Node3D
+		var tank_barrel_rest := tank_barrel.position
+		if not bool(tank.call("apply_fire_recoil_visual")) or tank_barrel.position == tank_barrel_rest:
+			tank.free()
+			return "tank cannon lacks visible recoil"
+		tank.call("reset_fire_recoil_visual")
+		if tank_barrel.position != tank_barrel_rest or bool(tank.call("is_recoil_active")):
+			tank.free()
+			return "tank cannon recoil does not reset"
 		tank.free()
 
 		var launcher := VISUAL_SCRIPT.new()
@@ -93,6 +102,15 @@ func run(scene: Node) -> String:
 		if not bool(artillery.call("set_weapon_elevation", 42.0)) or absf(float(artillery.call("get_weapon_elevation")) - 42.0) > 0.01:
 			artillery.free()
 			return "artillery gun elevation joint is unavailable"
+		var artillery_barrel := artillery.get_part("Barrel") as Node3D
+		var artillery_rest := artillery_barrel.position
+		if not bool(artillery.call("apply_fire_recoil_visual")) or artillery_barrel.position == artillery_rest:
+			artillery.free()
+			return "artillery cannon lacks visible recoil"
+		artillery.call("reset_fire_recoil_visual")
+		if artillery_barrel.position != artillery_rest:
+			artillery.free()
+			return "artillery recoil does not reset"
 		if family_name == "west" and artillery.get_part("RearAmmoBox") == null:
 			artillery.free()
 			return "western artillery lacks rear ammunition housing"

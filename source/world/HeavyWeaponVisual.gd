@@ -7,6 +7,8 @@ var represented_count := 0
 
 var _model_root: Node3D
 var _count_label: Label3D
+var _barrel_rest_position := Vector3.ZERO
+var _recoil_active := false
 
 func setup(kind: String, requested_family: String, province: int, count: int) -> void:
 	weapon_type = kind if kind in ["tank", "launcher", "artillery"] else "tank"
@@ -161,6 +163,9 @@ func _rebuild() -> void:
 		"launcher": _build_launcher(_model_root, palette)
 		"artillery": _build_artillery(_model_root, palette)
 		_: _build_tank(_model_root, palette)
+	var barrel := get_part("Barrel") as Node3D
+	_barrel_rest_position = Vector3.ZERO if barrel == null else barrel.position
+	_recoil_active = false
 	_count_label = Label3D.new()
 	_count_label.name = "CountLabel"
 	_count_label.text = "×%d" % represented_count
@@ -208,6 +213,28 @@ func set_weapon_elevation(degrees: float) -> bool:
 func get_weapon_elevation() -> float:
 	var pivot := get_part("LauncherElevationPivot") as Node3D if weapon_type == "launcher" else get_part("BarrelPivot") as Node3D
 	return 0.0 if pivot == null else -pivot.rotation_degrees.x
+
+
+func apply_fire_recoil_visual() -> bool:
+	if weapon_type == "launcher":
+		return false
+	var barrel := get_part("Barrel") as Node3D
+	if barrel == null:
+		return false
+	barrel.position = _barrel_rest_position + Vector3(0, 0, 0.28 if weapon_type == "artillery" else 0.20)
+	_recoil_active = true
+	return true
+
+
+func reset_fire_recoil_visual() -> void:
+	var barrel := get_part("Barrel") as Node3D
+	if barrel != null:
+		barrel.position = _barrel_rest_position
+	_recoil_active = false
+
+
+func is_recoil_active() -> bool:
+	return _recoil_active
 
 
 func set_represented_count(value: int) -> void:
