@@ -2493,19 +2493,26 @@ func _segment_intersection_geo(a: Vector2, b: Vector2, c: Vector2, d: Vector2) -
 	return {"point": a + r * t, "t": t}
 
 
-func _crossings_for_river(river_id: String) -> Array:
+func _river_group_key(item: Dictionary, fallback_field: String) -> String:
+	var group := str(item.get("river_group", ""))
+	if not group.is_empty():
+		return group
+	return str(item.get(fallback_field, ""))
+
+
+func _crossings_for_river(river_group: String) -> Array:
 	var result: Array = []
 	for raw_crossing in _hydrology_data.get("crossings", []):
 		if typeof(raw_crossing) != TYPE_DICTIONARY:
 			continue
 		var crossing: Dictionary = raw_crossing
-		if str(crossing.get("river_id", "")) == river_id:
+		if _river_group_key(crossing, "river_id") == river_group:
 			result.append(crossing)
 	return result
 
 
-func _point_near_legal_crossing(point: Vector2, river_id: String, radius_km: float = 0.45) -> bool:
-	for crossing in _crossings_for_river(river_id):
+func _point_near_legal_crossing(point: Vector2, river_group: String, radius_km: float = 0.45) -> bool:
+	for crossing in _crossings_for_river(river_group):
 		var crossing_geo := Vector2(float(crossing.get("lon", 0.0)), float(crossing.get("lat", 0.0)))
 		if _geo_distance_km(point, crossing_geo) <= radius_km:
 			return true
@@ -2522,7 +2529,8 @@ func _first_illegal_river_crossing(start: Vector2, destination: Vector2) -> Dict
 		if not bool(feature.get("blocking", false)):
 			continue
 		var river_id := str(feature.get("id", ""))
-		if river_id.is_empty():
+		var river_group := _river_group_key(feature, "id")
+		if river_id.is_empty() or river_group.is_empty():
 			continue
 		var points: Array = feature.get("points", [])
 		for i in range(points.size() - 1):
@@ -2536,13 +2544,14 @@ func _first_illegal_river_crossing(start: Vector2, destination: Vector2) -> Dict
 			if hit.is_empty():
 				continue
 			var point: Vector2 = hit["point"]
-			if _point_near_legal_crossing(point, river_id):
+			if _point_near_legal_crossing(point, river_group):
 				continue
 			var t := float(hit["t"])
 			if t < best_t:
 				best_t = t
 				best = {
 					"river_id": river_id,
+					"river_group": river_group,
 					"river_name": str(feature.get("name", "")),
 					"point": point,
 					"t": t,
@@ -2550,10 +2559,10 @@ func _first_illegal_river_crossing(start: Vector2, destination: Vector2) -> Dict
 	return best
 
 
-func _best_legal_crossing(river_id: String, start: Vector2, destination: Vector2) -> Dictionary:
+func _best_legal_crossing(river_group: String, start: Vector2, destination: Vector2) -> Dictionary:
 	var best: Dictionary = {}
 	var best_cost := INF
-	for raw_crossing in _crossings_for_river(river_id):
+	for raw_crossing in _crossings_for_river(river_group):
 		var crossing: Dictionary = raw_crossing
 		var point := Vector2(float(crossing.get("lon", 0.0)), float(crossing.get("lat", 0.0)))
 		var cost := _geo_distance_km(start, point) + _geo_distance_km(point, destination)
@@ -2578,8 +2587,8 @@ func plan_ground_route(start: Vector2, destination: Vector2) -> Array[Vector2]:
 		if illegal.is_empty():
 			route.append(final_target)
 			return route
-		var river_id := str(illegal.get("river_id", ""))
-		var crossing := _best_legal_crossing(river_id, current, final_target)
+		var river_group := str(illegal.get("river_group", illegal.get("river_id", "")))
+		var crossing := _best_legal_crossing(river_group, current, final_target)
 		if crossing.is_empty():
 			return []
 		var crossing_geo := Vector2(float(crossing.get("lon", 0.0)), float(crossing.get("lat", 0.0)))
