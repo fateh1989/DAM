@@ -498,7 +498,10 @@ func _set_rts_zoom_level(new_level: int) -> void:
 		return
 	_rts_zoom_level = new_level
 	_position_camera()
+	_sync_unit_visuals()
 	_refresh_geo_overlay(true)
+	if _terrain_mode and not _is_tactical_overview() and _rts_zoom_level >= 4:
+		call_deferred("_refresh_vector_data", true)
 	_update_status()
 
 
