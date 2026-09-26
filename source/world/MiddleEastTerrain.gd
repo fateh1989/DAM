@@ -623,7 +623,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 		if _touches.size() == 1:
 			_touches[event.index] = event.position
-			_pan_from_screen_delta(event.relative)
+			var total_drag := float(_touch_drag_distance.get(event.index, 0.0))
+			if _should_pan_world(1, total_drag):
+				_pan_from_screen_delta(event.relative)
 		else:
 			var ids := _touches.keys()
 			var first_id = ids[0]
