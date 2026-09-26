@@ -4527,12 +4527,13 @@ func select_next_unit() -> bool:
 	return false
 
 
-func select_all_units() -> void:
+func select_all_units() -> int:
 	var indices: Array[int] = []
 	for i in range(_units.size()):
 		if _is_unit_selectable(i):
 			indices.append(i)
 	select_units(indices)
+	return _selected_unit_indices.size()
 
 
 func clear_selected_units() -> void:
