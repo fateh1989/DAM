@@ -2891,6 +2891,46 @@ func issue_selected_attack(target_index: int) -> int:
 	return fired
 
 
+func _selected_attack_logical_ids() -> Array[String]:
+	var result: Array[String] = []
+	for logical_id in _selected_logical_unit_ids:
+		if not str(logical_id).is_empty() and str(logical_id) not in result:
+			result.append(str(logical_id))
+	for index in _selected_unit_indices:
+		if index < 0 or index >= _units.size():
+			continue
+		var logical_id := str((_units[index] as Dictionary).get("logical_unit_id", ""))
+		if not logical_id.is_empty() and logical_id not in result:
+			result.append(logical_id)
+	return result
+
+
+func issue_selected_logical_attack(target_id: String) -> int:
+	if target_id.is_empty():
+		return 0
+	var game_state := _game_state_node()
+	if game_state == null:
+		return 0
+	var target: Dictionary = game_state.call("get_heavy_unit", target_id)
+	if target.is_empty() or not bool(target.get("alive", true)):
+		return 0
+	var fired := 0
+	for attacker_id in _selected_attack_logical_ids():
+		if attacker_id == target_id:
+			continue
+		var attacker: Dictionary = game_state.call("get_heavy_unit", attacker_id)
+		if attacker.is_empty() or not bool(attacker.get("alive", true)) or not _logical_units_are_enemies(attacker, target):
+			continue
+		var weapon_id := _default_heavy_weapon(str(attacker.get("unit_type", "tank")))
+		var result := resolve_logical_heavy_attack(attacker_id, target_id, weapon_id)
+		if bool(result.get("ok", false)):
+			fired += 1
+		var latest_target: Dictionary = game_state.call("get_heavy_unit", target_id)
+		if latest_target.is_empty() or not bool(latest_target.get("alive", true)):
+			break
+	return fired
+
+
 func _append_governorate_unit(governorate_index: int, unit_type: String) -> bool:
 	if governorate_index < 0 or governorate_index >= GOVERNORATES.size():
 		return false
