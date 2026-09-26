@@ -91,6 +91,10 @@ func _build() -> void:
 			var city_light := Color(0.68, 0.62, 0.48, 1.0)
 			var plaza := _add_box(Vector3(0, 0.009, 0), Vector3(0.34, 0.018, 0.28), Color(0.30, 0.29, 0.25, 1.0))
 			plaza.name = "CityPlaza"
+			var road_ns := _add_box(Vector3(0.0, 0.020, 0.0), Vector3(0.030, 0.006, 0.25), Color(0.16, 0.17, 0.16, 1.0))
+			road_ns.name = "CityRoadNS"
+			var road_ew := _add_box(Vector3(0.0, 0.020, 0.0), Vector3(0.30, 0.006, 0.028), Color(0.16, 0.17, 0.16, 1.0))
+			road_ew.name = "CityRoadEW"
 			var center := _add_box(Vector3(0.0, 0.090, -0.015), Vector3(0.075, 0.18, 0.070), city_light)
 			center.name = "CityCenter"
 			var b1 := _add_box(Vector3(-0.105, 0.050, -0.070), Vector3(0.080, 0.10, 0.070), city_stone)
