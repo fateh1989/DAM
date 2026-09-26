@@ -35,9 +35,10 @@ func ensure_started() -> bool:
 			"سوريا",
 			50000,
 			{
-				"tank": 14,
+				"tank": 700,
+				"rocket_launcher": 280,
+				"artillery": 420,
 				"infantry_squad": 24,
-				"artillery": 6,
 				"air_defense": 6,
 				"helicopter": 4,
 				"fighter": 4,
