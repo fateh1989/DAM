@@ -197,6 +197,16 @@ func _run() -> void:
 		_fail(139, "Attack range smoke: " + attack_range_error)
 		return
 
+	var attack_approach_smoke_script := load("res://source/world/AttackApproachSmoke.gd") as Script
+	if attack_approach_smoke_script == null:
+		_fail(140, "Attack approach smoke: contract script missing")
+		return
+	var attack_approach_smoke = attack_approach_smoke_script.new()
+	var attack_approach_error := str(attack_approach_smoke.call("run", scene))
+	if not attack_approach_error.is_empty():
+		_fail(141, "Attack approach smoke: " + attack_approach_error)
+		return
+
 	var selected_attack_smoke_script := load("res://source/world/SelectedAttackSmoke.gd") as Script
 	if selected_attack_smoke_script == null:
 		_fail(134, "Selected attack smoke: contract script missing")
