@@ -183,6 +183,18 @@ func get_model_root() -> Node3D:
 	return _model_root
 
 
+func get_launcher_pod_count() -> int:
+	if _model_root == null:
+		return 0
+	var count := 0
+	for child in _model_root.get_children():
+		if str(child.name).begins_with("LauncherPivot"):
+			for item in child.get_children():
+				if str(item.name).begins_with("RocketPod_"):
+					count += 1
+	return count
+
+
 func get_visual_signature() -> Dictionary:
 	var turret := get_part("Turret")
 	var hull := get_part("Hull")

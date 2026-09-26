@@ -55,6 +55,10 @@ func run(scene: Node) -> String:
 		if launcher.get_part("LauncherPivot") == null or launcher.get_part("RocketPod_00") == null:
 			launcher.free()
 			return "launcher visual lacks rotating launcher structure"
+		var expected_pods := 2 if family_name == "west" else 3
+		if int(launcher.call("get_launcher_pod_count")) != expected_pods:
+			launcher.free()
+			return "launcher family pod layout is incorrect"
 		launcher.free()
 
 		var artillery := VISUAL_SCRIPT.new()
