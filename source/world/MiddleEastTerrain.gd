@@ -2233,6 +2233,10 @@ func _solid_unshaded_material(color: Color, emission_strength: float = 0.0) -> S
 	return material
 
 
+func _tank_family(index: int) -> String:
+	return "western" if index % 2 == 0 else "eastern"
+
+
 func _create_tank_visual(index: int) -> Node3D:
 	var root_node := Node3D.new()
 	root_node.name = "ArmyTank_%02d" % [index + 1]
