@@ -2717,6 +2717,16 @@ func _create_launcher_visual(index: int) -> Node3D:
 	hull.material_override = _solid_unshaded_material(army_color.darkened(0.22))
 	model.add_child(hull)
 
+	var cab_mesh := BoxMesh.new()
+	cab_mesh.size = Vector3(1.26, 0.64, 0.78) if family == "western" else Vector3(1.14, 0.58, 0.72)
+	var cab := MeshInstance3D.new()
+	cab.name = "DriverCab"
+	cab.mesh = cab_mesh
+	cab.position = Vector3(0.0, 0.62 if family == "western" else 0.56, -0.82)
+	cab.rotation_degrees.x = -7.0 if family == "western" else -10.0
+	cab.material_override = _solid_unshaded_material(army_color.darkened(0.10))
+	model.add_child(cab)
+
 	for side in [-1.0, 1.0]:
 		var track_mesh := BoxMesh.new()
 		track_mesh.size = Vector3(0.25, 0.28, 2.34 if family == "western" else 2.14)
@@ -2763,6 +2773,17 @@ func _create_launcher_visual(index: int) -> Node3D:
 	elevation_pivot.name = "ElevationPivot"
 	elevation_pivot.position = Vector3(0.0, 0.26, -0.12)
 	launcher_pivot.add_child(elevation_pivot)
+
+	for side in [-1.0, 1.0]:
+		var support_mesh := BoxMesh.new()
+		support_mesh.size = Vector3(0.13, 0.16, 1.08)
+		var support := MeshInstance3D.new()
+		support.name = "PodSupportLeft" if side < 0.0 else "PodSupportRight"
+		support.mesh = support_mesh
+		support.position = Vector3(side * 0.46, -0.02, -0.24)
+		support.rotation_degrees.x = -10.0
+		support.material_override = _solid_unshaded_material(army_color.darkened(0.18))
+		elevation_pivot.add_child(support)
 
 	var pod_mesh := BoxMesh.new()
 	pod_mesh.size = Vector3(1.22, 0.64, 1.42) if family == "western" else Vector3(1.08, 0.58, 1.28)
