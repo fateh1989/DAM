@@ -2519,6 +2519,8 @@ func _solid_unshaded_material(color: Color, emission_strength: float = 0.0) -> S
 	material.albedo_color = color
 	material.roughness = 0.86
 	material.metallic = 0.08
+	if color.a < 0.999:
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	if emission_strength > 0.0:
 		material.emission_enabled = true
 		material.emission = color * emission_strength
