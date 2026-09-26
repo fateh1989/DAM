@@ -4493,11 +4493,12 @@ func toggle_unit_selection(index: int) -> void:
 	_toggle_unit_selection(index)
 
 
-func select_single_unit(index: int) -> void:
+func select_single_unit(index: int) -> bool:
 	var indices: Array[int] = []
 	if _is_unit_selectable(index):
 		indices.append(index)
 	select_units(indices)
+	return index in _selected_unit_indices
 
 
 func select_previous_unit() -> void:
