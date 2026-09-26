@@ -2094,9 +2094,15 @@ func _create_tank_visual(index: int) -> Node3D:
 	return root_node
 
 
+func get_rts_unit_visual_scale(level: int = _rts_zoom_level) -> float:
+	var clamped_level := clampi(level, RTS_ZOOM_LEVEL_MIN, RTS_ZOOM_LEVEL_MAX)
+	var t := float(clamped_level - RTS_ZOOM_LEVEL_MIN) / float(RTS_ZOOM_LEVEL_MAX - RTS_ZOOM_LEVEL_MIN)
+	return lerpf(0.0046, 0.0038, t)
+
+
 func _tank_visual_scale() -> float:
 	if _terrain_mode:
-		return 0.0042
+		return get_rts_unit_visual_scale()
 	return maxf(0.55, camera.size * 0.0085)
 
 
