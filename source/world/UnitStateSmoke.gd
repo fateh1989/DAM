@@ -266,6 +266,12 @@ func _run() -> void:
 	if scene.get_selected_unit_count() != 2:
 		_fail(12, "Strategic unit smoke: public multi-selection control failed")
 		return
+	scene.stop_selected_units()
+	scene._handle_world_tap(Vector2(1.0, 1.0))
+	if scene.are_selected_units_stopped():
+		_fail(74, "Continuous RTS smoke: ground tap did not move selected units")
+		return
+	scene.stop_selected_units()
 	scene.set_radar_action_mode("move")
 	radar.call("apply_action_uv", Vector2(0.75, 0.75))
 	if scene.are_selected_units_stopped():
