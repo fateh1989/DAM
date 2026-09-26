@@ -142,6 +142,35 @@ func _build_residential_rings(palette: Dictionary) -> void:
 			roof.rotation.y = building.rotation.y
 
 
+func _build_industrial_edge(palette: Dictionary) -> void:
+	var wall_mat := _material(palette["accent"])
+	var roof_mat := _material(palette["roof"])
+	for industrial_index in range(4):
+		var angle := PI * 0.25 + float(industrial_index) * PI * 0.5
+		var radius := 0.405
+		var p := Vector3(cos(angle) * radius, 0.042, sin(angle) * radius)
+		var root := Node3D.new()
+		root.name = "Industrial_%02d" % industrial_index
+		root.position = p
+		root.rotation.y = -angle + PI * 0.5
+		_industrial_root.add_child(root)
+		_add_box(root, Vector3.ZERO, Vector3(0.095, 0.075, 0.060), wall_mat, "Warehouse")
+		_add_box(root, Vector3(0, 0.043, 0), Vector3(0.101, 0.012, 0.066), roof_mat, "Roof")
+		if industrial_index % 2 == 0:
+			var chimney_mesh := CylinderMesh.new()
+			chimney_mesh.top_radius = 0.009
+			chimney_mesh.bottom_radius = 0.012
+			chimney_mesh.height = 0.11
+			chimney_mesh.radial_segments = 7
+			var chimney := MeshInstance3D.new()
+			chimney.name = "Chimney"
+			chimney.mesh = chimney_mesh
+			chimney.position = Vector3(0.030, 0.078, 0.012)
+			chimney.material_override = roof_mat
+			root.add_child(chimney)
+		_industrial_nodes.append(root)
+
+
 func _build_label() -> void:
 	_label = Label3D.new()
 	_label.name = "CityLabel"
@@ -168,6 +197,7 @@ func _rebuild() -> void:
 	_build_base(palette)
 	_build_radial_streets(palette)
 	_build_residential_rings(palette)
+	_build_industrial_edge(palette)
 	_build_label()
 
 
