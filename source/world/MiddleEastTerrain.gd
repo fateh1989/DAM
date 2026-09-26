@@ -50,6 +50,7 @@ const RTS_ZOOM_LEVEL_MAX := 5
 const RTS_ZOOM_NEAR_DISTANCE_SCALE := 0.50
 const RTS_ZOOM_FAR_DISTANCE_SCALE := 1.0
 const RTS_ZOOM_DISTANCE_SCALES := [1.00, 0.82, 0.66, 0.52, 0.40]
+const CONTINUOUS_MACRO_GRID := 36
 const GROUP_FORMATION_SPACING_KM := 0.035
 const UNIT_SPEED_KM_PER_SEC := 0.60
 const GOVERNORORATE_TANK_SEED := 14
@@ -164,6 +165,7 @@ var _cliff_face_count := 0
 var _native_core: Object = null
 var _army_core = null
 var _strategic_node: MeshInstance3D = null
+var _continuous_macro_node: MeshInstance3D = null
 var _strategic_material: ShaderMaterial = null
 var _tactical_ground_material: ShaderMaterial = null
 var _strategic_height_image: Image = null
@@ -399,6 +401,7 @@ func _ready() -> void:
 	zoom_wheel.visible = false
 	_setup_unit_layer()
 	_setup_geo_overlay_layer()
+	_build_continuous_macro_world()
 	_position_camera()
 	_refresh_tiles()
 	_sync_unit_visuals()
@@ -1296,6 +1299,59 @@ func _cliff_color(elevation_m: float, x: int, y: int) -> Color:
 func _hash_noise(x: int, y: int) -> float:
 	var value := sin(float(x) * 12.9898 + float(y) * 78.233) * 43758.5453
 	return value - floor(value)
+
+func _continuous_macro_color(height_m: float, lon: float, lat: float) -> Color:
+	var dry_wave := 0.5 + 0.5 * sin(lon * 2.9 + lat * 1.7)
+	if height_m >= 900.0:
+		return Color(0.34, 0.31, 0.26, 1.0).lerp(Color(0.47, 0.42, 0.34, 1.0), dry_wave * 0.45)
+	if height_m >= 450.0:
+		return Color(0.45, 0.43, 0.28, 1.0).lerp(Color(0.55, 0.49, 0.31, 1.0), dry_wave * 0.35)
+	if lat < 34.0:
+		return Color(0.52, 0.43, 0.25, 1.0).lerp(Color(0.62, 0.52, 0.31, 1.0), dry_wave * 0.30)
+	return Color(0.32, 0.40, 0.24, 1.0).lerp(Color(0.47, 0.44, 0.27, 1.0), dry_wave * 0.28)
+
+
+func _build_continuous_macro_world() -> void:
+	if is_instance_valid(_continuous_macro_node):
+		return
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for gy in range(CONTINUOUS_MACRO_GRID):
+		var v0 := float(gy) / float(CONTINUOUS_MACRO_GRID)
+		var v1 := float(gy + 1) / float(CONTINUOUS_MACRO_GRID)
+		for gx in range(CONTINUOUS_MACRO_GRID):
+			var u0 := float(gx) / float(CONTINUOUS_MACRO_GRID)
+			var u1 := float(gx + 1) / float(CONTINUOUS_MACRO_GRID)
+			var lon0 := lerpf(REGION_WEST, REGION_EAST, u0)
+			var lon1 := lerpf(REGION_WEST, REGION_EAST, u1)
+			var lat0 := lerpf(REGION_NORTH, REGION_SOUTH, v0)
+			var lat1 := lerpf(REGION_NORTH, REGION_SOUTH, v1)
+			var h00m := _designed_height_m(lon0, lat0)
+			var h10m := _designed_height_m(lon1, lat0)
+			var h01m := _designed_height_m(lon0, lat1)
+			var h11m := _designed_height_m(lon1, lat1)
+			var p00 := _geo_to_local(lon0, lat0, h00m / 1000.0)
+			var p10 := _geo_to_local(lon1, lat0, h10m / 1000.0)
+			var p01 := _geo_to_local(lon0, lat1, h01m / 1000.0)
+			var p11 := _geo_to_local(lon1, lat1, h11m / 1000.0)
+			st.set_color(_continuous_macro_color(h00m, lon0, lat0)); st.add_vertex(p00)
+			st.set_color(_continuous_macro_color(h01m, lon0, lat1)); st.add_vertex(p01)
+			st.set_color(_continuous_macro_color(h10m, lon1, lat0)); st.add_vertex(p10)
+			st.set_color(_continuous_macro_color(h10m, lon1, lat0)); st.add_vertex(p10)
+			st.set_color(_continuous_macro_color(h01m, lon0, lat1)); st.add_vertex(p01)
+			st.set_color(_continuous_macro_color(h11m, lon1, lat1)); st.add_vertex(p11)
+	st.generate_normals()
+	var mesh := st.commit()
+	if mesh == null:
+		push_error("DAM continuous macro terrain build failed")
+		return
+	_continuous_macro_node = MeshInstance3D.new()
+	_continuous_macro_node.name = "ContinuousWorldMacroLOD"
+	_continuous_macro_node.mesh = mesh
+	_continuous_macro_node.material_override = _make_vertex_color_material()
+	_continuous_macro_node.visible = false
+	terrain_root.add_child(_continuous_macro_node)
+
 
 func _clear_strategic_world() -> void:
 	if is_instance_valid(_strategic_node):
