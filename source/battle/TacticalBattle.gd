@@ -5,6 +5,7 @@ const BATTLEFIELD_HALF := BATTLEFIELD_SIZE * 0.5
 const TERRAIN_CHUNKS_PER_SIDE := 5
 const TERRAIN_CHUNK_SIZE := BATTLEFIELD_SIZE / float(TERRAIN_CHUNKS_PER_SIDE)
 const TERRAIN_GRID_RESOLUTION := 16
+const BATTLE_GROUND_SHADER_PATH := "res://source/battle/shaders/BattleGround.gdshader"
 const CAMERA_BACK_OFFSET_Z := 720.0
 const ZOOM_NORMAL := 1100.0
 const ZOOM_CLOSE := 550.0
@@ -32,6 +33,7 @@ var _touch_drag := {}
 var _mouse_down := false
 var _mouse_drag := 0.0
 var _terrain_chunks: Array[MeshInstance3D] = []
+var _battle_ground_material: Material = null
 
 
 func _game_state_node() -> Node:
@@ -139,6 +141,18 @@ func _build_terrain_chunk_mesh(center_x: float, center_z: float) -> ArrayMesh:
 	return st.commit()
 
 
+func _create_battle_ground_material() -> Material:
+	var shader := load(BATTLE_GROUND_SHADER_PATH) as Shader
+	if shader == null:
+		var fallback := StandardMaterial3D.new()
+		fallback.albedo_color = Color(0.34, 0.34, 0.20, 1.0)
+		fallback.roughness = 1.0
+		return fallback
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	return material
+
+
 func _setup_ground() -> void:
 	ground.mesh = null
 	ground.material_override = null
@@ -146,9 +160,8 @@ func _setup_ground() -> void:
 		child.free()
 	_terrain_chunks.clear()
 
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.34, 0.34, 0.20, 1.0)
-	material.roughness = 1.0
+	_battle_ground_material = _create_battle_ground_material()
+	var material := _battle_ground_material
 
 	for row in range(TERRAIN_CHUNKS_PER_SIDE):
 		for column in range(TERRAIN_CHUNKS_PER_SIDE):
@@ -165,6 +178,10 @@ func _setup_ground() -> void:
 
 func get_ground_chunk_count() -> int:
 	return _terrain_chunks.size()
+
+
+func get_battle_ground_material() -> Material:
+	return _battle_ground_material
 
 
 func _tank_material(color: Color) -> StandardMaterial3D:

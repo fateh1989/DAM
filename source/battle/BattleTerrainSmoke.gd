@@ -28,5 +28,12 @@ func run(_world_scene: Node) -> String:
 		if absf(position.y - expected_y) > 0.01:
 			battle.free()
 			return "friendly unit is not attached to terrain relief"
+	var shader_text := FileAccess.get_file_as_string("res://source/battle/shaders/BattleGround.gdshader")
+	if "rock_mask" not in shader_text or "scrub_green" not in shader_text:
+		battle.free()
+		return "battle ground shader is missing natural terrain blending"
+	if not (battle.call("get_battle_ground_material") is ShaderMaterial):
+		battle.free()
+		return "battle terrain is not using the natural ground shader"
 	battle.free()
 	return ""
