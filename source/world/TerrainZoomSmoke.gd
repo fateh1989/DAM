@@ -39,4 +39,19 @@ func run(scene: Node) -> String:
 		return "tactical terrain shader is missing macro variation control"
 	if "uniform float micro_detail_strength" not in shader_text:
 		return "tactical terrain shader is missing micro detail control"
+	var far_detail: Dictionary = scene.call("get_tactical_detail_profile", 1)
+	var near_detail: Dictionary = scene.call("get_tactical_detail_profile", 5)
+	if float(near_detail["detail_lod"]) <= float(far_detail["detail_lod"]):
+		return "terrain detail LOD does not increase when zooming in"
+	if float(near_detail["micro_detail_strength"]) <= float(far_detail["micro_detail_strength"]):
+		return "micro terrain detail does not increase when zooming in"
+	if float(far_detail["macro_variation_strength"]) <= float(near_detail["macro_variation_strength"]):
+		return "distant terrain macro variation is not stronger"
+	var material = scene.call("_get_tactical_ground_material")
+	if material == null:
+		return "tactical ground material could not be created"
+	scene.set("_rts_zoom_level", 5)
+	scene.call("_sync_tactical_ground_detail")
+	if absf(float(material.get_shader_parameter("detail_lod")) - float(near_detail["detail_lod"])) > 0.001:
+		return "terrain shader did not receive current zoom detail profile"
 	return ""
