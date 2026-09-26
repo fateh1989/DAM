@@ -304,6 +304,14 @@ func _sync_landmark_positions() -> void:
 		var lat := float(data["lat"])
 		var height_km := _designed_height_m(lon, lat) / 1000.0 + 0.02
 		item.position = _geo_to_local(lon, lat, height_km)
+	_sync_landmark_labels()
+
+
+func _sync_landmark_labels() -> void:
+	var show_labels := _terrain_mode and _rts_zoom_level >= 3
+	for item in _landmarks:
+		if is_instance_valid(item) and item.has_method("set_label_visible"):
+			item.call("set_label_visible", show_labels)
 
 
 func get_province_landmarks() -> Array[Node3D]:

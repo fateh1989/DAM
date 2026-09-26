@@ -28,4 +28,14 @@ func run(scene: Node) -> String:
 		seen[province_index] = true
 	if seen.size() != 14:
 		return "runtime landmarks do not cover all governorates"
+	scene.set("_terrain_mode", true)
+	scene.set("_rts_zoom_level", 4)
+	scene.call("_sync_landmark_labels")
+	var label := landmarks[0].get_node_or_null("LandmarkLabel") as Label3D
+	if label == null or not label.visible:
+		return "landmark labels are not visible at close RTS zoom"
+	scene.set("_rts_zoom_level", 1)
+	scene.call("_sync_landmark_labels")
+	if label.visible:
+		return "landmark labels remain visible at distant RTS zoom"
 	return ""
