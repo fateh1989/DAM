@@ -2811,6 +2811,8 @@ func resolve_unit_attack(attacker_index: int, target_index: int, weapon_id: Stri
 	var target: Dictionary = _units[target_index]
 	if not bool(attacker.get("alive", true)) or not bool(target.get("alive", true)):
 		return {"ok": false, "reason": "unit_destroyed"}
+	if int(attacker.get("army_id", -1)) == int(target.get("army_id", -2)):
+		return {"ok": false, "reason": "friendly_target"}
 
 	var attacker_node = attacker.get("node")
 	if attacker_node is Node3D and is_instance_valid(attacker_node):
