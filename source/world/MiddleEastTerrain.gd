@@ -2853,6 +2853,30 @@ func resolve_unit_attack(attacker_index: int, target_index: int, weapon_id: Stri
 	return result
 
 
+func issue_selected_attack(target_index: int) -> int:
+	if target_index < 0 or target_index >= _units.size() or _selected_unit_indices.is_empty():
+		return 0
+	var target: Dictionary = _units[target_index]
+	if not bool(target.get("alive", true)):
+		return 0
+	var fired := 0
+	for attacker_index in _selected_unit_indices.duplicate():
+		if attacker_index < 0 or attacker_index >= _units.size() or attacker_index == target_index:
+			continue
+		var attacker: Dictionary = _units[attacker_index]
+		if not bool(attacker.get("alive", true)):
+			continue
+		if int(attacker.get("army_id", -1)) == int(target.get("army_id", -2)):
+			continue
+		var weapon_id := _default_heavy_weapon(str(attacker.get("unit_type", "tank")))
+		var result := resolve_unit_attack(attacker_index, target_index, weapon_id)
+		if bool(result.get("ok", false)):
+			fired += 1
+		if target_index >= 0 and target_index < _units.size() and not bool((_units[target_index] as Dictionary).get("alive", true)):
+			break
+	return fired
+
+
 func _append_governorate_unit(governorate_index: int, unit_type: String) -> bool:
 	if governorate_index < 0 or governorate_index >= GOVERNORATES.size():
 		return false
