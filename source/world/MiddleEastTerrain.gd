@@ -26,6 +26,8 @@ const STRATEGIC_OVERLAY_PATH := "res://source/world/generated/syria_geo_overlay.
 const TACTICAL_SHADER_PATH := "res://source/world/shaders/TacticalGround.gdshader"
 const PROVINCE_LANDMARK_SCRIPT := preload("res://source/world/ProvinceLandmark.gd")
 const MINIATURE_CITY_SCRIPT := preload("res://source/world/MiniatureCity.gd")
+const HEAVY_WEAPON_ROSTER_SCRIPT := preload("res://source/world/HeavyWeaponRoster.gd")
+const HEAVY_WEAPON_VISUAL_SCRIPT := preload("res://source/world/HeavyWeaponVisual.gd")
 
 const PROVINCE_LANDMARKS := [
 	{"governorate_index":0,"name_ar":"الجامع الأموي","name_en":"Umayyad Mosque","kind":"mosque","lat":33.5115,"lon":36.3067},

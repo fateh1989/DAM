@@ -99,6 +99,16 @@ func _run() -> void:
 		_fail(71, "Miniature city smoke: " + city_error)
 		return
 
+	var heavy_weapon_smoke_script := load("res://source/world/HeavyWeaponSmoke.gd") as Script
+	if heavy_weapon_smoke_script == null:
+		_fail(72, "Heavy weapon smoke: contract script missing")
+		return
+	var heavy_weapon_smoke = heavy_weapon_smoke_script.new()
+	var heavy_weapon_error := str(heavy_weapon_smoke.call("run", scene))
+	if not heavy_weapon_error.is_empty():
+		_fail(73, "Heavy weapon smoke: " + heavy_weapon_error)
+		return
+
 	var battle_terrain_smoke_script := load("res://source/battle/BattleTerrainSmoke.gd") as Script
 	if battle_terrain_smoke_script == null:
 		_fail(66, "Battle terrain smoke: contract script missing")
