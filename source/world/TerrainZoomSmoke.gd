@@ -30,4 +30,7 @@ func run(scene: Node) -> String:
 	scene.call("_set_rts_zoom_level", 1)
 	if int(scene.call("get_rts_zoom_level")) != 1:
 		return "RTS terrain zoom setter did not return to level one"
+	var shader_text := FileAccess.get_file_as_string("res://source/world/shaders/TacticalGround.gdshader")
+	if "uniform float detail_lod" not in shader_text:
+		return "tactical terrain shader is missing detail LOD control"
 	return ""

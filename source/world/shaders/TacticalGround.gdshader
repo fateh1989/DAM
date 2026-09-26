@@ -7,6 +7,7 @@ uniform vec3 dry_grass : source_color = vec3(0.60, 0.51, 0.28);
 uniform vec3 warm_soil : source_color = vec3(0.39, 0.27, 0.16);
 uniform vec3 pale_soil : source_color = vec3(0.58, 0.45, 0.27);
 uniform vec3 rock : source_color = vec3(0.37, 0.36, 0.31);
+uniform float detail_lod : hint_range(0.0, 1.0) = 1.0;
 
 varying vec3 world_normal;
 
@@ -44,7 +45,9 @@ void fragment() {
 	// terrain itself is deliberately fictional/art-directed.
 	float macro = fbm(UV * 650.0);
 	float broad = fbm(UV * 1850.0 + vec2(17.0, 8.0));
-	float detail = fbm(UV * 7200.0 + vec2(4.0, 29.0));
+	float detail_near = fbm(UV * 7200.0 + vec2(4.0, 29.0));
+	float detail_far = fbm(UV * 3200.0 + vec2(4.0, 29.0));
+	float detail = mix(detail_far, detail_near, detail_lod);
 
 	float green = smoothstep(0.36, 0.69, macro + broad * 0.28);
 	float dry = smoothstep(0.48, 0.78, broad);
