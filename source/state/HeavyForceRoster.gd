@@ -53,3 +53,14 @@ func seed(governorates: Array, unit_specs: Dictionary) -> bool:
 
 	_seeded = _units.size() == 1400
 	return _seeded
+
+
+func get_total_count() -> int:
+	return _units.size()
+
+
+func get_units_snapshot() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for unit in _units:
+		result.append(unit.duplicate(true))
+	return result
