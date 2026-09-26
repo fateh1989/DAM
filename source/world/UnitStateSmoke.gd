@@ -453,5 +453,15 @@ func _run() -> void:
 		_fail(94, "Touch logical selection smoke: " + touch_logical_selection_error)
 		return
 
+	var rectangle_selection_smoke_script := load("res://source/world/RectangleLogicalSelectionSmoke.gd") as Script
+	if rectangle_selection_smoke_script == null:
+		_fail(95, "Rectangle logical selection smoke: contract script missing")
+		return
+	var rectangle_selection_smoke = rectangle_selection_smoke_script.new()
+	var rectangle_selection_error := str(rectangle_selection_smoke.call("run", scene))
+	if not rectangle_selection_error.is_empty():
+		_fail(96, "Rectangle logical selection smoke: " + rectangle_selection_error)
+		return
+
 	print("Strategic unit smoke: 14 armies / 42 heavy representatives + radar + group movement OK")
 	quit(0)
