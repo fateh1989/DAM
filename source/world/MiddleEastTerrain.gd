@@ -3249,6 +3249,11 @@ func stop_selected_units() -> int:
 		var unit: Dictionary = _units[index]
 		if bool(unit.get("moving", false)):
 			stopped_count += 1
+		var logical_id := str(unit.get("logical_unit_id", ""))
+		if not logical_id.is_empty():
+			var game_state := _game_state_node()
+			if game_state != null:
+				game_state.call("stop_heavy_unit", logical_id)
 		unit["moving"] = false
 		unit["target_lon"] = float(unit["lon"])
 		unit["target_lat"] = float(unit["lat"])
