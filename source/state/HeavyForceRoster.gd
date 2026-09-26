@@ -46,6 +46,7 @@ func seed(governorates: Array, unit_specs: Dictionary) -> bool:
 					"target_lon": base_lon + spread.x,
 					"target_lat": base_lat + spread.y,
 					"moving": false,
+					"heading_rad": 0.0,
 					"alive": true,
 					"hp": max_hp,
 					"max_hp": max_hp,
