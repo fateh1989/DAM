@@ -2,6 +2,8 @@ extends Node3D
 
 const BATTLEFIELD_SIZE := 10000.0
 const BATTLEFIELD_HALF := BATTLEFIELD_SIZE * 0.5
+const TERRAIN_CHUNKS_PER_SIDE := 5
+const TERRAIN_CHUNK_SIZE := BATTLEFIELD_SIZE / float(TERRAIN_CHUNKS_PER_SIDE)
 const CAMERA_BACK_OFFSET_Z := 720.0
 const ZOOM_NORMAL := 1100.0
 const ZOOM_CLOSE := 550.0
@@ -28,6 +30,7 @@ var _touches := {}
 var _touch_drag := {}
 var _mouse_down := false
 var _mouse_drag := 0.0
+var _terrain_chunks: Array[MeshInstance3D] = []
 
 
 func _game_state_node() -> Node:
@@ -100,13 +103,35 @@ func _setup_camera() -> void:
 
 
 func _setup_ground() -> void:
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(BATTLEFIELD_SIZE, BATTLEFIELD_SIZE)
-	ground.mesh = plane
+	ground.mesh = null
+	ground.material_override = null
+	for child in ground.get_children():
+		child.free()
+	_terrain_chunks.clear()
+
 	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.24, 0.29, 0.17, 1.0)
+	material.albedo_color = Color(0.34, 0.34, 0.20, 1.0)
 	material.roughness = 1.0
-	ground.material_override = material
+
+	for row in range(TERRAIN_CHUNKS_PER_SIDE):
+		for column in range(TERRAIN_CHUNKS_PER_SIDE):
+			var chunk := MeshInstance3D.new()
+			chunk.name = "TerrainChunk_%02d_%02d" % [column, row]
+			var plane := PlaneMesh.new()
+			plane.size = Vector2(TERRAIN_CHUNK_SIZE, TERRAIN_CHUNK_SIZE)
+			chunk.mesh = plane
+			chunk.material_override = material
+			chunk.position = Vector3(
+				-BATTLEFIELD_HALF + TERRAIN_CHUNK_SIZE * (float(column) + 0.5),
+				0.0,
+				-BATTLEFIELD_HALF + TERRAIN_CHUNK_SIZE * (float(row) + 0.5)
+			)
+			ground.add_child(chunk)
+			_terrain_chunks.append(chunk)
+
+
+func get_ground_chunk_count() -> int:
+	return _terrain_chunks.size()
 
 
 func _tank_material(color: Color) -> StandardMaterial3D:
