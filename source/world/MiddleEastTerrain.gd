@@ -2199,9 +2199,7 @@ func _append_governorate_unit(governorate_index: int, unit_type: String) -> bool
 
 	var combat_state: Dictionary = {}
 	if _army_core != null:
-		var deployed: Dictionary = _army_core.deploy("syria", unit_type, 1)
-		if bool(deployed.get("ok", false)):
-			combat_state = _army_core.create_unit_state(unit_type, "syria")
+		combat_state = _army_core.create_unit_state(unit_type, "syria")
 
 	var unit_spec: Dictionary = _army_core.unit_spec(unit_type) if _army_core != null else {}
 	var offset := _unit_type_spawn_offset(unit_type)
