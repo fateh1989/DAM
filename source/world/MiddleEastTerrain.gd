@@ -2327,6 +2327,18 @@ func _create_tank_visual(index: int) -> Node3D:
 	barrel.material_override = _solid_unshaded_material(army_color.lightened(0.08))
 	gun_mount.add_child(barrel)
 
+	var hatch_mesh := CylinderMesh.new()
+	hatch_mesh.top_radius = 0.20
+	hatch_mesh.bottom_radius = 0.22
+	hatch_mesh.height = 0.08
+	hatch_mesh.radial_segments = 12
+	var hatch := MeshInstance3D.new()
+	hatch.name = "CommanderHatch"
+	hatch.mesh = hatch_mesh
+	hatch.position = Vector3(0.28 if family == "western" else 0.16, 0.98 if family == "western" else 0.82, 0.02)
+	hatch.material_override = _solid_unshaded_material(army_color.lightened(0.04))
+	turret_pivot.add_child(hatch)
+
 	var marker := Node3D.new()
 	marker.name = "MapMarker"
 	root_node.add_child(marker)
