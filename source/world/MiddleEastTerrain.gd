@@ -2758,6 +2758,10 @@ func purchase_country_units(unit_type: String, quantity: int = 1, country_id: St
 	return _army_core.purchase(country_id, unit_type, quantity)
 
 
+func _logical_units_are_enemies(attacker: Dictionary, target: Dictionary) -> bool:
+	return int(attacker.get("home_governorate_index", -1)) != int(target.get("home_governorate_index", -1))
+
+
 func resolve_logical_heavy_attack(attacker_id: String, target_id: String, weapon_id: String) -> Dictionary:
 	var game_state := _game_state_node()
 	if game_state == null:
