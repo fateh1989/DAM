@@ -3133,9 +3133,13 @@ func validate_strategic_tank_visuals() -> String:
 		families[family] = true
 		for required_path in [
 			"TankModel/UpperHull",
+			"TankModel/GlacisPlate",
 			"TankModel/TrackLeft",
 			"TankModel/TrackRight",
 			"TankModel/TurretPivot/Turret",
+			"TankModel/TurretPivot/TurretCheekLeft",
+			"TankModel/TurretPivot/TurretCheekRight",
+			"TankModel/TurretPivot/GunMount/GunMantlet",
 			"TankModel/TurretPivot/GunMount/Barrel",
 			"TankModel/TurretPivot/CommanderHatch",
 			"TankModel/EngineDeck",
@@ -3163,7 +3167,9 @@ func validate_support_heavy_visuals() -> String:
 				"ArtilleryModel/TrackLeft",
 				"ArtilleryModel/TrackRight",
 				"ArtilleryModel/TurretPivot/Turret",
+				"ArtilleryModel/TurretPivot/TurretBustle",
 				"ArtilleryModel/TurretPivot/GunMount/Barrel",
+				"ArtilleryModel/TurretPivot/GunMount/MuzzleBrake",
 				"ArtilleryModel/RearStabilizerLeft",
 				"ArtilleryModel/RearStabilizerRight",
 			]:
@@ -3172,9 +3178,12 @@ func validate_support_heavy_visuals() -> String:
 		else:
 			launcher_count += 1
 			for required_path in [
+				"LauncherModel/DriverCab",
 				"LauncherModel/TrackLeft",
 				"LauncherModel/TrackRight",
 				"LauncherModel/LauncherPivot/RotatingBase",
+				"LauncherModel/LauncherPivot/ElevationPivot/PodSupportLeft",
+				"LauncherModel/LauncherPivot/ElevationPivot/PodSupportRight",
 				"LauncherModel/LauncherPivot/ElevationPivot/RocketPod",
 				"LauncherModel/LauncherPivot/ElevationPivot/Tube_00",
 				"LauncherModel/LauncherPivot/ElevationPivot/Tube_11",
