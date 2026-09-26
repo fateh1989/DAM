@@ -15,5 +15,8 @@ func run(_world_scene: Node) -> String:
 	if absf(battle.camera.position.x) > battle.BATTLEFIELD_HALF or absf(target_z) > battle.BATTLEFIELD_HALF:
 		battle.free()
 		return "camera escaped large battlefield bounds"
+	if int(battle.call("get_ground_chunk_count")) != 25:
+		battle.free()
+		return "large battlefield was not divided into twenty five terrain chunks"
 	battle.free()
 	return ""
