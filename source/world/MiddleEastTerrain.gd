@@ -1920,6 +1920,7 @@ func _add_bridge_crossing_visual(crossing: Dictionary) -> void:
 	var lon := float(crossing.get("lon", 0.0))
 	var lat := float(crossing.get("lat", 0.0))
 	var river_id := str(crossing.get("river_id", ""))
+	var river_group := _river_group_key(crossing, "river_id")
 	var river_width := _river_width_for_id(river_id)
 	var tagged_length := maxf(0.0, float(crossing.get("bridge_length_m", 0.0)) / 1000.0)
 	var deck_length := maxf(maxf(river_width * 1.35, tagged_length), 0.055)
@@ -1932,6 +1933,7 @@ func _add_bridge_crossing_visual(crossing: Dictionary) -> void:
 	bridge.rotation.y = heading
 	bridge.set_meta("crossing_kind", "bridge")
 	bridge.set_meta("river_id", river_id)
+	bridge.set_meta("river_group", river_group)
 	bridge.set_meta("source_id", str(crossing.get("source_id", "")))
 	_hydrology_root.add_child(bridge)
 
@@ -1964,6 +1966,7 @@ func _add_ford_crossing_visual(crossing: Dictionary) -> void:
 	var lon := float(crossing.get("lon", 0.0))
 	var lat := float(crossing.get("lat", 0.0))
 	var river_id := str(crossing.get("river_id", ""))
+	var river_group := _river_group_key(crossing, "river_id")
 	var river_width := _river_width_for_id(river_id)
 
 	var ford := Node3D.new()
@@ -1971,6 +1974,7 @@ func _add_ford_crossing_visual(crossing: Dictionary) -> void:
 	ford.position = _geo_to_local(lon, lat, _designed_height_m(lon, lat) / 1000.0 + 0.0018)
 	ford.set_meta("crossing_kind", "ford")
 	ford.set_meta("river_id", river_id)
+	ford.set_meta("river_group", river_group)
 	ford.set_meta("source_id", str(crossing.get("source_id", "")))
 	_hydrology_root.add_child(ford)
 
