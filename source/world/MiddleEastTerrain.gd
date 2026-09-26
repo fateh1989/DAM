@@ -1763,7 +1763,7 @@ func _build_art_directed_battlefield() -> void:
 	_commit_vector_batch(roads, "ArtDirtRoads", Color(0.78, 0.64, 0.39, 1.0))
 	_commit_vector_batch(creek_bank, "ArtCreekBank", Color(0.42, 0.34, 0.20, 1.0))
 	_commit_vector_batch(creek, "ArtCreek", Color(0.08, 0.34, 0.39, 1.0))
-	for village_index in range(11):
+	for village_index in range(15):
 		var vx := -3.75 + float(village_index % 4) * 0.24
 		var vz := 1.05 + float(int(village_index / 4)) * 0.23
 		if village_index % 5 == 0:
