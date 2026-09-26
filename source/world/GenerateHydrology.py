@@ -58,6 +58,23 @@ def width_m(raw):
     return float(match.group(0)) if match else 0.0
 
 
+def canonical_river_group(name, name_en, waterway, way_id):
+    combined = ("%s %s" % (name or "", name_en or "")).strip().lower()
+    aliases = (
+        (("euphrates", "الفرات"), "river:euphrates"),
+        (("tigris", "دجلة"), "river:tigris"),
+        (("khabur", "khabour", "خابور", "الخابور"), "river:khabur"),
+        (("orontes", "العاصي"), "river:orontes"),
+    )
+    for needles, group in aliases:
+        if any(needle in combined for needle in needles):
+            return group
+    normalized = re.sub(r"[^0-9a-z\u0600-\u06ff]+", "-", combined).strip("-")
+    if normalized:
+        return "%s:%s" % (waterway, normalized)
+    return "way:%d" % int(way_id)
+
+
 def xy_km(lon, lat, ref_lat):
     return (lon * 111.32 * math.cos(math.radians(ref_lat)), lat * 111.32)
 
@@ -147,10 +164,13 @@ class HydrologyCollector(osmium.SimpleHandler):
 
         if waterway in RIVER_TYPES:
             simplified = rdp(geom, 0.00035 if waterway == "river" else 0.00025)
+            river_name = tags.get("name:ar") or tags.get("name") or ""
+            river_name_en = tags.get("name:en") or ""
             self.rivers.append({
                 "id": "way:%d" % int(w.id),
-                "name": tags.get("name:ar") or tags.get("name") or "",
-                "name_en": tags.get("name:en") or "",
+                "river_group": canonical_river_group(river_name, river_name_en, waterway, int(w.id)),
+                "name": river_name,
+                "name_en": river_name_en,
                 "waterway": waterway,
                 "width_m": round(width_m(tags.get("width")), 2),
                 "blocking": waterway == "river",
