@@ -2348,6 +2348,128 @@ func _refresh_geo_overlay(force: bool = false) -> void:
 				break
 
 
+func _geo_distance_km(a: Vector2, b: Vector2) -> float:
+	var mean_lat := deg_to_rad((a.y + b.y) * 0.5)
+	var east_km := (b.x - a.x) * 111.32 * cos(mean_lat)
+	var north_km := (b.y - a.y) * 111.32
+	return sqrt(east_km * east_km + north_km * north_km)
+
+
+func _segment_intersection_geo(a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> Dictionary:
+	var r := b - a
+	var q := d - c
+	var denom := r.cross(q)
+	if absf(denom) <= 0.000000001:
+		return {}
+	var offset := c - a
+	var t := offset.cross(q) / denom
+	var u := offset.cross(r) / denom
+	if t < 0.0 or t > 1.0 or u < 0.0 or u > 1.0:
+		return {}
+	return {"point": a + r * t, "t": t}
+
+
+func _crossings_for_river(river_id: String) -> Array:
+	var result: Array = []
+	for raw_crossing in _hydrology_data.get("crossings", []):
+		if typeof(raw_crossing) != TYPE_DICTIONARY:
+			continue
+		var crossing: Dictionary = raw_crossing
+		if str(crossing.get("river_id", "")) == river_id:
+			result.append(crossing)
+	return result
+
+
+func _point_near_legal_crossing(point: Vector2, river_id: String, radius_km: float = 0.45) -> bool:
+	for crossing in _crossings_for_river(river_id):
+		var crossing_geo := Vector2(float(crossing.get("lon", 0.0)), float(crossing.get("lat", 0.0)))
+		if _geo_distance_km(point, crossing_geo) <= radius_km:
+			return true
+	return false
+
+
+func _first_illegal_river_crossing(start: Vector2, destination: Vector2) -> Dictionary:
+	var best: Dictionary = {}
+	var best_t := INF
+	for raw_feature in _hydrology_data.get("rivers", []):
+		if typeof(raw_feature) != TYPE_DICTIONARY:
+			continue
+		var feature: Dictionary = raw_feature
+		if not bool(feature.get("blocking", false)):
+			continue
+		var river_id := str(feature.get("id", ""))
+		if river_id.is_empty():
+			continue
+		var points: Array = feature.get("points", [])
+		for i in range(points.size() - 1):
+			var raw_a = points[i]
+			var raw_b = points[i + 1]
+			if raw_a.size() < 2 or raw_b.size() < 2:
+				continue
+			var river_a := Vector2(float(raw_a[0]), float(raw_a[1]))
+			var river_b := Vector2(float(raw_b[0]), float(raw_b[1]))
+			var hit := _segment_intersection_geo(start, destination, river_a, river_b)
+			if hit.is_empty():
+				continue
+			var point: Vector2 = hit["point"]
+			if _point_near_legal_crossing(point, river_id):
+				continue
+			var t := float(hit["t"])
+			if t < best_t:
+				best_t = t
+				best = {
+					"river_id": river_id,
+					"river_name": str(feature.get("name", "")),
+					"point": point,
+					"t": t,
+				}
+	return best
+
+
+func _best_legal_crossing(river_id: String, start: Vector2, destination: Vector2) -> Dictionary:
+	var best: Dictionary = {}
+	var best_cost := INF
+	for raw_crossing in _crossings_for_river(river_id):
+		var crossing: Dictionary = raw_crossing
+		var point := Vector2(float(crossing.get("lon", 0.0)), float(crossing.get("lat", 0.0)))
+		var cost := _geo_distance_km(start, point) + _geo_distance_km(point, destination)
+		if cost < best_cost:
+			best_cost = cost
+			best = crossing
+	return best
+
+
+func plan_ground_route(start: Vector2, destination: Vector2) -> Array[Vector2]:
+	var final_target := Vector2(
+		clampf(destination.x, REGION_WEST, REGION_EAST),
+		clampf(destination.y, REGION_SOUTH, REGION_NORTH)
+	)
+	if _hydrology_data.is_empty():
+		return [final_target]
+
+	var route: Array[Vector2] = []
+	var current := start
+	for _hop in range(8):
+		var illegal := _first_illegal_river_crossing(current, final_target)
+		if illegal.is_empty():
+			route.append(final_target)
+			return route
+		var river_id := str(illegal.get("river_id", ""))
+		var crossing := _best_legal_crossing(river_id, current, final_target)
+		if crossing.is_empty():
+			return []
+		var crossing_geo := Vector2(float(crossing.get("lon", 0.0)), float(crossing.get("lat", 0.0)))
+		if _geo_distance_km(current, crossing_geo) < 0.02:
+			return []
+		route.append(crossing_geo)
+		current = crossing_geo
+	return []
+
+
+func is_ground_route_legal(start: Vector2, destination: Vector2) -> bool:
+	return not plan_ground_route(start, destination).is_empty()
+
+
 func _setup_army_combat_core() -> void:
 	var game_state := _game_state_node()
 	if game_state == null or not bool(game_state.call("ensure_started")):
