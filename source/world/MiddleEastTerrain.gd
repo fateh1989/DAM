@@ -1746,8 +1746,8 @@ func _build_art_directed_battlefield() -> void:
 			_append_art_box(buildings, base, sx, sz, h)
 			building_count += 1
 
-	_commit_vector_batch(shoulders, "ArtRoadShoulders", Color(0.37, 0.28, 0.17, 1.0))
-	_commit_vector_batch(roads, "ArtDirtRoads", Color(0.70, 0.58, 0.38, 1.0))
+	_commit_vector_batch(shoulders, "ArtRoadShoulders", Color(0.30, 0.22, 0.13, 1.0))
+	_commit_vector_batch(roads, "ArtDirtRoads", Color(0.78, 0.64, 0.39, 1.0))
 	_commit_vector_batch(creek_bank, "ArtCreekBank", Color(0.42, 0.34, 0.20, 1.0))
 	_commit_vector_batch(creek, "ArtCreek", Color(0.08, 0.34, 0.39, 1.0))
 	_commit_vector_batch(buildings, "ArtSettlement", Color(0.72, 0.62, 0.50, 1.0))
@@ -4324,8 +4324,8 @@ func _build_vector_world(data: Dictionary) -> void:
 	if _landcover_feature_count > 0:
 		_commit_vertex_color_batch(landcover, "LandcoverBatch")
 	if _road_feature_count > 0:
-		_commit_vector_batch(road_shoulders, "RoadShoulderBatch", Color(0.45, 0.35, 0.22, 1.0))
-		_commit_vector_batch(roads, "RoadBatch", Color(0.70, 0.59, 0.40, 1.0))
+		_commit_vector_batch(road_shoulders, "RoadShoulderBatch", Color(0.33, 0.25, 0.15, 1.0))
+		_commit_vector_batch(roads, "RoadBatch", Color(0.80, 0.67, 0.42, 1.0))
 	if _building_feature_count > 0:
 		_commit_vector_batch(buildings, "BuildingBatch", Color(0.76, 0.68, 0.59, 1.0))
 	if _water_feature_count > 0:
@@ -4572,7 +4572,7 @@ func _append_road_geometry(
 		return false
 
 	var width_km := width_m / 1000.0
-	var shoulder_ok := _append_ribbon_geometry(shoulders, points, width_km * 1.55, 0.004)
+	var shoulder_ok := _append_ribbon_geometry(shoulders, points, width_km * 1.72, 0.004)
 	var road_ok := _append_ribbon_geometry(st, points, width_km, 0.006)
 	return shoulder_ok or road_ok
 
