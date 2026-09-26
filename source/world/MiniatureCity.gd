@@ -197,7 +197,12 @@ func _style_massing() -> Vector3:
 
 
 func _build_residential_rings(palette: Dictionary) -> void:
-	var wall_mat := _material(palette["wall"])
+	var wall_color: Color = palette["wall"]
+	var wall_mats := [
+		_material(wall_color.darkened(0.10)),
+		_material(wall_color),
+		_material(wall_color.lightened(0.10)),
+	]
 	var massing := _style_massing()
 	var roof_mat := _material(palette["roof"])
 	for ring_index in range(RING_RADII.size()):
@@ -214,7 +219,9 @@ func _build_residential_rings(palette: Dictionary) -> void:
 			var depth := (0.046 + _hash01(seed, 5.7) * 0.030) * massing.z
 			var height := (0.050 + _hash01(seed, 7.3) * 0.075) * massing.y
 			var p := Vector3(cos(angle) * r, height * 0.5 + 0.012, sin(angle) * r)
-			var building := _add_box(_body_root, p, Vector3(width, height, depth), wall_mat, "Building_%02d_%02d" % [ring_index, slot])
+			var tone_index := clampi(int(floor(_hash01(seed, 9.9) * 3.0)), 0, 2)
+			var building := _add_box(_body_root, p, Vector3(width, height, depth), wall_mats[tone_index], "Building_%02d_%02d" % [ring_index, slot])
+			building.set_meta("tone_variant", tone_index)
 			building.rotation.y = -angle + PI * 0.5
 			_building_nodes.append(building)
 			var roof_height := 0.010
@@ -518,6 +525,13 @@ func get_collapsed_building_count() -> int:
 
 func get_rubble_count() -> int:
 	return 0 if _rubble_root == null else _rubble_root.get_child_count()
+
+
+func get_facade_tone_variant_count() -> int:
+	var variants := {}
+	for building in _building_nodes:
+		variants[int(building.get_meta("tone_variant", 0))] = true
+	return variants.size()
 
 
 func get_average_building_height() -> float:
