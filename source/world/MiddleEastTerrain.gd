@@ -2790,6 +2790,8 @@ func get_rts_unit_visual_scale(level: int = _rts_zoom_level) -> float:
 func validate_strategic_tank_visuals() -> String:
 	var families := {}
 	for unit in _units:
+		if str(unit.get("unit_type", "")) != "tank":
+			continue
 		var node = unit.get("node")
 		if not (node is Node3D) or not is_instance_valid(node):
 			return "strategic tank node is missing"
@@ -2810,6 +2812,47 @@ func validate_strategic_tank_visuals() -> String:
 				return "strategic tank visual missing %s" % required_path
 	if not families.has("western") or not families.has("eastern"):
 		return "both strategic tank families must be present"
+	return ""
+
+
+func validate_support_heavy_visuals() -> String:
+	var artillery_count := 0
+	var launcher_count := 0
+	for unit in _units:
+		var unit_type := str(unit.get("unit_type", ""))
+		if unit_type != "artillery" and unit_type != "rocket_launcher":
+			continue
+		var node = unit.get("node")
+		if not (node is Node3D) or not is_instance_valid(node):
+			return "support heavy unit node is missing"
+		if unit_type == "artillery":
+			artillery_count += 1
+			for required_path in [
+				"ArtilleryModel/TrackLeft",
+				"ArtilleryModel/TrackRight",
+				"ArtilleryModel/TurretPivot/Turret",
+				"ArtilleryModel/TurretPivot/GunMount/Barrel",
+				"ArtilleryModel/RearStabilizerLeft",
+				"ArtilleryModel/RearStabilizerRight",
+			]:
+				if node.get_node_or_null(required_path) == null:
+					return "artillery visual missing %s" % required_path
+		else:
+			launcher_count += 1
+			for required_path in [
+				"LauncherModel/TrackLeft",
+				"LauncherModel/TrackRight",
+				"LauncherModel/LauncherPivot/RotatingBase",
+				"LauncherModel/LauncherPivot/ElevationPivot/RocketPod",
+				"LauncherModel/LauncherPivot/ElevationPivot/Tube_00",
+				"LauncherModel/LauncherPivot/ElevationPivot/Tube_11",
+			]:
+				if node.get_node_or_null(required_path) == null:
+					return "rocket launcher visual missing %s" % required_path
+	if artillery_count != GOVERNORATES.size():
+		return "artillery representative count does not match governorates"
+	if launcher_count != GOVERNORATES.size():
+		return "rocket launcher representative count does not match governorates"
 	return ""
 
 
