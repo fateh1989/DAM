@@ -310,6 +310,27 @@ func get_province_landmarks() -> Array[Node3D]:
 	return _landmarks.duplicate()
 
 
+func validate_province_landmark_catalog() -> String:
+	if PROVINCE_LANDMARKS.size() != GOVERNORATES.size():
+		return "landmark count does not match governorate count"
+	var seen := {}
+	for i in range(PROVINCE_LANDMARKS.size()):
+		var data: Dictionary = PROVINCE_LANDMARKS[i]
+		var governorate_index := int(data.get("governorate_index", -1))
+		if governorate_index != i:
+			return "landmark governorate order is inconsistent"
+		if seen.has(governorate_index):
+			return "duplicate governorate landmark"
+		seen[governorate_index] = true
+		if str(data.get("name_ar", "")).is_empty() or str(data.get("name_en", "")).is_empty():
+			return "landmark name is missing"
+		var lon := float(data.get("lon", 999.0))
+		var lat := float(data.get("lat", 999.0))
+		if lon < REGION_WEST or lon > REGION_EAST or lat < REGION_SOUTH or lat > REGION_NORTH:
+			return "landmark coordinates are outside Syria world bounds"
+	return ""
+
+
 func _game_state_node() -> Node:
 	return get_node_or_null("/root/GameState")
 

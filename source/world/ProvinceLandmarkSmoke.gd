@@ -17,4 +17,15 @@ func run(scene: Node) -> String:
 		return "final landmark batch did not create fourteen landmarks"
 	if str(landmarks[2].landmark_name_ar) != "قلعة حلب":
 		return "Aleppo landmark is not Citadel of Aleppo"
+	var catalog_error := str(scene.call("validate_province_landmark_catalog"))
+	if not catalog_error.is_empty():
+		return catalog_error
+	var seen := {}
+	for landmark_item in landmarks:
+		var province_index := int(landmark_item.governorate_index)
+		if seen.has(province_index):
+			return "runtime landmarks contain duplicate governorates"
+		seen[province_index] = true
+	if seen.size() != 14:
+		return "runtime landmarks do not cover all governorates"
 	return ""
