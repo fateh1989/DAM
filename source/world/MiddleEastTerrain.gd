@@ -3104,6 +3104,31 @@ func _game_visual_pitch_for_unit_type(unit_type: String) -> float:
 			return 0.0
 
 
+func _apply_game_visual_aim(source_node: Node3D, target_node: Node3D, unit_type: String) -> bool:
+	if not is_instance_valid(source_node) or not is_instance_valid(target_node):
+		return false
+	var yaw_node: Node3D = null
+	var pitch_node: Node3D = null
+	match unit_type:
+		"tank":
+			yaw_node = source_node.get_node_or_null("TankModel/TurretPivot") as Node3D
+			pitch_node = source_node.get_node_or_null("TankModel/TurretPivot/GunMount") as Node3D
+		"artillery":
+			yaw_node = source_node.get_node_or_null("ArtilleryModel/TurretPivot") as Node3D
+			pitch_node = source_node.get_node_or_null("ArtilleryModel/TurretPivot/GunMount") as Node3D
+		"rocket_launcher":
+			yaw_node = source_node.get_node_or_null("LauncherModel/LauncherPivot") as Node3D
+			pitch_node = source_node.get_node_or_null("LauncherModel/LauncherPivot/ElevationPivot") as Node3D
+		_:
+			return false
+	if yaw_node == null or pitch_node == null:
+		return false
+	var world_yaw := _game_visual_yaw_between_nodes(source_node, target_node)
+	yaw_node.rotation.y = wrapf(world_yaw - source_node.rotation.y, -PI, PI)
+	pitch_node.rotation.x = _game_visual_pitch_for_unit_type(unit_type)
+	return true
+
+
 func _orient_unit_hull_to_target(node: Node3D, unit: Dictionary) -> void:
 	if not bool(unit.get("moving", false)):
 		return
