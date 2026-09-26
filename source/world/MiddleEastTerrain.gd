@@ -4329,6 +4329,9 @@ func get_radar_camera_rect_uv() -> Rect2:
 func get_rts_zoom_level() -> int:
 	return _rts_zoom_level
 
+func get_rts_detail_lod_min() -> int:
+	return RTS_DETAIL_UNIT_LOD_MIN
+
 
 func radar_center_on_uv(uv: Vector2) -> void:
 	uv.x = clampf(uv.x, 0.0, 1.0)
