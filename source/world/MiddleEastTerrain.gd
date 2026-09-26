@@ -400,8 +400,8 @@ func _ready() -> void:
 	_origin_lat = _center_lat
 	_setup_landmarks()
 	_update_governorate_ui()
-	zoom_wheel.set_value_no_signal(float(_map_zoom))
-	zoom_wheel.visible = false
+	zoom_wheel.set_value_no_signal(float(_rts_zoom_level if _terrain_mode else _map_zoom))
+	zoom_wheel.visible = _terrain_mode
 	_setup_unit_layer()
 	_setup_geo_overlay_layer()
 	_build_continuous_macro_world()
@@ -665,6 +665,7 @@ func _set_rts_zoom_level(new_level: int) -> void:
 	if new_level == _rts_zoom_level:
 		return
 	_rts_zoom_level = new_level
+	zoom_wheel.set_value_no_signal(float(_rts_zoom_level))
 	_position_camera()
 	_sync_tactical_ground_detail()
 	_sync_continuous_world_lod()
@@ -3743,6 +3744,7 @@ func _on_zoom_out_pressed() -> void:
 
 func _on_zoom_wheel_changed(value: float) -> void:
 	if _terrain_mode:
+		_set_rts_zoom_level(clampi(int(round(value)), RTS_ZOOM_LEVEL_MIN, RTS_ZOOM_LEVEL_MAX))
 		return
 	var requested_zoom := clampi(int(round(value)), ZOOM_WHEEL_MIN, ZOOM_WHEEL_MAX)
 	_set_map_zoom(requested_zoom, requested_zoom <= SYRIA_OVERVIEW_ZOOM)
@@ -3758,7 +3760,7 @@ func _on_reset_pressed() -> void:
 	else:
 		_map_zoom = DEFAULT_MAP_ZOOM
 		_map_zoom_before_terrain = _map_zoom
-	zoom_wheel.set_value_no_signal(float(_map_zoom))
+	zoom_wheel.set_value_no_signal(float(_rts_zoom_level if _terrain_mode else _map_zoom))
 	_position_camera()
 	_refresh_tiles()
 	if _terrain_mode and not _is_tactical_overview():
