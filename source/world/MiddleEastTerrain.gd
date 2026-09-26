@@ -3786,12 +3786,18 @@ func _sync_logical_unit_position(unit: Dictionary) -> bool:
 	var game_state := _game_state_node()
 	if game_state == null:
 		return false
-	return bool(game_state.call(
+	var position_ok := bool(game_state.call(
 		"update_heavy_unit_position",
 		logical_id,
 		float(unit.get("lon", 0.0)),
 		float(unit.get("lat", 0.0))
 	))
+	var heading_ok := bool(game_state.call(
+		"update_heavy_heading",
+		logical_id,
+		float(unit.get("heading_rad", 0.0))
+	))
+	return position_ok and heading_ok
 
 
 func _process(delta: float) -> void:
@@ -3819,6 +3825,8 @@ func _process(delta: float) -> void:
 		var target := _geo_to_local(float(unit["target_lon"]), float(unit["target_lat"]), 0.0)
 		var flat_delta := Vector2(target.x - current.x, target.z - current.z)
 		var distance_km := flat_delta.length()
+		if distance_km > 0.000001:
+			unit["heading_rad"] = atan2(-flat_delta.x, -flat_delta.y)
 		var speed_km_per_sec: float = maxf(0.0, float(unit.get("speed_km_sec", UNIT_SPEED_KM_PER_SEC)))
 		var step_km := speed_km_per_sec * delta
 
