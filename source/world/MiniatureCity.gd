@@ -292,6 +292,12 @@ func _build_industrial_edge(palette: Dictionary) -> void:
 			chimney.position = Vector3(0.030, 0.078, 0.012)
 			chimney.material_override = roof_mat
 			root.add_child(chimney)
+		if industrial_index == 1:
+			_add_cylinder(root, Vector3(-0.025, 0.040, -0.036), 0.018, 0.075, wall_mat, "SiloA", 10)
+			_add_cylinder(root, Vector3(0.022, 0.040, -0.036), 0.018, 0.075, wall_mat, "SiloB", 10)
+		elif industrial_index == 3:
+			_add_cylinder(root, Vector3(0.030, 0.065, 0.020), 0.021, 0.095, roof_mat, "WaterTank", 10)
+			_add_box(root, Vector3(-0.030, 0.030, 0.028), Vector3(0.032, 0.060, 0.030), wall_mat, "UtilityTower")
 		_industrial_nodes.append(root)
 
 

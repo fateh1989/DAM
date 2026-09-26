@@ -23,6 +23,13 @@ func run(scene: Node) -> String:
 	if int(sample.call("get_industrial_count")) != 4:
 		sample.free()
 		return "miniature city lacks industrial buildings on the outer edge"
+	var industrial_root := sample.get_node_or_null("Industrial") as Node3D
+	if industrial_root == null or industrial_root.get_child_count() != 4:
+		sample.free()
+		return "miniature city industrial root is incomplete"
+	if industrial_root.get_child(1).get_child_count() < 4 or industrial_root.get_child(3).get_child_count() < 4:
+		sample.free()
+		return "miniature city industrial edge lacks silos tanks and utility structures"
 	if int(sample.call("get_detail_count")) < 20:
 		sample.free()
 		return "miniature city lacks balconies and arcade-like facade depth"
