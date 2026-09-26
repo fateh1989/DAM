@@ -205,6 +205,17 @@ def build_segment_index(rivers):
     return index
 
 
+def nearest_segment_on_river(point, river):
+    best = None
+    pts = river.get("points", [])
+    for i in range(len(pts) - 1):
+        a, b = pts[i], pts[i + 1]
+        q, distance = nearest_on_segment_geo(point, a, b)
+        if best is None or distance < best[0]:
+            best = (distance, q, a, b)
+    return best
+
+
 def nearest_river(point, rivers, segment_index, max_km):
     cell = grid_cell(point[0], point[1])
     best = None
@@ -278,6 +289,28 @@ def main():
             continue
         _, river_index, q = nearest
         river = handler.rivers[river_index]
+        path = []
+        segment = nearest_segment_on_river(point, river)
+        if segment is not None:
+            _, _, a, b = segment
+            ref_lat = math.radians(q[1])
+            dx = (b[0] - a[0]) * math.cos(ref_lat)
+            dy = b[1] - a[1]
+            length = math.hypot(dx, dy)
+            if length > 1e-9:
+                across_x = -dy / length
+                across_y = dx / length
+                tagged_width_km = max(0.0, float(river.get("width_m", 0.0))) / 1000.0
+                full_span_km = max(0.07, tagged_width_km * 1.5)
+                half_span_km = full_span_km * 0.5
+                lon_scale = max(1.0, 111.32 * math.cos(ref_lat))
+                lat_scale = 111.32
+                lon_off = across_x * half_span_km / lon_scale
+                lat_off = across_y * half_span_km / lat_scale
+                path = [
+                    [round(q[0] - lon_off, 6), round(q[1] - lat_off, 6)],
+                    [round(q[0] + lon_off, 6), round(q[1] + lat_off, 6)],
+                ]
         add_crossing(crossings, {
             "kind": "ford",
             "river_id": river["id"],
@@ -287,6 +320,7 @@ def main():
             "source_id": "node:%d" % ford["node_id"],
             "lon": round(q[0], 6),
             "lat": round(q[1], 6),
+            "path": path,
         })
 
     clean_rivers = []
