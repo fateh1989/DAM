@@ -473,5 +473,15 @@ func _run() -> void:
 		_fail(98, "Box select gesture smoke: " + box_select_gesture_error)
 		return
 
+	var logical_heavy_combat_smoke_script := load("res://source/world/LogicalHeavyCombatSmoke.gd") as Script
+	if logical_heavy_combat_smoke_script == null:
+		_fail(99, "Logical heavy combat smoke: contract script missing")
+		return
+	var logical_heavy_combat_smoke = logical_heavy_combat_smoke_script.new()
+	var logical_heavy_combat_error := str(logical_heavy_combat_smoke.call("run", scene))
+	if not logical_heavy_combat_error.is_empty():
+		_fail(100, "Logical heavy combat smoke: " + logical_heavy_combat_error)
+		return
+
 	print("Strategic unit smoke: 14 armies / 42 heavy representatives + radar + group movement OK")
 	quit(0)
