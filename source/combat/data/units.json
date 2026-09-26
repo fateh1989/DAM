@@ -79,5 +79,18 @@
       "air_to_ground_missile"
     ],
     "audio_profile": "jet"
+  },
+  "rocket_launcher": {
+    "name_ar": "راجمة صواريخ",
+    "category": "rocket_artillery",
+    "domain": "ground",
+    "cost": 1100,
+    "hp": 720,
+    "armor": 0.28,
+    "speed_km_sec": 0.38,
+    "weapons": [
+      "rocket_salvo"
+    ],
+    "audio_profile": "tracked_diesel"
   }
 }
