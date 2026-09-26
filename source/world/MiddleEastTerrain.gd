@@ -3975,7 +3975,10 @@ func _on_next_unit_pressed() -> void:
 
 
 func _on_focus_units_pressed() -> void:
-	focus_selected_units()
+	if not _selected_logical_unit_ids.is_empty():
+		focus_selected_logical_heavy_units()
+	else:
+		focus_selected_units()
 
 
 func _on_stop_units_pressed() -> void:
