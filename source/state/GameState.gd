@@ -213,3 +213,9 @@ func get_heavy_roster_snapshot() -> Array[Dictionary]:
 	if heavy_force_roster == null:
 		return []
 	return heavy_force_roster.get_units_snapshot()
+
+
+func issue_heavy_move(unit_id: String, target_lon: float, target_lat: float) -> bool:
+	if heavy_force_roster == null:
+		return false
+	return heavy_force_roster.issue_move(unit_id, target_lon, target_lat)
