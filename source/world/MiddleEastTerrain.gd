@@ -4387,6 +4387,11 @@ func select_governorate_force_mix(governorate_index: int, tanks: int, artillery:
 	_update_status()
 	return _selected_logical_unit_ids.size()
 
+func _group_formation_spacing_km(unit_count: int) -> float:
+	var count := maxi(1, unit_count)
+	return clampf(GROUP_FORMATION_SPACING_KM + sqrt(float(count)) * 0.004, 0.04, 0.08)
+
+
 func issue_selected_logical_group_move(destination: Vector2) -> int:
 	if _selected_logical_unit_ids.is_empty() or not _is_move_destination_valid(destination):
 		return 0
@@ -4399,6 +4404,7 @@ func issue_selected_logical_group_move(destination: Vector2) -> int:
 	)
 	_move_order_serial += 1
 	var issued_count: int = 0
+	var formation_spacing_km := _group_formation_spacing_km(_selected_logical_unit_ids.size())
 	var columns: int = maxi(1, int(ceil(sqrt(float(_selected_logical_unit_ids.size())))))
 	var rows: int = int(ceil(float(_selected_logical_unit_ids.size()) / float(columns)))
 	for order_index in range(_selected_logical_unit_ids.size()):
@@ -4406,8 +4412,8 @@ func issue_selected_logical_group_move(destination: Vector2) -> int:
 		var column: int = order_index % columns
 		var centered_column: float = float(column) - float(columns - 1) * 0.5
 		var centered_row: float = float(row) - float(rows - 1) * 0.5
-		var east_km: float = centered_column * GROUP_FORMATION_SPACING_KM
-		var north_km: float = -centered_row * GROUP_FORMATION_SPACING_KM
+		var east_km: float = centered_column * formation_spacing_km
+		var north_km: float = -centered_row * formation_spacing_km
 		var target_lat: float = destination.y + rad_to_deg(north_km / EARTH_RADIUS_KM)
 		var lon_radius: float = EARTH_RADIUS_KM * maxf(0.15, cos(deg_to_rad(destination.y)))
 		var target_lon: float = destination.x + rad_to_deg(east_km / lon_radius)
