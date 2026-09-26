@@ -3275,6 +3275,14 @@ func _handle_world_tap(screen_position: Vector2) -> void:
 		select_unit(closest_index, true)
 		return
 
+	if not _selected_logical_unit_ids.is_empty():
+		var logical_ground_hit = _screen_to_ground(screen_position)
+		if logical_ground_hit != null:
+			var logical_destination = _local_to_geo(logical_ground_hit)
+			if issue_selected_logical_group_move(logical_destination) > 0:
+				_update_status()
+				return
+
 	if not _selected_unit_indices.is_empty():
 		var ground_hit = _screen_to_ground(screen_position)
 		if ground_hit != null:
