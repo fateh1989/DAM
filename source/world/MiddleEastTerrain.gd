@@ -1622,14 +1622,14 @@ func _cell_terrain_color(elevation_m: float) -> Color:
 	# High-contrast RTS palette. Geographic shape remains real; palette is
 	# deliberately art-directed for readability at battlefield zoom.
 	if elevation_m < 250.0:
-		return Color(0.53, 0.49, 0.28, 1.0)
+		return Color(0.58, 0.50, 0.25, 1.0)
 	if elevation_m < 450.0:
-		return Color(0.48, 0.49, 0.27, 1.0)
+		return Color(0.48, 0.50, 0.23, 1.0)
 	if elevation_m < 700.0:
-		return Color(0.43, 0.44, 0.25, 1.0)
+		return Color(0.39, 0.45, 0.22, 1.0)
 	if elevation_m < 1100.0:
-		return Color(0.43, 0.39, 0.27, 1.0)
-	return Color(0.50, 0.47, 0.39, 1.0)
+		return Color(0.45, 0.37, 0.23, 1.0)
+	return Color(0.56, 0.50, 0.39, 1.0)
 
 
 func _make_ground_material(map_texture: Texture2D) -> StandardMaterial3D:
@@ -1652,14 +1652,14 @@ func _make_ground_material(map_texture: Texture2D) -> StandardMaterial3D:
 
 func _terrain_color(elevation_m: float) -> Color:
 	if elevation_m < 20.0:
-		return Color(0.57, 0.51, 0.36, 1.0)
+		return Color(0.62, 0.53, 0.33, 1.0)
 	if elevation_m < 350.0:
-		return Color(0.49, 0.44, 0.30, 1.0)
+		return Color(0.52, 0.46, 0.27, 1.0)
 	if elevation_m < 900.0:
-		return Color(0.40, 0.39, 0.27, 1.0)
+		return Color(0.38, 0.41, 0.23, 1.0)
 	if elevation_m < 1800.0:
-		return Color(0.37, 0.35, 0.30, 1.0)
-	return Color(0.54, 0.53, 0.50, 1.0)
+		return Color(0.40, 0.34, 0.27, 1.0)
+	return Color(0.58, 0.55, 0.48, 1.0)
 
 
 func _append_art_box(
