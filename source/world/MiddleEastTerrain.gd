@@ -32,6 +32,11 @@ const PROVINCE_LANDMARKS := [
 	{"governorate_index":2,"name_ar":"قلعة حلب","name_en":"Citadel of Aleppo","kind":"citadel","lat":36.1997,"lon":37.1629},
 	{"governorate_index":3,"name_ar":"آثار تدمر","name_en":"Palmyra Ruins","kind":"ruins","lat":34.5503,"lon":38.2681},
 	{"governorate_index":4,"name_ar":"نواعير حماة","name_en":"Norias of Hama","kind":"noria","lat":35.1340,"lon":36.7520},
+	{"governorate_index":5,"name_ar":"قلعة صلاح الدين","name_en":"Saladin Castle","kind":"castle","lat":35.5956,"lon":36.0561},
+	{"governorate_index":6,"name_ar":"قلعة أرواد","name_en":"Arwad Citadel","kind":"citadel","lat":34.8565,"lon":35.8588},
+	{"governorate_index":7,"name_ar":"قلب لوزة","name_en":"Qalb Lozeh","kind":"ruins","lat":36.1670,"lon":36.5810},
+	{"governorate_index":8,"name_ar":"باب بغداد","name_en":"Baghdad Gate","kind":"gate","lat":35.9505,"lon":39.0100},
+	{"governorate_index":9,"name_ar":"الجسر المعلق","name_en":"Deir ez-Zor Suspension Bridge","kind":"bridge","lat":35.3374,"lon":40.1471},
 ]
 const TACTICAL_RELIEF_EXAGGERATION := 1.0
 const TACTICAL_OVERVIEW_ZOOM := 8
