@@ -249,3 +249,9 @@ func tick_heavy_force_movement(delta: float, excluded_ids: Dictionary = {}) -> i
 	if heavy_force_roster == null:
 		return 0
 	return int(heavy_force_roster.tick_movement(delta, excluded_ids))
+
+
+func update_heavy_heading(unit_id: String, heading_rad: float) -> bool:
+	if heavy_force_roster == null:
+		return false
+	return heavy_force_roster.set_heading(unit_id, heading_rad)
