@@ -481,6 +481,17 @@ func _rts_camera_distance_scale() -> float:
 	return get_rts_camera_distance_scale(_rts_zoom_level)
 
 
+func get_rts_camera_profile(level: int = _rts_zoom_level) -> Dictionary:
+	var clamped_level := clampi(level, RTS_ZOOM_LEVEL_MIN, RTS_ZOOM_LEVEL_MAX)
+	var t := float(clamped_level - RTS_ZOOM_LEVEL_MIN) / float(RTS_ZOOM_LEVEL_MAX - RTS_ZOOM_LEVEL_MIN)
+	return {
+		"height": lerpf(6.10, 2.35, t),
+		"back": lerpf(7.20, 3.05, t),
+		"look_y": lerpf(0.12, 0.22, t),
+		"fov": lerpf(40.0, 45.0, t),
+	}
+
+
 func _set_rts_zoom_level(new_level: int) -> void:
 	new_level = clampi(new_level, RTS_ZOOM_LEVEL_MIN, RTS_ZOOM_LEVEL_MAX)
 	if new_level == _rts_zoom_level:
@@ -543,10 +554,10 @@ func _position_camera() -> void:
 			camera.far = 1200.0
 		else:
 			camera.projection = Camera3D.PROJECTION_PERSPECTIVE
-			var distance_scale := _rts_camera_distance_scale()
-			camera.position = center + Vector3(0.0, 6.1, 7.2) * distance_scale
-			camera.look_at(center + Vector3(0.0, 0.12, 0.0), Vector3.UP)
-			camera.fov = 40.0
+			var profile := get_rts_camera_profile()
+			camera.position = center + Vector3(0.0, float(profile["height"]), float(profile["back"]))
+			camera.look_at(center + Vector3(0.0, float(profile["look_y"]), 0.0), Vector3.UP)
+			camera.fov = float(profile["fov"])
 			camera.near = 0.01
 			camera.far = 1200.0
 	else:
