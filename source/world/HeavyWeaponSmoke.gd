@@ -57,6 +57,12 @@ func run(scene: Node) -> String:
 		if tank.get_part("Track_L") == null or tank.get_part("Track_R") == null:
 			tank.free()
 			return "tank visual lacks left and right tracks"
+		if not bool(tank.call("set_aim_yaw", 73.0)):
+			tank.free()
+			return "tank turret yaw control is unavailable"
+		if absf(float(tank.call("get_aim_yaw")) - 73.0) > 0.01:
+			tank.free()
+			return "tank turret does not rotate independently"
 		tank.free()
 
 		var launcher := VISUAL_SCRIPT.new()
@@ -68,6 +74,9 @@ func run(scene: Node) -> String:
 		if int(launcher.call("get_launcher_pod_count")) != expected_pods:
 			launcher.free()
 			return "launcher family pod layout is incorrect"
+		if not bool(launcher.call("set_aim_yaw", -61.0)) or absf(float(launcher.call("get_aim_yaw")) + 61.0) > 0.01:
+			launcher.free()
+			return "launcher does not rotate independently from chassis"
 		launcher.free()
 
 		var artillery := VISUAL_SCRIPT.new()

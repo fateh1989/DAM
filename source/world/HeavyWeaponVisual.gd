@@ -171,6 +171,21 @@ func _rebuild() -> void:
 	add_child(_count_label)
 
 
+func set_aim_yaw(degrees: float) -> bool:
+	var pivot_name := "LauncherPivot" if weapon_type == "launcher" else "TurretPivot"
+	var pivot := get_part(pivot_name) as Node3D
+	if pivot == null:
+		return false
+	pivot.rotation_degrees.y = wrapf(degrees, -180.0, 180.0)
+	return true
+
+
+func get_aim_yaw() -> float:
+	var pivot_name := "LauncherPivot" if weapon_type == "launcher" else "TurretPivot"
+	var pivot := get_part(pivot_name) as Node3D
+	return 0.0 if pivot == null else pivot.rotation_degrees.y
+
+
 func set_represented_count(value: int) -> void:
 	represented_count = maxi(0, value)
 	if _count_label != null:
