@@ -522,6 +522,17 @@ func _should_pan_world(active_touch_count: int, drag_distance: float) -> bool:
 	return active_touch_count == 1 and not _multi_touch_gesture_active and drag_distance > TAP_MAX_DRAG_PX
 
 
+func _cancel_box_selection() -> void:
+	_box_select_active = false
+	_box_select_pointer_id = -1
+	_box_select_mode = false
+	if selection_box != null:
+		selection_box.visible = false
+	var button := get_node_or_null("HUD/CommandBar/Row/BoxSelectButton") as Button
+	if button != null:
+		button.text = "BOX SELECT"
+
+
 func _begin_box_selection(pointer_id: int, screen_position: Vector2) -> void:
 	_box_select_active = true
 	_box_select_pointer_id = pointer_id
@@ -594,6 +605,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_touch_drag_distance[event.index] = 0.0
 			if _touches.size() > 1:
 				_multi_touch_gesture_active = true
+				if _box_select_active:
+					_cancel_box_selection()
 		else:
 			var drag_distance := float(_touch_drag_distance.get(event.index, 9999.0))
 			if _should_accept_world_tap(_touches.size(), drag_distance):
