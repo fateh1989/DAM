@@ -2588,8 +2588,20 @@ func _best_legal_crossing(river_group: String, start: Vector2, destination: Vect
 	var best_cost := INF
 	for raw_crossing in _crossings_for_river(river_group):
 		var crossing: Dictionary = raw_crossing
-		var point := Vector2(float(crossing.get("lon", 0.0)), float(crossing.get("lat", 0.0)))
-		var cost := _geo_distance_km(start, point) + _geo_distance_km(point, destination)
+		var crossing_path := _crossing_route_points(crossing, start)
+		if crossing_path.is_empty():
+			continue
+		var entry: Vector2 = crossing_path[0]
+		var exit: Vector2 = crossing_path[crossing_path.size() - 1]
+		var approach_block := _first_illegal_river_crossing(start, entry)
+		if not approach_block.is_empty():
+			continue
+		var crossing_distance := 0.0
+		for i in range(crossing_path.size() - 1):
+			crossing_distance += _geo_distance_km(crossing_path[i], crossing_path[i + 1])
+		var cost := _geo_distance_km(start, entry) + crossing_distance + _geo_distance_km(exit, destination)
+		if str(crossing.get("kind", "")) == "ford":
+			cost += 1.5
 		if cost < best_cost:
 			best_cost = cost
 			best = crossing
