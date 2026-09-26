@@ -3334,6 +3334,7 @@ func _create_tank_visual(index: int) -> Node3D:
 	var army_color := _army_color(index)
 	var family := _tank_family(index)
 	root_node.set_meta("visual_family", family)
+	root_node.set_meta("unit_type", "tank")
 
 	var model := Node3D.new()
 	model.name = "TankModel"
@@ -3664,6 +3665,23 @@ func _get_unit_model_node(node: Node3D) -> Node3D:
 		if model != null:
 			return model
 	return null
+
+
+func set_heavy_visual_weapon_pose(node: Node3D, yaw_degrees: float, elevation_degrees: float) -> bool:
+	if node == null or not is_instance_valid(node):
+		return false
+	var unit_type := str(node.get_meta("unit_type", ""))
+	if unit_type == "tank":
+		var turret := node.get_node_or_null("TankModel/TurretPivot") as Node3D
+		var gun_mount := node.get_node_or_null("TankModel/TurretPivot/GunMount") as Node3D
+		if turret == null or gun_mount == null:
+			return false
+		turret.rotation_degrees.y = wrapf(yaw_degrees, -180.0, 180.0)
+		gun_mount.rotation_degrees.x = clampf(elevation_degrees, -8.0, 22.0)
+		node.set_meta("weapon_yaw_deg", turret.rotation_degrees.y)
+		node.set_meta("weapon_elevation_deg", gun_mount.rotation_degrees.x)
+		return true
+	return false
 
 
 func _orient_unit_hull_to_target(node: Node3D, unit: Dictionary) -> void:
