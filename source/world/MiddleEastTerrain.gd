@@ -2563,6 +2563,26 @@ func _first_illegal_river_crossing(start: Vector2, destination: Vector2) -> Dict
 	return best
 
 
+func _crossing_route_points(crossing: Dictionary, start: Vector2) -> Array[Vector2]:
+	var result: Array[Vector2] = []
+	var raw_path: Array = crossing.get("path", [])
+	for raw_point in raw_path:
+		if raw_point is Array and raw_point.size() >= 2:
+			result.append(Vector2(float(raw_point[0]), float(raw_point[1])))
+		else:
+			return []
+
+	if result.size() >= 2:
+		var first_distance := _geo_distance_km(start, result[0])
+		var last_distance := _geo_distance_km(start, result[result.size() - 1])
+		if last_distance < first_distance:
+			result.reverse()
+		return result
+
+	var center := Vector2(float(crossing.get("lon", 0.0)), float(crossing.get("lat", 0.0)))
+	return [center]
+
+
 func _best_legal_crossing(river_group: String, start: Vector2, destination: Vector2) -> Dictionary:
 	var best: Dictionary = {}
 	var best_cost := INF
