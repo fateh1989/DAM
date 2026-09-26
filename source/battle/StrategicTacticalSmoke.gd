@@ -84,8 +84,8 @@ func _run() -> void:
 	if battle.camera.projection != Camera3D.PROJECTION_ORTHOGONAL:
 		_fail(6, "Strategic/tactical smoke: camera is not orthogonal")
 		return
-	if battle.get_zoom_level() != 1:
-		_fail(7, "Strategic/tactical smoke: initial zoom must be 1")
+	if battle.get_zoom_level() != 4:
+		_fail(7, "Strategic/tactical smoke: initial zoom must be protected level 4")
 		return
 	if absf(battle.get_zoom_target_size() - 1100.0) > 0.01:
 		_fail(21, "Strategic/tactical smoke: normal zoom target mismatch")
@@ -116,11 +116,11 @@ func _run() -> void:
 	var original_size: float = battle.camera.size
 	battle.toggle_zoom()
 	await process_frame
-	if battle.get_zoom_level() != 2:
-		_fail(11, "Strategic/tactical smoke: zoom 2 failed")
+	if battle.get_zoom_level() != 5:
+		_fail(11, "Strategic/tactical smoke: zoom level 5 failed")
 		return
-	if absf(battle.get_zoom_target_size() - 550.0) > 0.01:
-		_fail(22, "Strategic/tactical smoke: close zoom target mismatch")
+	if absf(battle.get_zoom_target_size() - 700.0) > 0.01:
+		_fail(22, "Strategic/tactical smoke: protected close zoom target mismatch")
 		return
 	if battle.camera.size >= original_size:
 		_fail(12, "Strategic/tactical smoke: close zoom did not reduce camera size")
@@ -185,5 +185,5 @@ func _run() -> void:
 		_fail(16, "Strategic/tactical smoke: battle state did not clear")
 		return
 
-	print("Strategic/tactical smoke: state + battle + 2-step camera + radar + combat + audio OK")
+	print("Strategic/tactical smoke: state + battle + protected 6-level camera + radar + combat + audio OK")
 	quit(0)

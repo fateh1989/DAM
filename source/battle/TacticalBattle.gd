@@ -10,6 +10,9 @@ const BATTLE_GROUND_SHADER_PATH := "res://source/battle/shaders/BattleGround.gds
 const CAMERA_BACK_OFFSET_Z := 720.0
 const ZOOM_NORMAL := 1100.0
 const ZOOM_CLOSE := 550.0
+const ZOOM_LEVEL_MIN := 1
+const ZOOM_LEVEL_MAX := 6
+const ZOOM_SIZES := [6800.0, 4200.0, 2600.0, 1100.0, 700.0, 450.0]
 const UNIT_SPEED := 150.0
 const ATTACK_RANGE := 190.0
 const ATTACK_DPS := 150.0
@@ -25,7 +28,7 @@ const TAP_MAX_DRAG_PX := 18.0
 @onready var status_label: Label = $HUD/TopBar/Row/Status
 @onready var zoom_button: Button = $HUD/TopBar/Row/ZoomButton
 
-var _zoom_level := 1
+var _zoom_level := 4
 var _units: Array = []
 var _enemies: Array = []
 var _selected: Array[int] = []
@@ -104,7 +107,7 @@ func _focus_audio_at_screen(screen_position: Vector2) -> void:
 
 func _setup_camera() -> void:
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = ZOOM_NORMAL
+	camera.size = get_zoom_target_size()
 	camera.position = Vector3(0.0, 850.0, 720.0)
 	camera.look_at(Vector3.ZERO, Vector3.UP)
 
@@ -431,7 +434,7 @@ func _spawn_enemy_units() -> void:
 
 
 func _update_zoom_ui() -> void:
-	zoom_button.text = "ZOOM %dX" % _zoom_level
+	zoom_button.text = "ZOOM %d/%d" % [_zoom_level, ZOOM_LEVEL_MAX]
 
 
 func _update_status() -> void:
@@ -446,11 +449,16 @@ func _update_status() -> void:
 		status_label.text = "FRIENDLY %d • ENEMY %d" % [friendly_alive, enemy_alive]
 
 
+func get_zoom_target_size_for_level(level: int) -> float:
+	var clamped_level := clampi(level, ZOOM_LEVEL_MIN, ZOOM_LEVEL_MAX)
+	return float(ZOOM_SIZES[clamped_level - ZOOM_LEVEL_MIN])
+
+
 func toggle_zoom() -> void:
-	_zoom_level = 2 if _zoom_level == 1 else 1
-	var target := ZOOM_CLOSE if _zoom_level == 2 else ZOOM_NORMAL
-	var tween := create_tween()
-	tween.tween_property(camera, "size", target, 0.20).set_trans(Tween.TRANS_SINE)
+	_zoom_level += 1
+	if _zoom_level > ZOOM_LEVEL_MAX:
+		_zoom_level = ZOOM_LEVEL_MIN
+	set_camera_size_safely(get_zoom_target_size())
 	_update_zoom_ui()
 
 
@@ -459,7 +467,7 @@ func get_zoom_level() -> int:
 
 
 func get_zoom_target_size() -> float:
-	return ZOOM_CLOSE if _zoom_level == 2 else ZOOM_NORMAL
+	return get_zoom_target_size_for_level(_zoom_level)
 
 
 func get_unit_count() -> int:
