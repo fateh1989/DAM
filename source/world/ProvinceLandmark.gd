@@ -6,6 +6,7 @@ var landmark_name_en := ""
 var archetype := "monument"
 var selected_landmark := false
 var lod_level := 1
+var damage_state := "intact"
 var _body_root: Node3D
 var _label: Label3D
 var _highlight: MeshInstance3D
@@ -141,6 +142,22 @@ func _build() -> void:
 		_:
 			_add_box(Vector3(0, 0.06, 0), Vector3(0.12, 0.12, 0.12), stone)
 
+	if archetype == "city":
+		if damage_state == "damaged":
+			for i in range(_body_root.get_child_count()):
+				var part := _body_root.get_child(i) as Node3D
+				if part != null and i > 0:
+					part.scale.y *= 0.72 if i % 2 == 0 else 0.88
+					part.rotation_degrees.z = -7.0 if i % 3 == 0 else 3.0
+		elif damage_state == "rubble":
+			for i in range(_body_root.get_child_count()):
+				var part := _body_root.get_child(i) as Node3D
+				if part != null and i > 0:
+					part.scale.y *= 0.24
+					part.rotation_degrees.z = float((i % 3) - 1) * 13.0
+		elif damage_state == "rebuilt":
+			_body_root.scale = Vector3.ONE * 1.04
+
 	if _label == null or not is_instance_valid(_label):
 		_label = Label3D.new()
 		_label.name = "LandmarkLabel"
@@ -171,6 +188,15 @@ func _build() -> void:
 		add_child(_highlight)
 	_highlight.position = Vector3(0, 0.004, 0)
 	_highlight.visible = selected_landmark
+
+
+func set_damage_state(value: String) -> bool:
+	if value not in ["intact", "damaged", "rubble", "rebuilt"]:
+		return false
+	damage_state = value
+	if archetype == "city":
+		_build()
+	return true
 
 
 func set_label_visible(value: bool) -> void:
