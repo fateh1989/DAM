@@ -3589,6 +3589,35 @@ func focus_selected_units() -> bool:
 	return true
 
 
+
+func focus_selected_logical_heavy_units() -> bool:
+	if _selected_logical_unit_ids.is_empty():
+		return false
+	var game_state := _game_state_node()
+	if game_state == null:
+		return false
+	var lon_sum: float = 0.0
+	var lat_sum: float = 0.0
+	var count: int = 0
+	for logical_id in _selected_logical_unit_ids:
+		var logical: Dictionary = game_state.call("get_heavy_unit", logical_id)
+		if logical.is_empty() or not bool(logical.get("alive", true)):
+			continue
+		lon_sum += float(logical.get("lon", 0.0))
+		lat_sum += float(logical.get("lat", 0.0))
+		count += 1
+	if count <= 0:
+		return false
+	_center_lon = clampf(lon_sum / float(count), REGION_WEST, REGION_EAST)
+	_center_lat = clampf(lat_sum / float(count), REGION_SOUTH, REGION_NORTH)
+	_origin_lon = _center_lon
+	_origin_lat = _center_lat
+	_position_camera()
+	_sync_unit_visuals()
+	_sync_detail_unit_lod()
+	_update_status()
+	return true
+
 func issue_selected_group_move(destination: Vector2) -> bool:
 	return _issue_group_move_order(_selected_unit_indices, destination)
 
