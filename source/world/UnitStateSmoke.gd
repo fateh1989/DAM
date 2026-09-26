@@ -433,5 +433,15 @@ func _run() -> void:
 		_fail(90, "Logical heavy selection smoke: " + logical_selection_error)
 		return
 
+	var logical_force_group_smoke_script := load("res://source/world/LogicalForceGroupSmoke.gd") as Script
+	if logical_force_group_smoke_script == null:
+		_fail(91, "Logical force group smoke: contract script missing")
+		return
+	var logical_force_group_smoke = logical_force_group_smoke_script.new()
+	var logical_force_group_error := str(logical_force_group_smoke.call("run", scene))
+	if not logical_force_group_error.is_empty():
+		_fail(92, "Logical force group smoke: " + logical_force_group_error)
+		return
+
 	print("Strategic unit smoke: 14 armies / 42 heavy representatives + radar + group movement OK")
 	quit(0)
