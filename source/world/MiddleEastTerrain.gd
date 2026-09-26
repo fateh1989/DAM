@@ -509,6 +509,51 @@ func _should_accept_world_tap(active_touch_count: int, drag_distance: float) -> 
 	return active_touch_count == 1 and not _multi_touch_gesture_active and drag_distance <= TAP_MAX_DRAG_PX
 
 
+func _begin_box_selection(pointer_id: int, screen_position: Vector2) -> void:
+	_box_select_active = true
+	_box_select_pointer_id = pointer_id
+	_box_select_start = screen_position
+	_box_select_current = screen_position
+	if selection_box != null:
+		selection_box.position = screen_position
+		selection_box.size = Vector2.ZERO
+		selection_box.visible = true
+
+
+func _update_box_selection(screen_position: Vector2) -> void:
+	if not _box_select_active:
+		return
+	_box_select_current = screen_position
+	var rect := Rect2(_box_select_start, _box_select_current - _box_select_start).abs()
+	if selection_box != null:
+		selection_box.position = rect.position
+		selection_box.size = rect.size
+		selection_box.visible = true
+
+
+func _finish_box_selection(screen_position: Vector2) -> int:
+	if not _box_select_active:
+		return 0
+	_update_box_selection(screen_position)
+	var rect := Rect2(_box_select_start, _box_select_current - _box_select_start).abs()
+	var selected_count := 0
+	if rect.size.length() > TAP_MAX_DRAG_PX:
+		selected_count = select_logical_heavy_units_in_screen_rect(rect, false)
+	else:
+		_handle_world_tap(screen_position)
+		selected_count = get_selected_logical_heavy_count()
+	_box_select_active = false
+	_box_select_pointer_id = -1
+	_box_select_mode = false
+	if selection_box != null:
+		selection_box.visible = false
+	var button := get_node_or_null("HUD/CommandBar/Row/BoxSelectButton") as Button
+	if button != null:
+		button.text = "BOX SELECT"
+	_update_status()
+	return selected_count
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed:
