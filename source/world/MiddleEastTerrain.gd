@@ -2295,15 +2295,21 @@ func _create_tank_visual(index: int) -> Node3D:
 	turret_pivot.name = "TurretPivot"
 	model.add_child(turret_pivot)
 
-	var turret_mesh := CylinderMesh.new()
-	turret_mesh.top_radius = 0.52
-	turret_mesh.bottom_radius = 0.58
-	turret_mesh.height = 0.38
-	turret_mesh.radial_segments = 12
 	var turret := MeshInstance3D.new()
 	turret.name = "Turret"
-	turret.mesh = turret_mesh
-	turret.position.y = 0.68
+	if family == "western":
+		var western_turret_mesh := BoxMesh.new()
+		western_turret_mesh.size = Vector3(1.32, 0.46, 1.36)
+		turret.mesh = western_turret_mesh
+		turret.position = Vector3(0.0, 0.73, -0.06)
+	else:
+		var eastern_turret_mesh := CylinderMesh.new()
+		eastern_turret_mesh.top_radius = 0.50
+		eastern_turret_mesh.bottom_radius = 0.62
+		eastern_turret_mesh.height = 0.32
+		eastern_turret_mesh.radial_segments = 16
+		turret.mesh = eastern_turret_mesh
+		turret.position = Vector3(0.0, 0.62, -0.04)
 	turret.material_override = _solid_unshaded_material(army_color)
 	turret_pivot.add_child(turret)
 
