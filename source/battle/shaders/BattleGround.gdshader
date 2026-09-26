@@ -40,12 +40,14 @@ void vertex() {
 }
 
 void fragment() {
+	float continental = fbm(world_pos.xz * 0.00028 + vec2(37.0, 11.0));
 	float macro = fbm(world_pos.xz * 0.0010);
 	float detail = fbm(world_pos.xz * 0.0045 + vec2(8.0, 17.0));
 	float green_mask = smoothstep(0.40, 0.72, macro + detail * 0.12);
 	float soil_mask = smoothstep(0.58, 0.82, detail + macro * 0.18);
 	vec3 ground = mix(dry_grass, scrub_green, green_mask * 0.68);
-	ground = mix(ground, pale_soil, (1.0 - green_mask) * 0.32);
+	float broad_dry = smoothstep(0.48, 0.76, continental);
+	ground = mix(ground, pale_soil, (1.0 - green_mask) * (0.24 + broad_dry * 0.26));
 	ground = mix(ground, warm_soil, soil_mask * 0.38);
 	float slope = 1.0 - clamp(abs(world_normal.y), 0.0, 1.0);
 	float rock_mask = smoothstep(0.12, 0.38, slope);

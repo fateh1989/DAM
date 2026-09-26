@@ -32,6 +32,9 @@ func run(_world_scene: Node) -> String:
 	if "rock_mask" not in shader_text or "scrub_green" not in shader_text:
 		battle.free()
 		return "battle ground shader is missing natural terrain blending"
+	if "continental" not in shader_text:
+		battle.free()
+		return "battle ground shader lacks broad macro variation"
 	if not (battle.call("get_battle_ground_material") is ShaderMaterial):
 		battle.free()
 		return "battle terrain is not using the natural ground shader"
