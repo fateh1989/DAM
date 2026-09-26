@@ -2889,6 +2889,17 @@ func resolve_unit_attack(attacker_index: int, target_index: int, weapon_id: Stri
 	return result
 
 
+func _attack_standoff_point(attacker: Dictionary, target: Dictionary, weapon_id: String) -> Vector2:
+	var attacker_geo := Vector2(float(attacker.get("lon", 0.0)), float(attacker.get("lat", 0.0)))
+	var target_geo := Vector2(float(target.get("lon", 0.0)), float(target.get("lat", 0.0)))
+	var distance_km := maxf(0.001, _geo_distance_km(attacker_geo, target_geo))
+	var desired_range_km := maxf(0.10, _weapon_range_km(weapon_id) * 0.72)
+	if distance_km <= desired_range_km:
+		return attacker_geo
+	var ratio := clampf((distance_km - desired_range_km) / distance_km, 0.0, 1.0)
+	return attacker_geo.lerp(target_geo, ratio)
+
+
 func issue_selected_attack(target_index: int) -> int:
 	if target_index < 0 or target_index >= _units.size() or _selected_unit_indices.is_empty():
 		return 0
