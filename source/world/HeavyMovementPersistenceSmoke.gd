@@ -55,7 +55,7 @@ func run(scene: Node) -> String:
 		float(arrival_start_unit.get("lon", 0.0)),
 		float(arrival_start_unit.get("lat", 0.0))
 	)
-	var arrival_destination := Vector2(arrival_start.x + 0.000001, arrival_start.y)
+	var arrival_destination := Vector2(arrival_start.x + 0.00001, arrival_start.y)
 	if not bool(scene.call("issue_selected_group_move", arrival_destination)):
 		return "heavy movement arrival order was rejected"
 	scene.call("_process", 1.0)
