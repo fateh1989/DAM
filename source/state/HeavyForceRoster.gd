@@ -185,3 +185,26 @@ func representative_id(governorate_index: int, unit_type: String) -> String:
 		if bool(unit.get("alive", true)):
 			return str(unit.get("id", ""))
 	return ""
+
+
+func validate() -> String:
+	if not _seeded:
+		return "heavy roster is not seeded"
+	if _units.size() != 1400 or _index_by_id.size() != 1400:
+		return "heavy roster total is not 1400"
+	if count_type("tank") != 700:
+		return "tank roster total is not 700"
+	if count_type("rocket_launcher") != 280:
+		return "rocket launcher roster total is not 280"
+	if count_type("artillery") != 420:
+		return "artillery roster total is not 420"
+	for governorate_index in range(14):
+		if count_governorate(governorate_index) != 100:
+			return "governorate %d does not contain 100 heavy units" % governorate_index
+	for unit in _units:
+		var unit_id := str(unit.get("id", ""))
+		if unit_id.is_empty() or not _index_by_id.has(unit_id):
+			return "heavy roster contains invalid unit id"
+		if float(unit.get("max_hp", 0.0)) <= 0.0:
+			return "heavy roster contains invalid hit points"
+	return ""
