@@ -36,6 +36,7 @@ var _touches := {}
 var _touch_drag := {}
 var _mouse_down := false
 var _mouse_drag := 0.0
+var _pinch_distance := 0.0
 var _terrain_chunks: Array[MeshInstance3D] = []
 var _battle_ground_material: Material = null
 var _rock_prop_material: StandardMaterial3D = null
@@ -789,12 +790,46 @@ func _pan_camera(relative: Vector2) -> void:
 	_sync_terrain_chunk_visibility()
 
 
+func _nearest_zoom_level_for_size(size_value: float) -> int:
+	var best_level := ZOOM_LEVEL_MIN
+	var best_error := INF
+	for level in range(ZOOM_LEVEL_MIN, ZOOM_LEVEL_MAX + 1):
+		var error := absf(get_zoom_target_size_for_level(level) - size_value)
+		if error < best_error:
+			best_error = error
+			best_level = level
+	return best_level
+
+
+func apply_pinch_distance_change(previous_distance: float, current_distance: float) -> float:
+	if previous_distance <= 1.0 or current_distance <= 1.0:
+		return camera.size
+	if _zoom_tween != null and _zoom_tween.is_valid():
+		_zoom_tween.kill()
+	var next_size := camera.size * (previous_distance / current_distance)
+	set_camera_size_safely(next_size)
+	_zoom_level = _nearest_zoom_level_for_size(camera.size)
+	_update_zoom_ui()
+	return camera.size
+
+
+func _current_pinch_distance() -> float:
+	if _touches.size() < 2:
+		return 0.0
+	var keys := _touches.keys()
+	return (_touches[keys[0]] as Vector2).distance_to(_touches[keys[1]] as Vector2)
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			_focus_audio_at_screen(event.position)
 			_touches[event.index] = event.position
 			_touch_drag[event.index] = 0.0
+			if _touches.size() >= 2:
+				_pinch_distance = _current_pinch_distance()
+				for touch_index in _touches.keys():
+					_touch_drag[touch_index] = TAP_MAX_DRAG_PX + 1.0
 		else:
 			var was_single := _touches.size() == 1
 			var drag := float(_touch_drag.get(event.index, 9999.0))
@@ -802,12 +837,21 @@ func _unhandled_input(event: InputEvent) -> void:
 				_handle_tap(event.position)
 			_touches.erase(event.index)
 			_touch_drag.erase(event.index)
+			if _touches.size() < 2:
+				_pinch_distance = 0.0
 		get_viewport().set_input_as_handled()
 	elif event is InputEventScreenDrag:
 		_touch_drag[event.index] = float(_touch_drag.get(event.index, 0.0)) + event.relative.length()
+		_touches[event.index] = event.position
 		if _touches.size() <= 1:
 			_pan_camera(event.relative)
-		_touches[event.index] = event.position
+		else:
+			for touch_index in _touches.keys():
+				_touch_drag[touch_index] = TAP_MAX_DRAG_PX + 1.0
+			var current_pinch := _current_pinch_distance()
+			if _pinch_distance > 1.0 and current_pinch > 1.0:
+				apply_pinch_distance_change(_pinch_distance, current_pinch)
+			_pinch_distance = current_pinch
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:

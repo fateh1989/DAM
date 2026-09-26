@@ -24,6 +24,16 @@ func run(_world_scene: Node) -> String:
 		battle.free()
 		return "safe close tactical zoom level did not apply"
 	battle.call("set_zoom_level", 4, false)
+	var pinch_signature_before: Dictionary = battle.call("get_terrain_integrity_signature")
+	var pinch_start_size: float = battle.camera.size
+	var pinch_result := float(battle.call("apply_pinch_distance_change", 100.0, 150.0))
+	if pinch_result >= pinch_start_size:
+		battle.free()
+		return "outward finger pinch did not zoom camera inward"
+	if pinch_signature_before != battle.call("get_terrain_integrity_signature"):
+		battle.free()
+		return "pinch zoom mutated protected terrain"
+	battle.call("set_zoom_level", 4, false)
 	battle.camera.position = Vector3(9000.0, 850.0, 9000.0)
 	battle.call("_clamp_camera_to_battlefield")
 	var target_z: float = battle.camera.position.z - battle.CAMERA_BACK_OFFSET_Z
