@@ -182,6 +182,9 @@ var _geo_overlay_label_count := 0
 
 var _unit_root: Node3D = null
 var _units: Array = []
+var _heavy_weapon_roster = null
+var _arsenal_root: Node3D = null
+var _arsenal_markers: Array[Node3D] = []
 var _selected_unit_index := -1
 var _selected_unit_indices: Array[int] = []
 var _touch_press_positions := {}
@@ -525,6 +528,7 @@ func _ready() -> void:
 	zoom_wheel.set_value_no_signal(float(_map_zoom))
 	zoom_wheel.visible = false
 	_setup_unit_layer()
+	_setup_heavy_weapon_arsenals()
 	_setup_geo_overlay_layer()
 	_position_camera()
 	_refresh_tiles()
@@ -813,6 +817,7 @@ func _set_map_zoom(new_zoom: int, center_syria_at_overview: bool = false) -> voi
 func _position_camera() -> void:
 	_sync_landmark_positions()
 	_sync_city_marker_positions()
+	_sync_heavy_weapon_arsenals()
 	if _terrain_mode and _is_tactical_overview():
 		camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 		match _map_zoom:
@@ -2231,6 +2236,70 @@ func resolve_unit_attack(attacker_index: int, target_index: int, weapon_id: Stri
 	_units[target_index] = target
 	_sync_unit_visuals()
 	return result
+
+
+func _weapon_preview_family_for_governorate(index: int) -> String:
+	# Display-only split while faction ownership is not yet modeled.
+	return "west" if index % 2 == 0 else "east"
+
+
+func _setup_heavy_weapon_arsenals() -> void:
+	_heavy_weapon_roster = HEAVY_WEAPON_ROSTER_SCRIPT.new()
+	_heavy_weapon_roster.setup(GOVERNORATES.size())
+	if _arsenal_root == null or not is_instance_valid(_arsenal_root):
+		_arsenal_root = Node3D.new()
+		_arsenal_root.name = "HeavyWeaponArsenals"
+		add_child(_arsenal_root)
+	for child in _arsenal_root.get_children():
+		child.free()
+	_arsenal_markers.clear()
+	for province_index in range(GOVERNORATES.size()):
+		var family := _weapon_preview_family_for_governorate(province_index)
+		for weapon_index in range(3):
+			var kind: String = str(["tank", "launcher", "artillery"][weapon_index])
+			var marker := HEAVY_WEAPON_VISUAL_SCRIPT.new()
+			marker.name = "Arsenal_%02d_%s" % [province_index, kind]
+			marker.setup(kind, family, province_index, int(_heavy_weapon_roster.get_count(province_index, kind)))
+			_arsenal_root.add_child(marker)
+			_arsenal_markers.append(marker)
+	_sync_heavy_weapon_arsenals()
+
+
+func _sync_heavy_weapon_arsenals() -> void:
+	if _arsenal_root == null or not is_instance_valid(_arsenal_root):
+		return
+	_arsenal_root.visible = _terrain_mode
+	for marker_index in range(_arsenal_markers.size()):
+		var marker: Node3D = _arsenal_markers[marker_index]
+		if not is_instance_valid(marker):
+			continue
+		var province_index := int(marker.get("province_index"))
+		var data: Dictionary = GOVERNORATES[province_index]
+		var weapon_slot := marker_index % 3
+		var offsets := [Vector2(-0.11, 0.04), Vector2(0.11, 0.04), Vector2(0.0, -0.11)]
+		var offset: Vector2 = offsets[weapon_slot]
+		var lon := float(data["lon"]) + offset.x
+		var lat := float(data["lat"]) + offset.y
+		var height_km := _designed_height_m(lon, lat) / 1000.0 + 0.012
+		marker.position = _geo_to_local(lon, lat, height_km)
+		marker.scale = Vector3.ONE * get_rts_unit_visual_scale()
+		var is_focused := province_index == _governorate_index
+		var distance_km := Vector2(marker.position.x, marker.position.z).length()
+		marker.visible = _terrain_mode and (is_focused or distance_km <= 135.0)
+
+
+func get_heavy_weapon_inventory(province_index: int) -> Dictionary:
+	if _heavy_weapon_roster == null:
+		return {}
+	return _heavy_weapon_roster.get_inventory(province_index)
+
+
+func get_heavy_weapon_country_total() -> int:
+	return -1 if _heavy_weapon_roster == null else int(_heavy_weapon_roster.get_grand_total())
+
+
+func get_heavy_weapon_markers() -> Array[Node3D]:
+	return _arsenal_markers.duplicate()
 
 
 func _setup_unit_layer() -> void:

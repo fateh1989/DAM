@@ -25,6 +25,15 @@ func run(scene: Node) -> String:
 		return "country artillery total is not four hundred twenty"
 	if roster.get_grand_total() != 1400:
 		return "country heavy weapon total is not fourteen hundred"
+	var live_markers: Array = scene.call("get_heavy_weapon_markers")
+	if live_markers.size() != 42:
+		return "strategic world does not expose three heavy weapon groups per governorate"
+	if int(scene.call("get_heavy_weapon_country_total")) != 1400:
+		return "strategic world heavy weapon total is not fourteen hundred"
+	for province_index in range(14):
+		var inventory: Dictionary = scene.call("get_heavy_weapon_inventory", province_index)
+		if int(inventory.get("tank", -1)) != 50 or int(inventory.get("launcher", -1)) != 20 or int(inventory.get("artillery", -1)) != 30:
+			return "live governorate arsenal does not match requested 50 20 30 inventory"
 
 	var west_tank := VISUAL_SCRIPT.new()
 	west_tank.setup("tank", "west", 0, 50)

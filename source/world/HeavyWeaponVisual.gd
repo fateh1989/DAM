@@ -67,7 +67,7 @@ func _palette() -> Dictionary:
 
 func _add_tracks(parent: Node3D, palette: Dictionary, length: float, width: float) -> void:
 	for side in [-1.0, 1.0]:
-		var x := side * width * 0.5
+		var x: float = float(side) * width * 0.5
 		_box(parent, "Track_%s" % ("L" if side < 0.0 else "R"), Vector3(x, 0.22, 0), Vector3(0.28, 0.34, length), _mat(palette["dark"]))
 		for wheel_index in range(6):
 			var z := lerpf(-length * 0.38, length * 0.38, float(wheel_index) / 5.0)
@@ -115,10 +115,10 @@ func _build_launcher(parent: Node3D, palette: Dictionary) -> void:
 	parent.add_child(pivot)
 	var pod_count := 2 if western else 3
 	for pod_index in range(pod_count):
-		var x := (float(pod_index) - float(pod_count - 1) * 0.5) * 0.48
+		var x: float = (float(pod_index) - float(pod_count - 1) * 0.5) * 0.48
 		_box(pivot, "RocketPod_%02d" % pod_index, Vector3(x, 0.12, -0.20), Vector3(0.40, 0.44, 1.55), _mat(palette["dark"]))
 		for tube_index in range(4):
-			var tx := x + (-0.11 if tube_index % 2 == 0 else 0.11)
+			var tx: float = x + (-0.11 if tube_index % 2 == 0 else 0.11)
 			var ty := 0.04 + (0.16 if tube_index >= 2 else 0.0)
 			_cylinder(pivot, "Tube_%02d_%02d" % [pod_index, tube_index], Vector3(tx, ty, -1.03), 0.045, 0.22, _mat(palette["metal"]), 8).rotation_degrees = Vector3(90, 0, 0)
 
