@@ -1771,6 +1771,12 @@ func _build_art_directed_battlefield() -> void:
 		var vh := 0.035 + 0.010 * float(village_index % 3)
 		_append_art_box(buildings, _art_point(vx, vz, 0.010), 0.10, 0.085, vh)
 		building_count += 1
+	for civic_index in range(2):
+		var cx := -3.42 + float(civic_index) * 0.34
+		var cz := 1.70
+		_append_art_box(buildings, _art_point(cx, cz, 0.010), 0.13, 0.11, 0.085)
+		building_count += 1
+
 	for hamlet_index in range(6):
 		var hx := 3.35 + float(hamlet_index % 3) * 0.24
 		var hz := -2.15 + float(int(hamlet_index / 3)) * 0.24
