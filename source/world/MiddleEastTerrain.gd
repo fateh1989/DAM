@@ -3379,6 +3379,11 @@ func _process(delta: float) -> void:
 
 		_units[i] = unit
 		_sync_logical_unit_position(unit)
+		if not bool(unit.get("moving", false)):
+			var logical_id := str(unit.get("logical_unit_id", ""))
+			var game_state := _game_state_node()
+			if not logical_id.is_empty() and game_state != null:
+				game_state.call("stop_heavy_unit", logical_id)
 		any_moved = true
 
 	if any_moved:
