@@ -490,12 +490,32 @@ func get_rts_camera_profile(level: int = _rts_zoom_level) -> Dictionary:
 	}
 
 
+func get_tactical_detail_profile(level: int = _rts_zoom_level) -> Dictionary:
+	var clamped_level := clampi(level, RTS_ZOOM_LEVEL_MIN, RTS_ZOOM_LEVEL_MAX)
+	var t := float(clamped_level - RTS_ZOOM_LEVEL_MIN) / float(RTS_ZOOM_LEVEL_MAX - RTS_ZOOM_LEVEL_MIN)
+	return {
+		"detail_lod": lerpf(0.25, 1.0, t),
+		"slope_detail_strength": lerpf(0.45, 1.0, t),
+		"macro_variation_strength": lerpf(1.25, 0.85, t),
+		"micro_detail_strength": lerpf(0.25, 1.0, t),
+	}
+
+
+func _sync_tactical_ground_detail() -> void:
+	if _tactical_ground_material == null:
+		return
+	var profile := get_tactical_detail_profile()
+	for key in profile.keys():
+		_tactical_ground_material.set_shader_parameter(str(key), profile[key])
+
+
 func _set_rts_zoom_level(new_level: int) -> void:
 	new_level = clampi(new_level, RTS_ZOOM_LEVEL_MIN, RTS_ZOOM_LEVEL_MAX)
 	if new_level == _rts_zoom_level:
 		return
 	_rts_zoom_level = new_level
 	_position_camera()
+	_sync_tactical_ground_detail()
 	_sync_unit_visuals()
 	_refresh_geo_overlay(true)
 	if _terrain_mode and not _is_tactical_overview() and _rts_zoom_level >= 4:
@@ -895,6 +915,7 @@ func _get_tactical_ground_material() -> ShaderMaterial:
 
 	_tactical_ground_material = ShaderMaterial.new()
 	_tactical_ground_material.shader = shader
+	_sync_tactical_ground_detail()
 	return _tactical_ground_material
 
 
