@@ -156,6 +156,9 @@ jobs:
           test "$(find source/world/data -maxdepth 1 -name 'syria_*.json' ! -name 'syria_manifest.json' | wc -l)" -eq 14
           echo "Syria runtime data bytes: $(du -cb source/world/data/syria_*.json | tail -1 | awk '{print $1}')"
 
+          python3 source/world/GenerateHydrology.py /tmp/syria.osm.pbf source/world/data/syria_hydrology.json
+          test -s source/world/data/syria_hydrology.json
+
           python3 source/world/GenerateStrategicMacro.py /tmp/syria.osm.pbf source/world/generated
           python3 source/world/GenerateGeoOverlay.py /tmp/syria.osm.pbf source/world/generated/syria_geo_overlay.json
           test -s source/world/generated/syria_macro.png
