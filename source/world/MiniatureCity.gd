@@ -11,12 +11,16 @@ var _body_root: Node3D = null
 var _street_root: Node3D = null
 var _industrial_root: Node3D = null
 var _rubble_root: Node3D = null
+var _decoration_root: Node3D = null
+var _damage_root: Node3D = null
 var _building_nodes: Array[MeshInstance3D] = []
 var _roof_nodes: Array[MeshInstance3D] = []
 var _industrial_nodes: Array[Node3D] = []
 var _street_nodes: Array[MeshInstance3D] = []
 var _detail_nodes: Array[Node3D] = []
 var _signature_nodes: Array[Node3D] = []
+var _decoration_nodes: Array[Node3D] = []
+var _damage_nodes: Array[Node3D] = []
 var _label: Label3D = null
 
 const CITY_RADIUS := 0.46
@@ -91,6 +95,21 @@ func _add_cylinder(parent: Node3D, position_value: Vector3, radius: float, heigh
 	return item
 
 
+func _add_sphere(parent: Node3D, position_value: Vector3, radius: float, mat: Material, node_name: String) -> MeshInstance3D:
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 2.0
+	mesh.radial_segments = 8
+	mesh.rings = 5
+	var item := MeshInstance3D.new()
+	item.name = node_name
+	item.mesh = mesh
+	item.position = position_value
+	item.material_override = mat
+	parent.add_child(item)
+	return item
+
+
 func _ensure_roots() -> void:
 	_body_root = Node3D.new()
 	_body_root.name = "Body"
@@ -104,6 +123,12 @@ func _ensure_roots() -> void:
 	_rubble_root = Node3D.new()
 	_rubble_root.name = "Rubble"
 	add_child(_rubble_root)
+	_decoration_root = Node3D.new()
+	_decoration_root.name = "Decorations"
+	add_child(_decoration_root)
+	_damage_root = Node3D.new()
+	_damage_root.name = "DamageMarks"
+	add_child(_damage_root)
 
 
 func _build_base(palette: Dictionary) -> void:
@@ -301,6 +326,25 @@ func _build_industrial_edge(palette: Dictionary) -> void:
 		_industrial_nodes.append(root)
 
 
+func _build_plazas_and_trees(palette: Dictionary) -> void:
+	var plaza_mat := _material(palette["accent"])
+	var trunk_mat := _material(Color(0.24, 0.17, 0.10, 1.0))
+	var leaf_color := Color(0.24, 0.38, 0.19, 1.0) if style_id != "eastern" else Color(0.35, 0.38, 0.18, 1.0)
+	var leaf_mat := _material(leaf_color)
+	for plaza_index in range(4):
+		var angle := PI * 0.25 + float(plaza_index) * PI * 0.5
+		var radius := 0.225
+		var center := Vector3(cos(angle) * radius, 0.017, sin(angle) * radius)
+		var plaza := _add_cylinder(_decoration_root, center, 0.032, 0.008, plaza_mat, "Plaza_%02d" % plaza_index, 12)
+		_decoration_nodes.append(plaza)
+		for side in [-1.0, 1.0]:
+			var tangent := Vector3(-sin(angle), 0.0, cos(angle)) * 0.041 * float(side)
+			var trunk := _add_cylinder(_decoration_root, center + tangent + Vector3(0, 0.020, 0), 0.005, 0.040, trunk_mat, "TreeTrunk_%02d_%s" % [plaza_index, "L" if side < 0.0 else "R"], 6)
+			var crown := _add_sphere(_decoration_root, center + tangent + Vector3(0, 0.052, 0), 0.018, leaf_mat, "TreeCrown_%02d_%s" % [plaza_index, "L" if side < 0.0 else "R"])
+			_decoration_nodes.append(trunk)
+			_decoration_nodes.append(crown)
+
+
 func _build_label() -> void:
 	_label = Label3D.new()
 	_label.name = "CityLabel"
@@ -325,6 +369,8 @@ func _rebuild() -> void:
 	_street_nodes.clear()
 	_detail_nodes.clear()
 	_signature_nodes.clear()
+	_decoration_nodes.clear()
+	_damage_nodes.clear()
 	_ensure_roots()
 	var palette := _palette()
 	_build_base(palette)
@@ -335,6 +381,7 @@ func _rebuild() -> void:
 	_build_roof_details(palette)
 	_build_signature_blocks(palette)
 	_build_industrial_edge(palette)
+	_build_plazas_and_trees(palette)
 	_build_label()
 	_apply_damage_visuals()
 
@@ -457,6 +504,14 @@ func get_detail_count() -> int:
 
 func get_signature_count() -> int:
 	return _signature_nodes.size()
+
+
+func get_decoration_count() -> int:
+	return _decoration_nodes.size()
+
+
+func get_damage_mark_count() -> int:
+	return _damage_nodes.size()
 
 
 func set_label_visible(value: bool) -> void:
