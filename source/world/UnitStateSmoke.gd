@@ -404,6 +404,10 @@ func _run() -> void:
 	game_state_for_radar.call("stop_heavy_unit", detail_radar_id)
 	scene.call("clear_logical_heavy_selection")
 	scene.set_radar_action_mode("camera")
+	scene.call("_set_rts_zoom_level", radar_zoom_before)
+	if int(scene.call("get_rts_zoom_level")) != radar_zoom_before:
+		_fail(156, "Radar logical-detail smoke: original zoom was not restored")
+		return
 
 	var first_radar_item: Dictionary = scene.get_radar_units()[0]
 	scene.clear_selected_units()
