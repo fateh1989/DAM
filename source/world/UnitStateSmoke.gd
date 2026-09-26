@@ -48,6 +48,16 @@ func _run() -> void:
 		_fail(55, "Radar core smoke: " + radar_error)
 		return
 
+	var radar_detail_smoke_script := load("res://source/world/RadarDetailSmoke.gd") as Script
+	if radar_detail_smoke_script == null:
+		_fail(131, "Radar detail smoke: contract script missing")
+		return
+	var radar_detail_smoke = radar_detail_smoke_script.new()
+	var radar_detail_error := str(radar_detail_smoke.call("run", scene))
+	if not radar_detail_error.is_empty():
+		_fail(132, "Radar detail smoke: " + radar_detail_error)
+		return
+
 	var movement_contract_script := load("res://source/world/MovementCoreSmoke.gd") as Script
 	if movement_contract_script == null:
 		_fail(56, "Movement core smoke: contract script missing")
