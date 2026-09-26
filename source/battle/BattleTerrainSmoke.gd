@@ -61,8 +61,14 @@ func run(_world_scene: Node) -> String:
 	battle.camera.size = battle.ZOOM_NORMAL
 	battle.call("_sync_terrain_chunk_visibility")
 	var terrain_signature_before: Dictionary = battle.call("get_terrain_integrity_signature")
-	battle.camera.size = 5200.0
-	battle.call("_sync_terrain_chunk_visibility")
+	battle.camera.position.x = 0.0
+	battle.camera.position.z = battle.CAMERA_BACK_OFFSET_Z
+	var target_before := Vector2(battle.camera.position.x, battle.camera.position.z - battle.CAMERA_BACK_OFFSET_Z)
+	battle.call("set_camera_size_safely", 5200.0)
+	var target_after := Vector2(battle.camera.position.x, battle.camera.position.z - battle.CAMERA_BACK_OFFSET_Z)
+	if target_before.distance_to(target_after) > 0.01:
+		battle.free()
+		return "safe camera zoom moved the world target at center"
 	var terrain_signature_after: Dictionary = battle.call("get_terrain_integrity_signature")
 	if terrain_signature_before != terrain_signature_after:
 		battle.free()

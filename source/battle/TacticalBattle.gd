@@ -709,6 +709,12 @@ func _issue_group_move(center: Vector3) -> void:
 		_units[index] = unit
 
 
+func set_camera_size_safely(new_size: float) -> void:
+	camera.size = clampf(new_size, 420.0, BATTLEFIELD_SIZE * 0.72)
+	_clamp_camera_to_battlefield()
+	_sync_terrain_chunk_visibility()
+
+
 func _camera_target_half_extents() -> Vector2:
 	var viewport := get_viewport().get_visible_rect().size
 	var aspect := maxf(0.25, viewport.x / maxf(1.0, viewport.y))
