@@ -118,5 +118,20 @@
     ],
     "fire_sound": "missile_launch",
     "impact_effect": "heavy_explosion"
+  },
+  "rocket_salvo": {
+    "name_ar": "رشقة راجمة",
+    "damage": 260,
+    "armor_penetration": 0.16,
+    "range_km": 10,
+    "cooldown_s": 8,
+    "projectile": "rocket",
+    "projectile_speed_km_s": 0.52,
+    "splash_km": 0.07,
+    "targets": [
+      "ground"
+    ],
+    "fire_sound": "rocket_launch",
+    "impact_effect": "medium_explosion"
   }
 }
