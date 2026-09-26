@@ -283,3 +283,14 @@ func resolve_heavy_shot(attacker_id: String, target_id: String, weapon_id: Strin
 	if target_state.is_empty():
 		return {"ok": false, "reason": "target_missing"}
 	return army_core.resolve_shot(attacker_state, target_state, weapon_id)
+
+
+func apply_heavy_shot_result(target_id: String, result: Dictionary) -> bool:
+	if not bool(result.get("ok", false)):
+		return false
+	var target_state: Dictionary = result.get("target", {})
+	if target_state.is_empty():
+		return false
+	if bool(result.get("destroyed", false)):
+		return record_heavy_loss(target_id)
+	return update_heavy_surviving_hp(target_id, float(target_state.get("hp", 0.0)))
