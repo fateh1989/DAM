@@ -2772,6 +2772,10 @@ func resolve_logical_heavy_attack(attacker_id: String, target_id: String, weapon
 		return {"ok": false, "reason": "logical_unit_missing"}
 	if not _logical_units_are_enemies(attacker_logical, target_logical):
 		return {"ok": false, "reason": "friendly_target"}
+	var weapon_range_km := _weapon_range_km(weapon_id)
+	var attack_distance_km := _heavy_attack_distance_km(attacker_logical, target_logical)
+	if weapon_range_km > 0.0 and attack_distance_km > weapon_range_km:
+		return {"ok": false, "reason": "out_of_range", "distance_km": attack_distance_km, "range_km": weapon_range_km}
 	var result: Dictionary = game_state.call("resolve_heavy_shot", attacker_id, target_id, weapon_id)
 	if not bool(result.get("ok", false)):
 		return result
