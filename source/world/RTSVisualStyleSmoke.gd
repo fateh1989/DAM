@@ -47,6 +47,7 @@ func run(scene: Node) -> String:
 		return "RTS roads lost readable shoulder width"
 	if 'Color(0.80, 0.67, 0.42, 1.0)' not in source:
 		return "RTS road surface lost command-view contrast"
+	scene.call("_refresh_vector_data", true)
 	var vector_root := scene.get_node_or_null("VectorRoot")
 	if vector_root == null:
 		return "RTS terrain vector root is missing"
