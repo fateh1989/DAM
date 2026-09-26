@@ -111,6 +111,12 @@ func _build() -> void:
 			industrial.name = "CityIndustrialHall"
 			var tower := _add_cylinder(Vector3(0.120, 0.105, 0.015), 0.018, 0.21, city_light)
 			tower.name = "CityTower"
+			var gate_left := _add_box(Vector3(-0.150, 0.052, 0.0), Vector3(0.018, 0.104, 0.030), city_dark)
+			gate_left.name = "CityGateLeft"
+			var gate_right := _add_box(Vector3(-0.118, 0.052, 0.0), Vector3(0.018, 0.104, 0.030), city_dark)
+			gate_right.name = "CityGateRight"
+			var gate_beam := _add_box(Vector3(-0.134, 0.098, 0.0), Vector3(0.050, 0.014, 0.030), city_light)
+			gate_beam.name = "CityGateBeam"
 		"citadel", "castle":
 			_add_box(Vector3(0, 0.035, 0), Vector3(0.22, 0.07, 0.18), stone)
 			for x in [-0.085, 0.085]:
