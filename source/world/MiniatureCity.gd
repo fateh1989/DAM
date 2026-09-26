@@ -187,6 +187,29 @@ func _build_residential_rings(palette: Dictionary) -> void:
 			_roof_nodes.append(roof)
 
 
+func _build_roof_details(palette: Dictionary) -> void:
+	var roof_mat := _material(palette["roof"])
+	var accent_mat := _material(palette["accent"])
+	for i in range(_building_nodes.size()):
+		if i % 4 == 1:
+			var building := _building_nodes[i]
+			var box := building.mesh as BoxMesh
+			if box == null:
+				continue
+			var top_y := building.position.y + box.size.y * 0.5 + 0.012
+			var tank := _add_cylinder(_body_root, Vector3(building.position.x, top_y, building.position.z), minf(box.size.x, box.size.z) * 0.14, 0.018, accent_mat, "RoofTank_%03d" % i, 8)
+			_detail_nodes.append(tank)
+		elif i % 5 == 2:
+			var building := _building_nodes[i]
+			var box := building.mesh as BoxMesh
+			if box == null:
+				continue
+			var top_y := building.position.y + box.size.y * 0.5 + 0.008
+			var cap := _add_box(_body_root, Vector3(building.position.x, top_y, building.position.z), Vector3(box.size.x * 0.52, 0.014, box.size.z * 0.52), roof_mat, "RoofCap_%03d" % i)
+			cap.rotation = building.rotation
+			_detail_nodes.append(cap)
+
+
 func _build_industrial_edge(palette: Dictionary) -> void:
 	var wall_mat := _material(palette["accent"])
 	var roof_mat := _material(palette["roof"])
@@ -246,6 +269,7 @@ func _rebuild() -> void:
 	_build_radial_streets(palette)
 	_build_residential_rings(palette)
 	_build_facade_details(palette)
+	_build_roof_details(palette)
 	_build_industrial_edge(palette)
 	_build_label()
 	_apply_damage_visuals()
