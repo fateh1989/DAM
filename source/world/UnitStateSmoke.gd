@@ -383,6 +383,16 @@ func _run() -> void:
 		_fail(11, "Strategic unit smoke: radar camera did not move")
 		return
 
+	var visible_combat_smoke_script := load("res://source/world/VisibleCombatPersistenceSmoke.gd") as Script
+	if visible_combat_smoke_script == null:
+		_fail(85, "Visible combat persistence smoke: contract script missing")
+		return
+	var visible_combat_smoke = visible_combat_smoke_script.new()
+	var visible_combat_error := str(visible_combat_smoke.call("run", scene))
+	if not visible_combat_error.is_empty():
+		_fail(86, "Visible combat persistence smoke: " + visible_combat_error)
+		return
+
 	var continuity_smoke_script := load("res://source/world/WorldContinuitySmoke.gd") as Script
 	if continuity_smoke_script == null:
 		_fail(75, "World continuity smoke: contract script missing")
