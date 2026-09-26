@@ -1,0 +1,152 @@
+extends Node3D
+
+var governorate_index := -1
+var landmark_name_ar := ""
+var landmark_name_en := ""
+var archetype := "monument"
+var selected_landmark := false
+var lod_level := 1
+var _body_root: Node3D
+var _label: Label3D
+var _highlight: MeshInstance3D
+
+
+func setup(index: int, name_ar: String, name_en: String, kind: String) -> void:
+	governorate_index = index
+	landmark_name_ar = name_ar
+	landmark_name_en = name_en
+	archetype = kind
+	_build()
+
+
+func _ready() -> void:
+	if _body_root == null:
+		_build()
+
+
+func _material(color: Color) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.roughness = 0.92
+	return mat
+
+
+func _add_box(pos: Vector3, size: Vector3, color: Color) -> MeshInstance3D:
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+	node.position = pos
+	node.material_override = _material(color)
+	_body_root.add_child(node)
+	return node
+
+
+func _add_cylinder(pos: Vector3, radius: float, height: float, color: Color) -> MeshInstance3D:
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius
+	mesh.bottom_radius = radius
+	mesh.height = height
+	mesh.radial_segments = 10
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+	node.position = pos
+	node.material_override = _material(color)
+	_body_root.add_child(node)
+	return node
+
+
+func _clear_body() -> void:
+	if _body_root != null and is_instance_valid(_body_root):
+		_body_root.free()
+	_body_root = Node3D.new()
+	_body_root.name = "Body"
+	add_child(_body_root)
+
+
+func _build() -> void:
+	_clear_body()
+	var stone := Color(0.58, 0.49, 0.34, 1.0)
+	var dark_stone := Color(0.38, 0.33, 0.26, 1.0)
+	var wood := Color(0.28, 0.19, 0.10, 1.0)
+	match archetype:
+		"citadel", "castle":
+			_add_box(Vector3(0, 0.035, 0), Vector3(0.22, 0.07, 0.18), stone)
+			for x in [-0.085, 0.085]:
+				for z in [-0.065, 0.065]:
+					_add_cylinder(Vector3(x, 0.075, z), 0.028, 0.15, dark_stone)
+		"mosque":
+			_add_box(Vector3(0, 0.03, 0), Vector3(0.20, 0.06, 0.14), stone)
+			_add_cylinder(Vector3(0.075, 0.11, -0.04), 0.014, 0.22, dark_stone)
+			_add_cylinder(Vector3(-0.045, 0.075, 0.0), 0.04, 0.09, stone)
+		"noria":
+			_add_box(Vector3(0, 0.01, 0), Vector3(0.20, 0.02, 0.08), stone)
+			var wheel := _add_cylinder(Vector3(0, 0.085, 0), 0.075, 0.018, wood)
+			wheel.rotation_degrees = Vector3(90, 0, 0)
+		"bridge":
+			_add_box(Vector3(0, 0.025, 0), Vector3(0.30, 0.025, 0.055), stone)
+			_add_box(Vector3(-0.09, 0.09, 0), Vector3(0.035, 0.18, 0.05), dark_stone)
+			_add_box(Vector3(0.09, 0.09, 0), Vector3(0.035, 0.18, 0.05), dark_stone)
+		"village":
+			_add_box(Vector3(-0.055, 0.035, 0), Vector3(0.09, 0.07, 0.08), stone)
+			_add_box(Vector3(0.045, 0.060, -0.02), Vector3(0.08, 0.12, 0.07), dark_stone)
+			_add_box(Vector3(0.015, 0.025, 0.07), Vector3(0.10, 0.05, 0.07), stone)
+		"gate":
+			_add_box(Vector3(-0.07, 0.075, 0), Vector3(0.045, 0.15, 0.055), dark_stone)
+			_add_box(Vector3(0.07, 0.075, 0), Vector3(0.045, 0.15, 0.055), dark_stone)
+			_add_box(Vector3(0, 0.135, 0), Vector3(0.18, 0.035, 0.055), stone)
+		"ruins", "theatre":
+			for x in [-0.075, -0.025, 0.025, 0.075]:
+				_add_cylinder(Vector3(x, 0.065, 0), 0.012, 0.13, stone)
+			_add_box(Vector3(0, 0.135, 0), Vector3(0.19, 0.025, 0.04), dark_stone)
+		_:
+			_add_box(Vector3(0, 0.06, 0), Vector3(0.12, 0.12, 0.12), stone)
+
+	if _label == null or not is_instance_valid(_label):
+		_label = Label3D.new()
+		_label.name = "LandmarkLabel"
+		_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_label.font_size = 28
+		_label.pixel_size = 0.0018
+		_label.outline_size = 4
+		_label.modulate = Color(0.96, 0.88, 0.67, 1.0)
+		_label.outline_modulate = Color(0.05, 0.05, 0.04, 0.95)
+		add_child(_label)
+	_label.text = landmark_name_ar
+	_label.position = Vector3(0, 0.23, 0)
+	_label.visible = false
+
+	if _highlight == null or not is_instance_valid(_highlight):
+		var ring_mesh := CylinderMesh.new()
+		ring_mesh.top_radius = 0.14
+		ring_mesh.bottom_radius = 0.14
+		ring_mesh.height = 0.006
+		ring_mesh.radial_segments = 24
+		_highlight = MeshInstance3D.new()
+		_highlight.name = "Highlight"
+		_highlight.mesh = ring_mesh
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(1.0, 0.72, 0.18, 0.28)
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_highlight.material_override = mat
+		add_child(_highlight)
+	_highlight.position = Vector3(0, 0.004, 0)
+	_highlight.visible = selected_landmark
+
+
+func set_label_visible(value: bool) -> void:
+	if _label != null:
+		_label.visible = value
+
+
+func set_selected(value: bool) -> void:
+	selected_landmark = value
+	if _highlight != null:
+		_highlight.visible = value
+
+
+func set_lod(level: int) -> void:
+	lod_level = clampi(level, 0, 2)
+	if _body_root != null:
+		_body_root.visible = lod_level > 0
+		_body_root.scale = Vector3.ONE * (0.82 if lod_level == 1 else 1.0)
