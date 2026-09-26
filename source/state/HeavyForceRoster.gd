@@ -221,3 +221,19 @@ func get_governorate_units(governorate_index: int, alive_only: bool = true) -> A
 			continue
 		result.append(unit.duplicate(true))
 	return result
+
+
+func set_surviving_hp(unit_id: String, hp: float) -> bool:
+	if not _index_by_id.has(unit_id):
+		return false
+	var index := int(_index_by_id[unit_id])
+	var unit: Dictionary = _units[index]
+	if not bool(unit.get("alive", true)):
+		return false
+	var max_hp := maxf(1.0, float(unit.get("max_hp", 1.0)))
+	var next_hp := clampf(hp, 0.0, max_hp)
+	if next_hp <= 0.0:
+		return false
+	unit["hp"] = next_hp
+	_units[index] = unit
+	return true
