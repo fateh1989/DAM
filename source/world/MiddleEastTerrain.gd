@@ -2242,6 +2242,16 @@ func _tank_family(index: int) -> String:
 	return "western" if index % 2 == 0 else "eastern"
 
 
+func _unit_type_spawn_offset(unit_type: String) -> Vector2:
+	match unit_type:
+		"artillery":
+			return Vector2(0.018, 0.010)
+		"rocket_launcher":
+			return Vector2(-0.018, 0.010)
+		_:
+			return Vector2.ZERO
+
+
 func _create_tank_visual(index: int) -> Node3D:
 	var root_node := Node3D.new()
 	root_node.name = "ArmyTank_%02d" % [index + 1]
