@@ -37,4 +37,10 @@ func run(scene: Node) -> String:
 		return "route queue lost the final valid waypoint"
 	if absf(float(queued.get("heading_rad", 0.0))) < 0.10:
 		return "heavy unit did not turn toward route immediately"
+	roster.stop_unit(unit_id)
+	var stopped: Dictionary = roster.get_unit(unit_id)
+	var tiny_start := Vector2(float(stopped["lon"]), float(stopped["lat"]))
+	var tiny_destination := Vector2(tiny_start.x + 0.000001, tiny_start.y)
+	if not roster.issue_move(unit_id, tiny_destination.x, tiny_destination.y):
+		return "precise short heavy movement was rejected as duplicate"
 	return ""
