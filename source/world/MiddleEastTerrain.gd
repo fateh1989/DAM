@@ -848,6 +848,8 @@ func _position_camera() -> void:
 		camera.near = 0.1
 		camera.far = 1000.0
 
+	_refresh_hydrology(false)
+
 
 func _clamp_overview_center_to_world() -> void:
 	var viewport := get_viewport().get_visible_rect().size
