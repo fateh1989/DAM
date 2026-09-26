@@ -162,3 +162,9 @@ func _ensure_heavy_roster_deployed() -> bool:
 
 	_heavy_roster_deployed = true
 	return true
+
+
+func get_heavy_representative_id(governorate_index: int, unit_type: String) -> String:
+	if heavy_force_roster == null:
+		return ""
+	return heavy_force_roster.representative_id(governorate_index, unit_type)
