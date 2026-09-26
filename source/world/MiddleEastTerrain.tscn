@@ -91,20 +91,21 @@ text = "START BATTLE"
 [node name="ProvinceClockPanel" type="PanelContainer" parent="HUD"]
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -568.0
+offset_left = -554.0
 offset_top = 82.0
 offset_right = -12.0
-offset_bottom = 252.0
+offset_bottom = 248.0
 grow_horizontal = 0
 mouse_filter = 0
 
 [node name="Grid" type="GridContainer" parent="HUD/ProvinceClockPanel"]
 layout_mode = 2
 columns = 7
-theme_override_constants/h_separation = 4
-theme_override_constants/v_separation = 4
+theme_override_constants/h_separation = 2
+theme_override_constants/v_separation = 2
 
 [node name="GovernorateBar" type="PanelContainer" parent="HUD"]
+visible = false
 offset_left = 12.0
 offset_top = 140.0
 offset_right = 430.0

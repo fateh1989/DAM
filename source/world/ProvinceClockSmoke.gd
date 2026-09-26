@@ -59,4 +59,10 @@ func run(scene: Node) -> String:
 			return "province clock index order is inconsistent"
 		if str(item.display_name).is_empty():
 			return "province clock is missing its governorate name"
+	var grid := scene.get_node_or_null("HUD/ProvinceClockPanel/Grid") as GridContainer
+	var old_bar := scene.get_node_or_null("HUD/GovernorateBar") as Control
+	if grid == null or grid.columns != 7:
+		return "province clocks are not arranged as a seven-by-two mobile grid"
+	if old_bar == null or old_bar.visible:
+		return "legacy governorate strip still competes with province clocks"
 	return ""
