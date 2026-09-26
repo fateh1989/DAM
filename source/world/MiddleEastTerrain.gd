@@ -2904,9 +2904,8 @@ func _sync_unit_visuals() -> void:
 		var node: Node3D = unit["node"]
 		if not is_instance_valid(node):
 			continue
-		node.visible = bool(unit.get("alive", true))
-		if not node.visible:
-			continue
+		var alive := bool(unit.get("alive", true))
+		node.visible = true
 
 		var lon := float(unit["lon"])
 		var lat := float(unit["lat"])
@@ -2925,6 +2924,15 @@ func _sync_unit_visuals() -> void:
 		var marker := node.get_node_or_null("MapMarker")
 		var selection := node.get_node_or_null("Selection")
 		var marker_lod := uses_unit_marker_lod()
+		if not alive:
+			_apply_wreck_visual(node)
+			if model != null:
+				model.visible = _terrain_mode
+			if marker != null:
+				marker.visible = false
+			if selection != null:
+				selection.visible = false
+			continue
 		if model != null:
 			model.visible = _terrain_mode and not marker_lod
 		if marker != null:
