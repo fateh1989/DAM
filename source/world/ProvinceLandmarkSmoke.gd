@@ -44,4 +44,7 @@ func run(scene: Node) -> String:
 		return "focused governorate landmark is not highlighted"
 	if bool(landmarks[1].selected_landmark):
 		return "non-focused governorate landmark is incorrectly highlighted"
+	var noria_body := landmarks[4].get_node_or_null("Body") as Node3D
+	if noria_body == null or noria_body.get_child_count() < 10:
+		return "Hama noria silhouette lacks wheel detail"
 	return ""

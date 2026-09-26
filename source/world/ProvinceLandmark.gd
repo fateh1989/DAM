@@ -42,6 +42,20 @@ func _add_box(pos: Vector3, size: Vector3, color: Color) -> MeshInstance3D:
 	return node
 
 
+func _add_sphere(pos: Vector3, radius: float, color: Color) -> MeshInstance3D:
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 2.0
+	mesh.radial_segments = 10
+	mesh.rings = 5
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+	node.position = pos
+	node.material_override = _material(color)
+	_body_root.add_child(node)
+	return node
+
+
 func _add_cylinder(pos: Vector3, radius: float, height: float, color: Color) -> MeshInstance3D:
 	var mesh := CylinderMesh.new()
 	mesh.top_radius = radius
@@ -79,14 +93,19 @@ func _build() -> void:
 			_add_box(Vector3(0, 0.03, 0), Vector3(0.20, 0.06, 0.14), stone)
 			_add_cylinder(Vector3(0.075, 0.11, -0.04), 0.014, 0.22, dark_stone)
 			_add_cylinder(Vector3(-0.045, 0.075, 0.0), 0.04, 0.09, stone)
+			_add_sphere(Vector3(-0.045, 0.118, 0.0), 0.045, stone)
 		"noria":
 			_add_box(Vector3(0, 0.01, 0), Vector3(0.20, 0.02, 0.08), stone)
 			var wheel := _add_cylinder(Vector3(0, 0.085, 0), 0.075, 0.018, wood)
 			wheel.rotation_degrees = Vector3(90, 0, 0)
+			for spoke_index in range(8):
+				var spoke := _add_box(Vector3(0, 0.085, 0), Vector3(0.14, 0.008, 0.008), wood)
+				spoke.rotation_degrees = Vector3(0, 0, float(spoke_index) * 22.5)
 		"bridge":
 			_add_box(Vector3(0, 0.025, 0), Vector3(0.30, 0.025, 0.055), stone)
 			_add_box(Vector3(-0.09, 0.09, 0), Vector3(0.035, 0.18, 0.05), dark_stone)
 			_add_box(Vector3(0.09, 0.09, 0), Vector3(0.035, 0.18, 0.05), dark_stone)
+			_add_box(Vector3(0, 0.155, 0), Vector3(0.22, 0.012, 0.018), dark_stone)
 		"village":
 			_add_box(Vector3(-0.055, 0.035, 0), Vector3(0.09, 0.07, 0.08), stone)
 			_add_box(Vector3(0.045, 0.060, -0.02), Vector3(0.08, 0.12, 0.07), dark_stone)
