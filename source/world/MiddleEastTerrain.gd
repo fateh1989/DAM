@@ -3681,6 +3681,16 @@ func set_heavy_visual_weapon_pose(node: Node3D, yaw_degrees: float, elevation_de
 		node.set_meta("weapon_yaw_deg", turret.rotation_degrees.y)
 		node.set_meta("weapon_elevation_deg", gun_mount.rotation_degrees.x)
 		return true
+	if unit_type == "artillery":
+		var turret := node.get_node_or_null("ArtilleryModel/TurretPivot") as Node3D
+		var gun_mount := node.get_node_or_null("ArtilleryModel/TurretPivot/GunMount") as Node3D
+		if turret == null or gun_mount == null:
+			return false
+		turret.rotation_degrees.y = wrapf(yaw_degrees, -180.0, 180.0)
+		gun_mount.rotation_degrees.x = clampf(elevation_degrees, -5.0, 35.0)
+		node.set_meta("weapon_yaw_deg", turret.rotation_degrees.y)
+		node.set_meta("weapon_elevation_deg", gun_mount.rotation_degrees.x)
+		return true
 	return false
 
 
