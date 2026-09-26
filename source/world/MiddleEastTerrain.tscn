@@ -198,7 +198,7 @@ text = "RADAR CAMERA"
 [node name="SelectionBox" type="ColorRect" parent="HUD"]
 visible = false
 mouse_filter = 2
-color = Color(0.2, 0.75, 1, 0.22)
+color = Color(0.14, 0.95, 0.24, 0.18)
 
 [node name="ZoomWheel" type="PanelContainer" parent="HUD"]
 anchor_left = 1.0
