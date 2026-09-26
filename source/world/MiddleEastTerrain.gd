@@ -4027,6 +4027,7 @@ func get_radar_units() -> Array:
 			"primary": i == _selected_unit_index or (logical_selected and not _selected_logical_unit_ids.is_empty() and logical_id == _selected_logical_unit_ids.back()),
 		})
 	_append_selected_logical_radar_units(result, represented_ids)
+	_append_focused_logical_radar_units(result, represented_ids)
 	return result
 
 
@@ -4055,6 +4056,34 @@ func _append_selected_logical_radar_units(result: Array, represented_ids: Dictio
 			"primary": not _selected_logical_unit_ids.is_empty() and logical_id == _selected_logical_unit_ids.back(),
 			"logical_detail": true,
 		})
+		represented_ids[logical_id] = true
+
+
+func _append_focused_logical_radar_units(result: Array, represented_ids: Dictionary) -> void:
+	if _rts_zoom_level < RTS_DETAIL_UNIT_LOD_MIN:
+		return
+	var game_state := _game_state_node()
+	if game_state == null:
+		return
+	var roster_units: Array = game_state.call("get_heavy_units_for_governorate", _governorate_index, true)
+	for raw_logical in roster_units:
+		var logical: Dictionary = raw_logical
+		var logical_id := str(logical.get("id", ""))
+		if logical_id.is_empty() or represented_ids.has(logical_id):
+			continue
+		var governorate_index := int(logical.get("current_governorate_index", _governorate_index))
+		result.append({
+			"index": -1,
+			"logical_id": logical_id,
+			"governorate_index": governorate_index,
+			"unit_type": str(logical.get("unit_type", "tank")),
+			"uv": _radar_uv_from_geo(float(logical.get("lon", 0.0)), float(logical.get("lat", 0.0))),
+			"color": _army_color(governorate_index),
+			"selected": logical_id in _selected_logical_unit_ids,
+			"primary": not _selected_logical_unit_ids.is_empty() and logical_id == _selected_logical_unit_ids.back(),
+			"logical_detail": true,
+		})
+		represented_ids[logical_id] = true
 
 
 func select_nearest_unit_uv(uv: Vector2, max_distance: float = 0.06) -> int:
