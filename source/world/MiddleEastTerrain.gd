@@ -5026,6 +5026,47 @@ func _sync_logical_unit_position(unit: Dictionary) -> bool:
 	return position_ok and heading_ok
 
 
+func _resolve_pending_visible_attacks() -> int:
+	var resolved := 0
+	for attacker_index in range(_units.size()):
+		var attacker: Dictionary = _units[attacker_index]
+		if not attacker.has("attack_target_index"):
+			continue
+		var target_index := int(attacker.get("attack_target_index", -1))
+		if target_index < 0 or target_index >= _units.size() or target_index == attacker_index:
+			attacker.erase("attack_target_index")
+			attacker.erase("attack_weapon_id")
+			_units[attacker_index] = attacker
+			continue
+		var target: Dictionary = _units[target_index]
+		if not bool(target.get("alive", true)):
+			attacker.erase("attack_target_index")
+			attacker.erase("attack_weapon_id")
+			_units[attacker_index] = attacker
+			continue
+		var weapon_id := str(attacker.get("attack_weapon_id", _default_heavy_weapon(str(attacker.get("unit_type", "tank")))))
+		var result := resolve_unit_attack(attacker_index, target_index, weapon_id)
+		if bool(result.get("ok", false)):
+			attacker = _units[attacker_index]
+			attacker.erase("attack_target_index")
+			attacker.erase("attack_weapon_id")
+			attacker["moving"] = false
+			attacker["target_lon"] = float(attacker.get("lon", 0.0))
+			attacker["target_lat"] = float(attacker.get("lat", 0.0))
+			attacker["route_points"] = []
+			_units[attacker_index] = attacker
+			var logical_id := str(attacker.get("logical_unit_id", ""))
+			var game_state := _game_state_node()
+			if not logical_id.is_empty() and game_state != null:
+				game_state.call("stop_heavy_unit", logical_id)
+			resolved += 1
+		elif str(result.get("reason", "")) != "out_of_range":
+			attacker.erase("attack_target_index")
+			attacker.erase("attack_weapon_id")
+			_units[attacker_index] = attacker
+	return resolved
+
+
 func _process(delta: float) -> void:
 	if _units.is_empty():
 		return
@@ -5099,6 +5140,8 @@ func _process(delta: float) -> void:
 		_sync_unit_visuals()
 	if logical_moved_count > 0:
 		_sync_detail_unit_lod()
+	if _resolve_pending_visible_attacks() > 0:
+		_sync_unit_visuals()
 
 func _governorate() -> Dictionary:
 	return GOVERNORATES[_governorate_index]
