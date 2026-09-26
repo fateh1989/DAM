@@ -20,6 +20,7 @@ func run(scene: Node) -> String:
 			"river_name": "الفرات الاختباري",
 			"lon": 37.0,
 			"lat": 35.5,
+			"path": [[36.995, 35.5], [37.005, 35.5]],
 		}],
 	}
 	scene.set("_hydrology_data", fake)
@@ -27,17 +28,26 @@ func run(scene: Node) -> String:
 	var start := Vector2(36.8, 35.35)
 	var destination := Vector2(37.2, 35.35)
 	var routed: Array[Vector2] = scene.call("plan_ground_route", start, destination)
-	if routed.size() != 2:
+	if routed.size() != 3:
 		scene.set("_hydrology_data", original)
-		return "river crossing route did not insert exactly one legal bridge waypoint"
-	if routed[0].distance_to(Vector2(37.0, 35.5)) > 0.00001:
+		return "river crossing route did not keep bridge entry, exit and destination"
+	if routed[0].distance_to(Vector2(36.995, 35.5)) > 0.00001:
 		scene.set("_hydrology_data", original)
-		return "river crossing route did not use the legal bridge"
+		return "army did not approach the near end of the bridge"
+	if routed[1].distance_to(Vector2(37.005, 35.5)) > 0.00001:
+		scene.set("_hydrology_data", original)
+		return "army did not leave through the far end of the bridge"
+	if routed[2].distance_to(destination) > 0.00001:
+		scene.set("_hydrology_data", original)
+		return "bridge route lost final destination"
 
 	var bridge_line: Array[Vector2] = scene.call("plan_ground_route", Vector2(36.8, 35.5), Vector2(37.2, 35.5))
-	if bridge_line.size() != 1:
+	if bridge_line.size() != 3:
 		scene.set("_hydrology_data", original)
-		return "movement through a legal bridge was incorrectly rerouted"
+		return "movement across bridge did not follow both bridge ends"
+	if bridge_line[0].distance_to(Vector2(36.995, 35.5)) > 0.00001 or bridge_line[1].distance_to(Vector2(37.005, 35.5)) > 0.00001:
+		scene.set("_hydrology_data", original)
+		return "movement across bridge cut diagonally through water"
 
 	var grouped := {
 		"source": "group-test",
