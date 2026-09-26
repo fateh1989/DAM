@@ -2906,7 +2906,8 @@ func issue_selected_attack(target_index: int) -> int:
 	var target: Dictionary = _units[target_index]
 	if not bool(target.get("alive", true)):
 		return 0
-	var fired := 0
+	_move_order_serial += 1
+	var issued := 0
 	for attacker_index in _selected_unit_indices.duplicate():
 		if attacker_index < 0 or attacker_index >= _units.size() or attacker_index == target_index:
 			continue
@@ -2918,10 +2919,26 @@ func issue_selected_attack(target_index: int) -> int:
 		var weapon_id := _default_heavy_weapon(str(attacker.get("unit_type", "tank")))
 		var result := resolve_unit_attack(attacker_index, target_index, weapon_id)
 		if bool(result.get("ok", false)):
-			fired += 1
+			attacker = _units[attacker_index]
+			attacker.erase("attack_target_index")
+			attacker.erase("attack_weapon_id")
+			_units[attacker_index] = attacker
+			issued += 1
+		elif str(result.get("reason", "")) == "out_of_range":
+			attacker["attack_target_index"] = target_index
+			attacker["attack_weapon_id"] = weapon_id
+			_units[attacker_index] = attacker
+			var approach := _attack_standoff_point(attacker, target, weapon_id)
+			if _issue_move_order(attacker_index, approach):
+				issued += 1
+			else:
+				attacker = _units[attacker_index]
+				attacker.erase("attack_target_index")
+				attacker.erase("attack_weapon_id")
+				_units[attacker_index] = attacker
 		if target_index >= 0 and target_index < _units.size() and not bool((_units[target_index] as Dictionary).get("alive", true)):
 			break
-	return fired
+	return issued
 
 
 func _selected_attack_logical_ids() -> Array[String]:
