@@ -453,6 +453,16 @@ func _run() -> void:
 		_fail(76, "World continuity smoke: " + continuity_error)
 		return
 
+	var architecture_fence_script := load("res://source/world/ArchitectureFenceSmoke.gd") as Script
+	if architecture_fence_script == null:
+		_fail(109, "Architecture fence smoke: contract script missing")
+		return
+	var architecture_fence = architecture_fence_script.new()
+	var architecture_error := str(architecture_fence.call("run", scene))
+	if not architecture_error.is_empty():
+		_fail(110, "Architecture fence smoke: " + architecture_error)
+		return
+
 	var logical_selection_smoke_script := load("res://source/world/LogicalHeavySelectionSmoke.gd") as Script
 	if logical_selection_smoke_script == null:
 		_fail(89, "Logical heavy selection smoke: contract script missing")
