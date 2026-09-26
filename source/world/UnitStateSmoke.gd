@@ -303,15 +303,36 @@ func _run() -> void:
 		_fail(129, "Radar logical-detail smoke: could not select persistent unit")
 		return
 	var found_detail_radar := false
+	var detail_radar_uv := Vector2.ZERO
 	for raw_radar_item in scene.get_radar_units():
 		var radar_item: Dictionary = raw_radar_item
 		if str(radar_item.get("logical_id", "")) == detail_radar_id and bool(radar_item.get("logical_detail", false)):
 			found_detail_radar = true
+			detail_radar_uv = radar_item.get("uv", Vector2.ZERO)
 			break
 	if not found_detail_radar:
 		_fail(130, "Radar logical-detail smoke: selected persistent unit is invisible")
 		return
 	scene.call("clear_logical_heavy_selection")
+	scene.set_radar_action_mode("select")
+	var radar_for_detail = scene.get_node_or_null("HUD/RTSRadar")
+	if radar_for_detail == null:
+		_fail(131, "Radar logical-detail smoke: radar node missing")
+		return
+	radar_for_detail.call("apply_action_uv", detail_radar_uv)
+	if int(scene.call("get_selected_logical_heavy_count")) != 1:
+		_fail(132, "Radar logical-detail smoke: tap did not select persistent unit")
+		return
+	var move_uv := Vector2(clampf(detail_radar_uv.x + 0.002, 0.0, 1.0), detail_radar_uv.y)
+	scene.set_radar_action_mode("move")
+	radar_for_detail.call("apply_action_uv", move_uv)
+	var radar_moved_unit: Dictionary = game_state_for_radar.call("get_heavy_unit", detail_radar_id)
+	if not bool(radar_moved_unit.get("moving", false)):
+		_fail(133, "Radar logical-detail smoke: move mode did not command persistent unit")
+		return
+	game_state_for_radar.call("stop_heavy_unit", detail_radar_id)
+	scene.call("clear_logical_heavy_selection")
+	scene.set_radar_action_mode("camera")
 
 	var first_radar_item: Dictionary = scene.get_radar_units()[0]
 	scene.clear_selected_units()
