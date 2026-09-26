@@ -174,3 +174,14 @@ func set_current_governorate(unit_id: String, governorate_index: int) -> bool:
 	unit["current_governorate_index"] = governorate_index
 	_units[index] = unit
 	return true
+
+
+func representative_id(governorate_index: int, unit_type: String) -> String:
+	for unit in _units:
+		if int(unit.get("home_governorate_index", -1)) != governorate_index:
+			continue
+		if str(unit.get("unit_type", "")) != unit_type:
+			continue
+		if bool(unit.get("alive", true)):
+			return str(unit.get("id", ""))
+	return ""
