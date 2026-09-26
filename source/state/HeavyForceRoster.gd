@@ -194,6 +194,14 @@ func issue_route(unit_id: String, waypoints: Array) -> bool:
 	return true
 
 
+func get_pending_route_point_count(unit_id: String) -> int:
+	if not _index_by_id.has(unit_id):
+		return -1
+	var index := int(_index_by_id[unit_id])
+	var unit: Dictionary = _units[index]
+	return (unit.get("route_points", []) as Array).size()
+
+
 func stop_unit(unit_id: String) -> bool:
 	if not _index_by_id.has(unit_id):
 		return false
