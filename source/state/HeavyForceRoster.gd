@@ -148,3 +148,19 @@ func stop_unit(unit_id: String) -> bool:
 	unit["moving"] = false
 	_units[index] = unit
 	return true
+
+
+func record_destroyed(unit_id: String) -> bool:
+	if not _index_by_id.has(unit_id):
+		return false
+	var index := int(_index_by_id[unit_id])
+	var unit: Dictionary = _units[index]
+	if not bool(unit.get("alive", true)):
+		return false
+	unit["alive"] = false
+	unit["hp"] = 0.0
+	unit["moving"] = false
+	unit["target_lon"] = float(unit.get("lon", 0.0))
+	unit["target_lat"] = float(unit.get("lat", 0.0))
+	_units[index] = unit
+	return true
