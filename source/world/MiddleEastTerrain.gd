@@ -2450,6 +2450,20 @@ func _create_launcher_visual(index: int) -> Node3D:
 	rotating_base.material_override = _solid_unshaded_material(army_color.darkened(0.05))
 	launcher_pivot.add_child(rotating_base)
 
+	var elevation_pivot := Node3D.new()
+	elevation_pivot.name = "ElevationPivot"
+	elevation_pivot.position = Vector3(0.0, 0.26, -0.12)
+	launcher_pivot.add_child(elevation_pivot)
+
+	var pod_mesh := BoxMesh.new()
+	pod_mesh.size = Vector3(1.22, 0.64, 1.42) if family == "western" else Vector3(1.08, 0.58, 1.28)
+	var pod := MeshInstance3D.new()
+	pod.name = "RocketPod"
+	pod.mesh = pod_mesh
+	pod.position = Vector3(0.0, 0.18, -0.32)
+	pod.material_override = _solid_unshaded_material(army_color)
+	elevation_pivot.add_child(pod)
+
 	var marker := Node3D.new()
 	marker.name = "MapMarker"
 	root_node.add_child(marker)
