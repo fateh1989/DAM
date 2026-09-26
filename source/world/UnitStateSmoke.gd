@@ -373,6 +373,15 @@ func _run() -> void:
 		_fail(130, "Radar logical-detail smoke: selected persistent unit is invisible")
 		return
 	scene.call("clear_logical_heavy_selection")
+	var remains_on_close_radar := false
+	for raw_close_radar_item in scene.get_radar_units():
+		var close_radar_item: Dictionary = raw_close_radar_item
+		if str(close_radar_item.get("logical_id", "")) == detail_radar_id and bool(close_radar_item.get("logical_detail", false)):
+			remains_on_close_radar = true
+			break
+	if not remains_on_close_radar:
+		_fail(154, "Radar logical-detail smoke: focused persistent unit disappeared at detail zoom")
+		return
 	scene.set_radar_action_mode("select")
 	var radar_for_detail = scene.get_node_or_null("HUD/RTSRadar")
 	if radar_for_detail == null:
