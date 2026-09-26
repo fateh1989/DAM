@@ -4268,6 +4268,24 @@ func select_nearest_unit_uv(uv: Vector2, max_distance: float = 0.06) -> int:
 	return best_index
 
 
+func _nearest_radar_item(uv: Vector2, max_distance: float = 0.06, logical_detail_only: bool = false) -> Dictionary:
+	var target := Vector2(clampf(uv.x, 0.0, 1.0), clampf(uv.y, 0.0, 1.0))
+	var best: Dictionary = {}
+	var best_distance := maxf(0.0, max_distance)
+	for raw_item in get_radar_units():
+		if typeof(raw_item) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = raw_item
+		if logical_detail_only and item.get("logical_detail", false) != true:
+			continue
+		var point: Vector2 = item.get("uv", Vector2.ZERO)
+		var distance := point.distance_to(target)
+		if distance <= best_distance:
+			best_distance = distance
+			best = item
+	return best
+
+
 func select_nearest_radar_target_uv(uv: Vector2, max_distance: float = 0.06) -> bool:
 	var target := Vector2(clampf(uv.x, 0.0, 1.0), clampf(uv.y, 0.0, 1.0))
 	var best: Dictionary = {}
