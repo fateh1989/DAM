@@ -167,6 +167,16 @@ func _run() -> void:
 		_fail(80, "Support heavy visual smoke: " + support_visual_error)
 		return
 
+	var weapon_pose_smoke_script := load("res://source/world/HeavyWeaponPoseSmoke.gd") as Script
+	if weapon_pose_smoke_script == null:
+		_fail(120, "Heavy weapon pose smoke: contract script missing")
+		return
+	var weapon_pose_smoke = weapon_pose_smoke_script.new()
+	var weapon_pose_error := str(weapon_pose_smoke.call("run", scene))
+	if not weapon_pose_error.is_empty():
+		_fail(121, "Heavy weapon pose smoke: " + weapon_pose_error)
+		return
+
 	var heavy_roster_smoke_script := load("res://source/world/HeavyRosterSmoke.gd") as Script
 	if heavy_roster_smoke_script == null:
 		_fail(81, "Heavy roster smoke: contract script missing")
