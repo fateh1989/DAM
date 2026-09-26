@@ -187,6 +187,34 @@ func _build_residential_rings(palette: Dictionary) -> void:
 			_roof_nodes.append(roof)
 
 
+func _build_balconies_and_arcades(palette: Dictionary) -> void:
+	var balcony_mat := _material(palette["roof"])
+	var arcade_mat := _material(palette["accent"])
+	for i in range(_building_nodes.size()):
+		if i % 6 != 0:
+			continue
+		var building := _building_nodes[i]
+		var box := building.mesh as BoxMesh
+		if box == null:
+			continue
+		var balcony := _add_box(
+			_body_root,
+			building.position + Vector3(0, box.size.y * 0.10, box.size.z * 0.54),
+			Vector3(box.size.x * 0.66, 0.010, 0.020),
+			balcony_mat,
+			"Balcony_%03d" % i
+		)
+		balcony.rotation = building.rotation
+		_detail_nodes.append(balcony)
+		if style_id in ["damascene", "aleppine", "southern"]:
+			var pillar_left := _add_box(_body_root, balcony.position + Vector3(-box.size.x * 0.22, -0.025, 0), Vector3(0.010, 0.050, 0.010), arcade_mat, "ArcadeL_%03d" % i)
+			var pillar_right := _add_box(_body_root, balcony.position + Vector3(box.size.x * 0.22, -0.025, 0), Vector3(0.010, 0.050, 0.010), arcade_mat, "ArcadeR_%03d" % i)
+			pillar_left.rotation = building.rotation
+			pillar_right.rotation = building.rotation
+			_detail_nodes.append(pillar_left)
+			_detail_nodes.append(pillar_right)
+
+
 func _build_roof_details(palette: Dictionary) -> void:
 	var roof_mat := _material(palette["roof"])
 	var accent_mat := _material(palette["accent"])
@@ -269,6 +297,7 @@ func _rebuild() -> void:
 	_build_radial_streets(palette)
 	_build_residential_rings(palette)
 	_build_facade_details(palette)
+	_build_balconies_and_arcades(palette)
 	_build_roof_details(palette)
 	_build_industrial_edge(palette)
 	_build_label()
