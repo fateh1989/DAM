@@ -243,6 +243,10 @@ func set_represented_count(value: int) -> void:
 		_count_label.text = "×%d" % represented_count
 
 
+func get_count_label_text() -> String:
+	return "" if _count_label == null else _count_label.text
+
+
 func get_part(name_value: String) -> Node:
 	if _model_root == null:
 		return null

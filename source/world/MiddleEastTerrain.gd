@@ -2298,6 +2298,35 @@ func get_heavy_weapon_country_total() -> int:
 	return -1 if _heavy_weapon_roster == null else int(_heavy_weapon_roster.get_grand_total())
 
 
+func _find_heavy_weapon_marker(province_index: int, weapon_type: String) -> Node3D:
+	for marker in _arsenal_markers:
+		if not is_instance_valid(marker):
+			continue
+		if int(marker.get("province_index")) == province_index and str(marker.get("weapon_type")) == weapon_type:
+			return marker
+	return null
+
+
+func apply_heavy_weapon_loss(province_index: int, weapon_type: String, quantity: int = 1) -> int:
+	if _heavy_weapon_roster == null:
+		return -1
+	var remaining: int = int(_heavy_weapon_roster.apply_loss(province_index, weapon_type, quantity))
+	var marker := _find_heavy_weapon_marker(province_index, weapon_type)
+	if marker != null and remaining >= 0:
+		marker.call("set_represented_count", remaining)
+	return remaining
+
+
+func restore_heavy_weapon(province_index: int, weapon_type: String, quantity: int = 1) -> int:
+	if _heavy_weapon_roster == null:
+		return -1
+	var restored: int = int(_heavy_weapon_roster.restore(province_index, weapon_type, quantity))
+	var marker := _find_heavy_weapon_marker(province_index, weapon_type)
+	if marker != null and restored >= 0:
+		marker.call("set_represented_count", restored)
+	return restored
+
+
 func get_heavy_weapon_markers() -> Array[Node3D]:
 	return _arsenal_markers.duplicate()
 

@@ -34,6 +34,20 @@ func run(scene: Node) -> String:
 		var inventory: Dictionary = scene.call("get_heavy_weapon_inventory", province_index)
 		if int(inventory.get("tank", -1)) != 50 or int(inventory.get("launcher", -1)) != 20 or int(inventory.get("artillery", -1)) != 30:
 			return "live governorate arsenal does not match requested 50 20 30 inventory"
+	var remaining_tanks := int(scene.call("apply_heavy_weapon_loss", 2, "tank", 3))
+	if remaining_tanks != 47 or int(scene.call("get_heavy_weapon_country_total")) != 1397:
+		return "heavy weapon losses do not reduce persistent governorate inventory"
+	var aleppo_tank_marker: Node3D = null
+	for marker in live_markers:
+		if int(marker.get("province_index")) == 2 and str(marker.get("weapon_type")) == "tank":
+			aleppo_tank_marker = marker
+			break
+	if aleppo_tank_marker == null or str(aleppo_tank_marker.call("get_count_label_text")) != "×47":
+		return "visible arsenal count did not follow persistent tank losses"
+	if int(scene.call("restore_heavy_weapon", 2, "tank", 3)) != 50:
+		return "heavy weapon inventory could not be restored after loss test"
+	if int(scene.call("get_heavy_weapon_country_total")) != 1400:
+		return "heavy weapon total did not return to fourteen hundred after restore"
 
 	var west_tank := VISUAL_SCRIPT.new()
 	west_tank.setup("tank", "west", 0, 50)
