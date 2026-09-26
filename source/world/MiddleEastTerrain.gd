@@ -873,7 +873,8 @@ func _clamp_overview_center_to_world() -> void:
 		_center_lon = clampf(_center_lon, REGION_WEST + half_lon_deg, REGION_EAST - half_lon_deg)
 
 func _is_strategic_map() -> bool:
-	return not _terrain_mode and _map_zoom <= SYRIA_OVERVIEW_ZOOM
+	# DAM has one continuous RTS world; the legacy separate strategic-map path stays disabled.
+	return false
 
 
 func _is_tactical_overview() -> bool:
