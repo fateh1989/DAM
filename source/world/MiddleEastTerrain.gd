@@ -518,6 +518,10 @@ func _should_accept_world_tap(active_touch_count: int, drag_distance: float) -> 
 	return active_touch_count == 1 and not _multi_touch_gesture_active and drag_distance <= TAP_MAX_DRAG_PX
 
 
+func _should_pan_world(active_touch_count: int, drag_distance: float) -> bool:
+	return active_touch_count == 1 and not _multi_touch_gesture_active and drag_distance > TAP_MAX_DRAG_PX
+
+
 func _begin_box_selection(pointer_id: int, screen_position: Vector2) -> void:
 	_box_select_active = true
 	_box_select_pointer_id = pointer_id
