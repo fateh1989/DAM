@@ -3527,6 +3527,17 @@ func _create_tank_visual(index: int) -> Node3D:
 	antenna.material_override = _solid_unshaded_material(Color(0.12, 0.13, 0.11, 1.0))
 	turret_pivot.add_child(antenna)
 
+	for side in [-1.0, 1.0]:
+		var bank_mesh := BoxMesh.new()
+		bank_mesh.size = Vector3(0.18, 0.16, 0.34)
+		var bank := MeshInstance3D.new()
+		bank.name = "SmokeLauncherLeft" if side < 0.0 else "SmokeLauncherRight"
+		bank.mesh = bank_mesh
+		bank.position = Vector3(side * (0.62 if family == "western" else 0.52), 0.82 if family == "western" else 0.69, -0.46)
+		bank.rotation_degrees = Vector3(-8.0, side * 15.0, 0.0)
+		bank.material_override = _solid_unshaded_material(Color(0.18, 0.19, 0.16, 1.0))
+		turret_pivot.add_child(bank)
+
 	var marker := Node3D.new()
 	marker.name = "MapMarker"
 	root_node.add_child(marker)
@@ -3616,6 +3627,8 @@ func validate_strategic_tank_visuals() -> String:
 			"TankModel/TurretPivot/GunMount/Barrel",
 			"TankModel/TurretPivot/CommanderHatch",
 			"TankModel/TurretPivot/MainSight",
+			"TankModel/TurretPivot/SmokeLauncherLeft",
+			"TankModel/TurretPivot/SmokeLauncherRight",
 			"TankModel/EngineDeck",
 		]:
 			if node.get_node_or_null(required_path) == null:
