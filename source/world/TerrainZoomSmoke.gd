@@ -5,4 +5,10 @@ func run(scene: Node) -> String:
 		return "RTS terrain zoom range is not five levels"
 	if scene.RTS_ZOOM_DISTANCE_SCALES.size() != 5:
 		return "RTS terrain zoom scale table does not contain five levels"
+	var last := 999.0
+	for level in range(1, 6):
+		var scale := float(scene.call("get_rts_camera_distance_scale", level))
+		if scale >= last:
+			return "RTS camera distance does not get progressively closer"
+		last = scale
 	return ""
