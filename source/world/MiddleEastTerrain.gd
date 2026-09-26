@@ -2186,6 +2186,42 @@ func resolve_unit_attack(attacker_index: int, target_index: int, weapon_id: Stri
 	return result
 
 
+func _append_governorate_unit(governorate_index: int, unit_type: String) -> bool:
+	if governorate_index < 0 or governorate_index >= GOVERNORATES.size():
+		return false
+	var gov: Dictionary = GOVERNORATES[governorate_index]
+	var node := _create_heavy_unit_visual(unit_type, governorate_index)
+	_unit_root.add_child(node)
+
+	var combat_state: Dictionary = {}
+	if _army_core != null:
+		var deployed: Dictionary = _army_core.deploy("syria", unit_type, 1)
+		if bool(deployed.get("ok", false)):
+			combat_state = _army_core.create_unit_state(unit_type, "syria")
+
+	var unit_spec: Dictionary = _army_core.unit_spec(unit_type) if _army_core != null else {}
+	var offset := _unit_type_spawn_offset(unit_type)
+	var spawn_lon := float(gov["lon"]) + offset.x
+	var spawn_lat := float(gov["lat"]) + offset.y
+	_units.append({
+		"army_id": governorate_index + 1,
+		"country_id": "syria",
+		"unit_type": unit_type,
+		"governorate_index": governorate_index,
+		"lon": spawn_lon,
+		"lat": spawn_lat,
+		"target_lon": spawn_lon,
+		"target_lat": spawn_lat,
+		"moving": false,
+		"alive": bool(combat_state.get("alive", true)),
+		"hp": float(combat_state.get("hp", unit_spec.get("hp", 100.0))),
+		"combat_state": combat_state,
+		"speed_km_sec": float(combat_state.get("speed_km_sec", unit_spec.get("speed_km_sec", UNIT_SPEED_KM_PER_SEC))),
+		"node": node,
+	})
+	return true
+
+
 func _setup_unit_layer() -> void:
 	if is_instance_valid(_unit_root):
 		return
