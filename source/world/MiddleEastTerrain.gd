@@ -27,20 +27,20 @@ const TACTICAL_SHADER_PATH := "res://source/world/shaders/TacticalGround.gdshade
 const PROVINCE_LANDMARK_SCRIPT := preload("res://source/world/ProvinceLandmark.gd")
 
 const PROVINCE_LANDMARKS := [
-	{"governorate_index":0,"name_ar":"الجامع الأموي","name_en":"Umayyad Mosque","kind":"mosque","lat":33.5115,"lon":36.3067},
-	{"governorate_index":1,"name_ar":"معلولا","name_en":"Maaloula","kind":"village","lat":33.8442,"lon":36.5460},
-	{"governorate_index":2,"name_ar":"قلعة حلب","name_en":"Citadel of Aleppo","kind":"citadel","lat":36.1997,"lon":37.1629},
-	{"governorate_index":3,"name_ar":"آثار تدمر","name_en":"Palmyra Ruins","kind":"ruins","lat":34.5503,"lon":38.2681},
-	{"governorate_index":4,"name_ar":"نواعير حماة","name_en":"Norias of Hama","kind":"noria","lat":35.1340,"lon":36.7520},
-	{"governorate_index":5,"name_ar":"قلعة صلاح الدين","name_en":"Saladin Castle","kind":"castle","lat":35.5956,"lon":36.0561},
-	{"governorate_index":6,"name_ar":"قلعة أرواد","name_en":"Arwad Citadel","kind":"citadel","lat":34.8565,"lon":35.8588},
-	{"governorate_index":7,"name_ar":"قلب لوزة","name_en":"Qalb Lozeh","kind":"ruins","lat":36.1670,"lon":36.5810},
-	{"governorate_index":8,"name_ar":"باب بغداد","name_en":"Baghdad Gate","kind":"gate","lat":35.9505,"lon":39.0100},
-	{"governorate_index":9,"name_ar":"الجسر المعلق","name_en":"Deir ez-Zor Suspension Bridge","kind":"bridge","lat":35.3374,"lon":40.1471},
-	{"governorate_index":10,"name_ar":"تل حلف","name_en":"Tell Halaf","kind":"ruins","lat":36.8210,"lon":40.0390},
-	{"governorate_index":11,"name_ar":"مسرح بصرى","name_en":"Bosra Roman Theatre","kind":"theatre","lat":32.5185,"lon":36.4812},
-	{"governorate_index":12,"name_ar":"مسرح شهبا","name_en":"Shahba Roman Theatre","kind":"theatre","lat":32.8558,"lon":36.6284},
-	{"governorate_index":13,"name_ar":"القنيطرة القديمة","name_en":"Old Quneitra","kind":"ruins","lat":33.1259,"lon":35.8246},
+	{"governorate_index":0,"name_ar":"دمشق","name_en":"Damascus","kind":"city","lat":33.51019814679501,"lon":36.29127502441406},
+	{"governorate_index":1,"name_ar":"ريف دمشق / دوما","name_en":"Rif Dimashq / Douma","kind":"city","lat":33.571747,"lon":36.402701},
+	{"governorate_index":2,"name_ar":"حلب","name_en":"Aleppo","kind":"city","lat":36.201241,"lon":37.161173},
+	{"governorate_index":3,"name_ar":"حمص","name_en":"Homs","kind":"city","lat":34.72405042,"lon":36.72558878},
+	{"governorate_index":4,"name_ar":"حماة","name_en":"Hama","kind":"city","lat":35.13179,"lon":36.757834},
+	{"governorate_index":5,"name_ar":"اللاذقية","name_en":"Latakia","kind":"city","lat":35.53124956,"lon":35.79088351},
+	{"governorate_index":6,"name_ar":"طرطوس","name_en":"Tartus","kind":"city","lat":34.889022,"lon":35.886586},
+	{"governorate_index":7,"name_ar":"إدلب","name_en":"Idlib","kind":"city","lat":35.930616,"lon":36.63393},
+	{"governorate_index":8,"name_ar":"الرقة","name_en":"Raqqa","kind":"city","lat":35.952829,"lon":39.007879},
+	{"governorate_index":9,"name_ar":"دير الزور","name_en":"Deir ez-Zor","kind":"city","lat":35.335876,"lon":40.140844},
+	{"governorate_index":10,"name_ar":"الحسكة","name_en":"Al-Hasakah","kind":"city","lat":36.502368,"lon":40.747716},
+	{"governorate_index":11,"name_ar":"درعا","name_en":"Daraa","kind":"city","lat":32.618889,"lon":36.102134},
+	{"governorate_index":12,"name_ar":"السويداء","name_en":"As-Suwayda","kind":"city","lat":32.708958,"lon":36.569513},
+	{"governorate_index":13,"name_ar":"القنيطرة","name_en":"Quneitra","kind":"city","lat":33.125945,"lon":35.824613},
 ]
 const TACTICAL_RELIEF_EXAGGERATION := 1.0
 const TACTICAL_OVERVIEW_ZOOM := 8
