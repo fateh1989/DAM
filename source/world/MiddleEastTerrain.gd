@@ -3330,6 +3330,21 @@ func _issue_move_order(unit_index: int, destination: Vector2) -> bool:
 	return true
 
 
+func _sync_logical_unit_position(unit: Dictionary) -> bool:
+	var logical_id := str(unit.get("logical_unit_id", ""))
+	if logical_id.is_empty():
+		return false
+	var game_state := _game_state_node()
+	if game_state == null:
+		return false
+	return bool(game_state.call(
+		"update_heavy_unit_position",
+		logical_id,
+		float(unit.get("lon", 0.0)),
+		float(unit.get("lat", 0.0))
+	))
+
+
 func _process(delta: float) -> void:
 	if _units.is_empty():
 		return
