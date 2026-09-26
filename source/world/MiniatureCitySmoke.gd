@@ -18,4 +18,12 @@ func run(scene: Node) -> String:
 		sample.free()
 		return "miniature city has no protected landmark core"
 	sample.free()
+	var cities: Array = scene.call("get_city_markers")
+	if cities.size() != 14:
+		return "strategic terrain did not create fourteen miniature cities"
+	for i in range(cities.size()):
+		if int(cities[i].governorate_index) != i:
+			return "miniature city governorate order is inconsistent"
+		if str(cities[i].city_name_ar) != str(scene.GOVERNORATES[i]["name_ar"]):
+			return "miniature city name does not match governorate city marker"
 	return ""

@@ -194,6 +194,8 @@ var _governorate_military_status: Array[Dictionary] = []
 var _governorate_attack_state: Array[bool] = []
 var _landmark_root: Node3D = null
 var _landmarks: Array[Node3D] = []
+var _city_root: Node3D = null
+var _city_markers: Array[Node3D] = []
 
 
 func _ensure_province_clock_state() -> void:
@@ -268,6 +270,43 @@ func get_governorate_military_status(index: int) -> Dictionary:
 	var result: Dictionary = _governorate_military_status[index].duplicate()
 	result["attacking"] = bool(_governorate_attack_state[index])
 	return result
+
+
+func _setup_city_markers() -> void:
+	if _city_root == null or not is_instance_valid(_city_root):
+		_city_root = Node3D.new()
+		_city_root.name = "MiniatureCities"
+		add_child(_city_root)
+	for child in _city_root.get_children():
+		child.free()
+	_city_markers.clear()
+	for i in range(GOVERNORATES.size()):
+		var data: Dictionary = GOVERNORATES[i]
+		var city := MINIATURE_CITY_SCRIPT.new()
+		city.name = "City_%02d_%s" % [i, str(data.get("slug", "city"))]
+		_city_root.add_child(city)
+		city.setup(i, str(data.get("name_ar", data.get("name_en", ""))), "central")
+		_city_markers.append(city)
+	_sync_city_marker_positions()
+
+
+func _sync_city_marker_positions() -> void:
+	if _city_root == null or not is_instance_valid(_city_root):
+		return
+	_city_root.visible = _terrain_mode
+	for i in range(mini(_city_markers.size(), GOVERNORATES.size())):
+		var city: Node3D = _city_markers[i]
+		if not is_instance_valid(city):
+			continue
+		var data: Dictionary = GOVERNORATES[i]
+		var lon := float(data["lon"])
+		var lat := float(data["lat"])
+		var height_km := _designed_height_m(lon, lat) / 1000.0 + 0.016
+		city.position = _geo_to_local(lon, lat, height_km)
+
+
+func get_city_markers() -> Array[Node3D]:
+	return _city_markers.duplicate()
 
 
 func _setup_landmarks() -> void:
@@ -396,6 +435,7 @@ func _ready() -> void:
 	_origin_lon = _center_lon
 	_origin_lat = _center_lat
 	_setup_landmarks()
+	_setup_city_markers()
 	_update_governorate_ui()
 	zoom_wheel.set_value_no_signal(float(_map_zoom))
 	zoom_wheel.visible = false
@@ -687,6 +727,7 @@ func _set_map_zoom(new_zoom: int, center_syria_at_overview: bool = false) -> voi
 
 func _position_camera() -> void:
 	_sync_landmark_positions()
+	_sync_city_marker_positions()
 	if _terrain_mode and _is_tactical_overview():
 		camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 		match _map_zoom:
