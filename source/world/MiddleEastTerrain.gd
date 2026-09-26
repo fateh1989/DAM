@@ -46,10 +46,12 @@ const TACTICAL_RELIEF_EXAGGERATION := 1.0
 const TACTICAL_OVERVIEW_ZOOM := 8
 const TACTICAL_OVERVIEW_RELIEF_EXAGGERATION := 60.0
 const RTS_ZOOM_LEVEL_MIN := 1
-const RTS_ZOOM_LEVEL_MAX := 5
+const RTS_ZOOM_LEVEL_MAX := 8
 const RTS_ZOOM_NEAR_DISTANCE_SCALE := 0.50
 const RTS_ZOOM_FAR_DISTANCE_SCALE := 1.0
-const RTS_ZOOM_DISTANCE_SCALES := [1.00, 0.82, 0.66, 0.52, 0.40]
+const RTS_ZOOM_DISTANCE_SCALES := [12.0, 6.5, 3.5, 1.9, 1.05, 0.72, 0.52, 0.40]
+const RTS_CAMERA_HEIGHTS := [180.0, 105.0, 58.0, 30.0, 15.0, 8.5, 4.5, 2.35]
+const RTS_CAMERA_BACKS := [220.0, 130.0, 72.0, 38.0, 20.0, 11.0, 5.8, 3.05]
 const CONTINUOUS_MACRO_GRID := 36
 const GROUP_FORMATION_SPACING_KM := 0.035
 const UNIT_SPEED_KM_PER_SEC := 0.60
@@ -611,12 +613,13 @@ func _rts_camera_distance_scale() -> float:
 
 func get_rts_camera_profile(level: int = _rts_zoom_level) -> Dictionary:
 	var clamped_level := clampi(level, RTS_ZOOM_LEVEL_MIN, RTS_ZOOM_LEVEL_MAX)
-	var t := float(clamped_level - RTS_ZOOM_LEVEL_MIN) / float(RTS_ZOOM_LEVEL_MAX - RTS_ZOOM_LEVEL_MIN)
+	var index := clamped_level - RTS_ZOOM_LEVEL_MIN
+	var t := float(index) / float(RTS_ZOOM_LEVEL_MAX - RTS_ZOOM_LEVEL_MIN)
 	return {
-		"height": lerpf(6.10, 2.35, t),
-		"back": lerpf(7.20, 3.05, t),
-		"look_y": lerpf(0.12, 0.22, t),
-		"fov": lerpf(40.0, 45.0, t),
+		"height": float(RTS_CAMERA_HEIGHTS[index]),
+		"back": float(RTS_CAMERA_BACKS[index]),
+		"look_y": lerpf(0.05, 0.22, t),
+		"fov": lerpf(38.0, 45.0, t),
 	}
 
 
