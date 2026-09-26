@@ -3266,6 +3266,16 @@ func _create_launcher_visual(index: int) -> Node3D:
 		support.material_override = _solid_unshaded_material(army_color.darkened(0.18))
 		elevation_pivot.add_child(support)
 
+	for side in [-1.0, 1.0]:
+		var rail_mesh := BoxMesh.new()
+		rail_mesh.size = Vector3(0.10, 0.10, 1.58)
+		var rail := MeshInstance3D.new()
+		rail.name = "PodFrameLeft" if side < 0.0 else "PodFrameRight"
+		rail.mesh = rail_mesh
+		rail.position = Vector3(side * 0.62, 0.10, -0.34)
+		rail.material_override = _solid_unshaded_material(army_color.darkened(0.22))
+		elevation_pivot.add_child(rail)
+
 	var pod_mesh := BoxMesh.new()
 	pod_mesh.size = Vector3(1.22, 0.64, 1.42) if family == "western" else Vector3(1.08, 0.58, 1.28)
 	var pod := MeshInstance3D.new()
@@ -3691,6 +3701,8 @@ func validate_support_heavy_visuals() -> String:
 				"LauncherModel/LauncherPivot/RotatingBase",
 				"LauncherModel/LauncherPivot/ElevationPivot/PodSupportLeft",
 				"LauncherModel/LauncherPivot/ElevationPivot/PodSupportRight",
+				"LauncherModel/LauncherPivot/ElevationPivot/PodFrameLeft",
+				"LauncherModel/LauncherPivot/ElevationPivot/PodFrameRight",
 				"LauncherModel/LauncherPivot/ElevationPivot/RocketPod",
 				"LauncherModel/LauncherPivot/ElevationPivot/Tube_00",
 				"LauncherModel/LauncherPivot/ElevationPivot/Tube_11",
