@@ -3485,6 +3485,33 @@ func issue_selected_logical_group_move(destination: Vector2) -> int:
 			issued_count += 1
 	return issued_count
 
+
+func stop_selected_logical_heavy_units() -> int:
+	if _selected_logical_unit_ids.is_empty():
+		return 0
+	var game_state := _game_state_node()
+	if game_state == null:
+		return 0
+	var stopped_count: int = 0
+	for logical_id in _selected_logical_unit_ids:
+		var representative_index: int = -1
+		for visible_index in range(_units.size()):
+			var visible_unit: Dictionary = _units[visible_index]
+			if str(visible_unit.get("logical_unit_id", "")) == logical_id:
+				representative_index = visible_index
+				break
+		if representative_index >= 0:
+			var unit: Dictionary = _units[representative_index]
+			unit["moving"] = false
+			unit["target_lon"] = float(unit.get("lon", 0.0))
+			unit["target_lat"] = float(unit.get("lat", 0.0))
+			_units[representative_index] = unit
+		if bool(game_state.call("stop_heavy_unit", logical_id)):
+			stopped_count += 1
+	_sync_unit_visuals()
+	_sync_detail_unit_lod()
+	return stopped_count
+
 func focus_selected_units() -> bool:
 	var lon_sum := 0.0
 	var lat_sum := 0.0
