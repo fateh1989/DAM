@@ -134,6 +134,7 @@ const VECTOR_REFRESH_DISTANCE_DEG := 0.025
 @onready var zoom_wheel: VSlider = $HUD/ZoomWheel/Column/Slider
 @onready var rts_radar: Control = $HUD/RTSRadar
 @onready var province_clock_grid: GridContainer = $HUD/ProvinceClockPanel/Grid
+@onready var selection_box: ColorRect = $HUD/SelectionBox
 
 var _terrain_mode := true
 var _map_zoom := MAX_MAP_ZOOM
@@ -200,6 +201,11 @@ var _touch_drag_distance := {}
 var _multi_touch_gesture_active := false
 var _mouse_press_position := Vector2.ZERO
 var _mouse_drag_distance := 0.0
+var _box_select_mode := false
+var _box_select_active := false
+var _box_select_pointer_id := -1
+var _box_select_start := Vector2.ZERO
+var _box_select_current := Vector2.ZERO
 var _radar_action_mode := "camera"
 var _move_order_serial := 0
 var _province_clocks: Array[Control] = []
@@ -3959,6 +3965,19 @@ func _select_governorate(index: int) -> void:
 
 func _on_select_all_units_pressed() -> void:
 	select_all_units()
+
+
+func _on_box_select_pressed() -> void:
+	_box_select_mode = not _box_select_mode
+	if not _box_select_mode:
+		_box_select_active = false
+		_box_select_pointer_id = -1
+		if selection_box != null:
+			selection_box.visible = false
+	var button := get_node_or_null("HUD/CommandBar/Row/BoxSelectButton") as Button
+	if button != null:
+		button.text = "BOX ACTIVE" if _box_select_mode else "BOX SELECT"
+	_update_status()
 
 
 func _on_clear_selection_pressed() -> void:
