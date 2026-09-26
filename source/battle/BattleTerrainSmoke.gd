@@ -45,6 +45,9 @@ func run(_world_scene: Node) -> String:
 	if absf(local_a - local_b) < 0.5:
 		battle.free()
 		return "terrain surface lacks local erosion relief"
+	if int(battle.call("get_terrain_prop_count")) < 40:
+		battle.free()
+		return "terrain lacks procedural rock and scrub detail"
 	if not (battle.call("get_battle_ground_material") is ShaderMaterial):
 		battle.free()
 		return "battle terrain is not using the natural ground shader"

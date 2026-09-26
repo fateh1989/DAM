@@ -34,6 +34,9 @@ var _mouse_down := false
 var _mouse_drag := 0.0
 var _terrain_chunks: Array[MeshInstance3D] = []
 var _battle_ground_material: Material = null
+var _rock_prop_material: StandardMaterial3D = null
+var _scrub_prop_material: StandardMaterial3D = null
+var _terrain_prop_count := 0
 
 
 func _game_state_node() -> Node:
@@ -149,6 +152,57 @@ func _build_terrain_chunk_mesh(center_x: float, center_z: float) -> ArrayMesh:
 	return st.commit()
 
 
+func _terrain_hash(index: int, salt: float) -> float:
+	var value := sin(float(index) * 12.9898 + salt * 78.233) * 43758.5453
+	return value - floor(value)
+
+
+func _ensure_terrain_prop_materials() -> void:
+	if _rock_prop_material == null:
+		_rock_prop_material = StandardMaterial3D.new()
+		_rock_prop_material.albedo_color = Color(0.31, 0.30, 0.27, 1.0)
+		_rock_prop_material.roughness = 1.0
+	if _scrub_prop_material == null:
+		_scrub_prop_material = StandardMaterial3D.new()
+		_scrub_prop_material.albedo_color = Color(0.24, 0.31, 0.14, 1.0)
+		_scrub_prop_material.roughness = 1.0
+
+
+func _populate_terrain_chunk(chunk: MeshInstance3D, column: int, row: int, center_x: float, center_z: float) -> void:
+	_ensure_terrain_prop_materials()
+	var chunk_index := row * TERRAIN_CHUNKS_PER_SIDE + column
+	for prop_index in range(2):
+		var seed := chunk_index * 7 + prop_index * 13
+		var world_x := center_x + (_terrain_hash(seed, 1.7) - 0.5) * TERRAIN_CHUNK_SIZE * 0.72
+		var world_z := center_z + (_terrain_hash(seed, 5.3) - 0.5) * TERRAIN_CHUNK_SIZE * 0.72
+		var node := MeshInstance3D.new()
+		var mesh := SphereMesh.new()
+		if (chunk_index + prop_index) % 2 == 0:
+			var radius := 24.0 + _terrain_hash(seed, 9.1) * 22.0
+			mesh.radius = radius
+			mesh.height = radius * 1.15
+			mesh.radial_segments = 6
+			mesh.rings = 4
+			node.material_override = _rock_prop_material
+			node.name = "Rock_%02d_%02d" % [chunk_index, prop_index]
+		else:
+			var radius := 19.0 + _terrain_hash(seed, 3.9) * 15.0
+			mesh.radius = radius
+			mesh.height = radius * 1.35
+			mesh.radial_segments = 7
+			mesh.rings = 4
+			node.material_override = _scrub_prop_material
+			node.name = "Scrub_%02d_%02d" % [chunk_index, prop_index]
+		node.mesh = mesh
+		node.position = Vector3(
+			world_x - center_x,
+			terrain_height_at(world_x, world_z) + float(mesh.height) * 0.28,
+			world_z - center_z
+		)
+		chunk.add_child(node)
+		_terrain_prop_count += 1
+
+
 func _create_battle_ground_material() -> Material:
 	var shader := load(BATTLE_GROUND_SHADER_PATH) as Shader
 	if shader == null:
@@ -167,6 +221,7 @@ func _setup_ground() -> void:
 	for child in ground.get_children():
 		child.free()
 	_terrain_chunks.clear()
+	_terrain_prop_count = 0
 
 	_battle_ground_material = _create_battle_ground_material()
 	var material := _battle_ground_material
@@ -182,6 +237,7 @@ func _setup_ground() -> void:
 			chunk.position = Vector3(center_x, 0.0, center_z)
 			ground.add_child(chunk)
 			_terrain_chunks.append(chunk)
+			_populate_terrain_chunk(chunk, column, row, center_x, center_z)
 
 
 func get_ground_chunk_count() -> int:
@@ -190,6 +246,10 @@ func get_ground_chunk_count() -> int:
 
 func get_battle_ground_material() -> Material:
 	return _battle_ground_material
+
+
+func get_terrain_prop_count() -> int:
+	return _terrain_prop_count
 
 
 func _tank_material(color: Color) -> StandardMaterial3D:
