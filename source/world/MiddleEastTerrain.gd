@@ -681,14 +681,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_focus_world_audio(event.position)
 
 func _pan_from_screen_delta(delta: Vector2) -> void:
-	var viewport_height := maxf(1.0, float(get_viewport().get_visible_rect().size.y))
-	var km_per_pixel := 0.0
-
-	if _terrain_mode and not _is_tactical_overview():
-		km_per_pixel = 0.018 * _rts_camera_distance_scale()
-	else:
-		km_per_pixel = camera.size / viewport_height
-
+	var km_per_pixel := 0.018 * _rts_camera_distance_scale()
 	var east_km := -delta.x * km_per_pixel
 	var north_km := delta.y * km_per_pixel
 	var lat_delta := rad_to_deg(north_km / EARTH_RADIUS_KM)
@@ -772,10 +765,9 @@ func _set_rts_zoom_level(new_level: int) -> void:
 	_sync_unit_visuals()
 	_sync_detail_unit_lod()
 	_refresh_geo_overlay(true)
-	if _terrain_mode and not _is_tactical_overview() and _rts_zoom_level >= 4:
+	if _rts_zoom_level >= 4:
 		call_deferred("_refresh_vector_data", true)
 	_update_status()
-
 
 func _set_map_zoom(new_zoom: int, center_syria_at_overview: bool = false) -> void:
 	if _terrain_mode:
@@ -808,48 +800,15 @@ func _set_map_zoom(new_zoom: int, center_syria_at_overview: bool = false) -> voi
 
 func _position_camera() -> void:
 	_sync_landmark_positions()
-	if _terrain_mode and _is_tactical_overview():
-		camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-		match _map_zoom:
-			8:
-				camera.size = 155.0
-			7:
-				camera.size = 305.0
-			_:
-				var syria_height_km := EARTH_RADIUS_KM * deg_to_rad(REGION_NORTH - REGION_SOUTH)
-				camera.size = syria_height_km * STRATEGIC_CAMERA_MARGIN
-		_clamp_overview_center_to_world()
-
 	var center := _geo_to_local(_center_lon, _center_lat, 0.0)
-
-	if _terrain_mode:
-		if _is_tactical_overview():
-			camera.position = center + Vector3(0.0, 500.0, 0.01)
-			camera.look_at(center, Vector3(0.0, 0.0, -1.0))
-			camera.near = 0.1
-			camera.far = 1200.0
-		else:
-			camera.projection = Camera3D.PROJECTION_PERSPECTIVE
-			var profile := get_rts_camera_profile()
-			camera.position = center + Vector3(0.0, float(profile["height"]), float(profile["back"]))
-			camera.look_at(center + Vector3(0.0, float(profile["look_y"]), 0.0), Vector3.UP)
-			camera.fov = float(profile["fov"])
-			camera.near = 0.01
-			camera.far = 1200.0
-	else:
-		camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-		if _is_strategic_map():
-			var syria_height_km := EARTH_RADIUS_KM * deg_to_rad(REGION_NORTH - REGION_SOUTH)
-			camera.size = syria_height_km * STRATEGIC_CAMERA_MARGIN
-		else:
-			camera.size = _map_tile_width_km() * 4.7
-		camera.position = center + Vector3(0.0, 500.0, 0.01)
-		camera.look_at(center, Vector3(0.0, 0.0, -1.0))
-		camera.near = 0.1
-		camera.far = 1000.0
-
+	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+	var profile := get_rts_camera_profile()
+	camera.position = center + Vector3(0.0, float(profile["height"]), float(profile["back"]))
+	camera.look_at(center + Vector3(0.0, float(profile["look_y"]), 0.0), Vector3.UP)
+	camera.fov = float(profile["fov"])
+	camera.near = 0.01
+	camera.far = 1200.0
 	_refresh_hydrology(false)
-
 
 func _clamp_overview_center_to_world() -> void:
 	var viewport := get_viewport().get_visible_rect().size
