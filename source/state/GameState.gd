@@ -271,3 +271,15 @@ func _logical_heavy_combat_state(unit_id: String) -> Dictionary:
 	state["max_hp"] = float(logical.get("max_hp", state.get("max_hp", 0.0)))
 	state["alive"] = bool(logical.get("alive", true))
 	return state
+
+
+func resolve_heavy_shot(attacker_id: String, target_id: String, weapon_id: String) -> Dictionary:
+	if attacker_id.is_empty() or target_id.is_empty() or attacker_id == target_id:
+		return {"ok": false, "reason": "invalid_logical_ids"}
+	var attacker_state := _logical_heavy_combat_state(attacker_id)
+	var target_state := _logical_heavy_combat_state(target_id)
+	if attacker_state.is_empty():
+		return {"ok": false, "reason": "attacker_missing"}
+	if target_state.is_empty():
+		return {"ok": false, "reason": "target_missing"}
+	return army_core.resolve_shot(attacker_state, target_state, weapon_id)
