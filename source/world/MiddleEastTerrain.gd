@@ -418,6 +418,7 @@ func _ready() -> void:
 	_refresh_tiles()
 	_sync_continuous_world_lod()
 	_sync_unit_visuals()
+	_sync_detail_unit_lod()
 	_refresh_geo_overlay(true)
 	_bind_audio_controls()
 	_update_radar_mode_ui()
@@ -3575,6 +3576,7 @@ func _select_governorate(index: int) -> void:
 
 	_update_governorate_ui()
 	_position_camera()
+	_sync_detail_unit_lod(true)
 	_refresh_tiles()
 	_update_status()
 
