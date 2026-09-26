@@ -165,6 +165,13 @@ func issue_route(unit_id: String, waypoints: Array) -> bool:
 			if _route_distance_km(previous_point, point) < 0.0005:
 				continue
 		normalized.append({"lon": point.x, "lat": point.y})
+	var current_point := Vector2(float(unit.get("lon", 0.0)), float(unit.get("lat", 0.0)))
+	while not normalized.is_empty():
+		var first_candidate: Dictionary = normalized[0]
+		var candidate_point := Vector2(float(first_candidate["lon"]), float(first_candidate["lat"]))
+		if _route_distance_km(current_point, candidate_point) >= 0.0005:
+			break
+		normalized.pop_front()
 	if normalized.is_empty():
 		return false
 	var first: Dictionary = normalized.pop_front()
