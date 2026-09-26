@@ -3477,6 +3477,15 @@ func _create_tank_visual(index: int) -> Node3D:
 	hatch.material_override = _solid_unshaded_material(army_color.lightened(0.04))
 	turret_pivot.add_child(hatch)
 
+	var sight_mesh := BoxMesh.new()
+	sight_mesh.size = Vector3(0.16, 0.14, 0.22)
+	var sight := MeshInstance3D.new()
+	sight.name = "MainSight"
+	sight.mesh = sight_mesh
+	sight.position = Vector3(-0.26 if family == "western" else -0.20, 0.96 if family == "western" else 0.80, -0.26)
+	sight.material_override = _solid_unshaded_material(Color(0.08, 0.11, 0.09, 1.0))
+	turret_pivot.add_child(sight)
+
 	for side in [-1.0, 1.0]:
 		var stowage_mesh := BoxMesh.new()
 		stowage_mesh.size = Vector3(0.28, 0.22, 0.46)
@@ -3606,6 +3615,7 @@ func validate_strategic_tank_visuals() -> String:
 			"TankModel/TurretPivot/GunMount/GunMantlet",
 			"TankModel/TurretPivot/GunMount/Barrel",
 			"TankModel/TurretPivot/CommanderHatch",
+			"TankModel/TurretPivot/MainSight",
 			"TankModel/EngineDeck",
 		]:
 			if node.get_node_or_null(required_path) == null:
