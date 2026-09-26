@@ -197,6 +197,16 @@ func _run() -> void:
 		_fail(135, "Selected attack smoke: " + selected_attack_error)
 		return
 
+	var logical_selected_attack_smoke_script := load("res://source/world/LogicalSelectedAttackSmoke.gd") as Script
+	if logical_selected_attack_smoke_script == null:
+		_fail(136, "Logical selected attack smoke: contract script missing")
+		return
+	var logical_selected_attack_smoke = logical_selected_attack_smoke_script.new()
+	var logical_selected_attack_error := str(logical_selected_attack_smoke.call("run", scene))
+	if not logical_selected_attack_error.is_empty():
+		_fail(137, "Logical selected attack smoke: " + logical_selected_attack_error)
+		return
+
 	var heavy_roster_smoke_script := load("res://source/world/HeavyRosterSmoke.gd") as Script
 	if heavy_roster_smoke_script == null:
 		_fail(81, "Heavy roster smoke: contract script missing")
