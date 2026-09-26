@@ -168,6 +168,22 @@ func _run() -> void:
 			_fail(79, "Strategic unit smoke: heavy representative count mismatch for " + str(required_type))
 			return
 
+	scene.call("clear_selected_units")
+	if scene.call("select_single_unit", 0) != true or int(scene.call("get_selected_unit_count")) != 1:
+		_fail(150, "Selection contract: single unit selection did not report success")
+		return
+	if scene.call("select_next_unit") != true or int(scene.call("get_selected_unit_count")) != 1:
+		_fail(151, "Selection contract: next unit selection did not report success")
+		return
+	if scene.call("select_previous_unit") != true or int(scene.call("get_selected_unit_count")) != 1:
+		_fail(152, "Selection contract: previous unit selection did not report success")
+		return
+	var selected_all_count := int(scene.call("select_all_units"))
+	if selected_all_count != 42 or int(scene.call("get_selected_unit_count")) != 42:
+		_fail(153, "Selection contract: select all did not report all 42 representatives")
+		return
+	scene.call("clear_selected_units")
+
 	var tank_visual_error := str(scene.call("validate_strategic_tank_visuals"))
 	if not tank_visual_error.is_empty():
 		_fail(77, "Strategic tank visual smoke: " + tank_visual_error)
