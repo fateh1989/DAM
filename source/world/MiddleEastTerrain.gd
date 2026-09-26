@@ -2291,6 +2291,10 @@ func _create_tank_visual(index: int) -> Node3D:
 			wheel.material_override = _solid_unshaded_material(Color(0.16, 0.17, 0.15, 1.0))
 			model.add_child(wheel)
 
+	var turret_pivot := Node3D.new()
+	turret_pivot.name = "TurretPivot"
+	model.add_child(turret_pivot)
+
 	var turret_mesh := CylinderMesh.new()
 	turret_mesh.top_radius = 0.52
 	turret_mesh.bottom_radius = 0.58
@@ -2301,7 +2305,7 @@ func _create_tank_visual(index: int) -> Node3D:
 	turret.mesh = turret_mesh
 	turret.position.y = 0.68
 	turret.material_override = _solid_unshaded_material(army_color)
-	model.add_child(turret)
+	turret_pivot.add_child(turret)
 
 	var barrel_mesh := BoxMesh.new()
 	barrel_mesh.size = Vector3(0.16, 0.16, 1.55)
