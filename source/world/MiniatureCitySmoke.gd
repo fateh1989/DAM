@@ -23,6 +23,9 @@ func run(scene: Node) -> String:
 	if int(sample.call("get_industrial_count")) != 4:
 		sample.free()
 		return "miniature city lacks industrial buildings on the outer edge"
+	if int(sample.call("get_detail_count")) < 8:
+		sample.free()
+		return "miniature city facades lack readable window and band detail"
 	sample.call("set_city_health", 0.45)
 	if int(sample.call("get_damage_stage")) != 2:
 		sample.free()

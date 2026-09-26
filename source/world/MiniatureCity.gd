@@ -15,6 +15,8 @@ var _building_nodes: Array[MeshInstance3D] = []
 var _roof_nodes: Array[MeshInstance3D] = []
 var _industrial_nodes: Array[Node3D] = []
 var _street_nodes: Array[MeshInstance3D] = []
+var _detail_nodes: Array[Node3D] = []
+var _signature_nodes: Array[Node3D] = []
 var _label: Label3D = null
 
 const CITY_RADIUS := 0.46
@@ -74,6 +76,21 @@ func _add_box(parent: Node3D, position_value: Vector3, size_value: Vector3, mat:
 	return item
 
 
+func _add_cylinder(parent: Node3D, position_value: Vector3, radius: float, height: float, mat: Material, node_name: String, segments: int = 8) -> MeshInstance3D:
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius
+	mesh.bottom_radius = radius
+	mesh.height = height
+	mesh.radial_segments = segments
+	var item := MeshInstance3D.new()
+	item.name = node_name
+	item.mesh = mesh
+	item.position = position_value
+	item.material_override = mat
+	parent.add_child(item)
+	return item
+
+
 func _ensure_roots() -> void:
 	_body_root = Node3D.new()
 	_body_root.name = "Body"
@@ -122,6 +139,26 @@ func _build_radial_streets(palette: Dictionary) -> void:
 		var road := _add_box(_street_root, p, Vector3(segment_length, 0.008, 0.026), road_mat, "RadialRoad_%02d" % direction_index)
 		road.rotation.y = -angle
 		_street_nodes.append(road)
+
+
+func _build_facade_details(palette: Dictionary) -> void:
+	var dark_mat := _material(palette["accent"])
+	for i in range(_building_nodes.size()):
+		if i % 3 != 0:
+			continue
+		var building := _building_nodes[i]
+		var box := building.mesh as BoxMesh
+		if box == null:
+			continue
+		var panel := _add_box(
+			_body_root,
+			building.position + Vector3(0, box.size.y * 0.12, 0),
+			Vector3(box.size.x * 0.46, maxf(0.008, box.size.y * 0.18), box.size.z * 1.04),
+			dark_mat,
+			"Facade_%03d" % i
+		)
+		panel.rotation = building.rotation
+		_detail_nodes.append(panel)
 
 
 func _build_residential_rings(palette: Dictionary) -> void:
@@ -201,11 +238,14 @@ func _rebuild() -> void:
 	_roof_nodes.clear()
 	_industrial_nodes.clear()
 	_street_nodes.clear()
+	_detail_nodes.clear()
+	_signature_nodes.clear()
 	_ensure_roots()
 	var palette := _palette()
 	_build_base(palette)
 	_build_radial_streets(palette)
 	_build_residential_rings(palette)
+	_build_facade_details(palette)
 	_build_industrial_edge(palette)
 	_build_label()
 	_apply_damage_visuals()
@@ -321,6 +361,14 @@ func get_street_count() -> int:
 
 func get_industrial_count() -> int:
 	return _industrial_nodes.size()
+
+
+func get_detail_count() -> int:
+	return _detail_nodes.size()
+
+
+func get_signature_count() -> int:
+	return _signature_nodes.size()
 
 
 func set_label_visible(value: bool) -> void:
