@@ -173,9 +173,9 @@ func get_heavy_representative_id(governorate_index: int, unit_type: String) -> S
 func get_heavy_force_counts() -> Dictionary:
 	if heavy_force_roster == null:
 		return {}
-	var tank := heavy_force_roster.count_type("tank", true)
-	var rocket_launcher := heavy_force_roster.count_type("rocket_launcher", true)
-	var artillery := heavy_force_roster.count_type("artillery", true)
+	var tank: int = int(heavy_force_roster.count_type("tank", true))
+	var rocket_launcher: int = int(heavy_force_roster.count_type("rocket_launcher", true))
+	var artillery: int = int(heavy_force_roster.count_type("artillery", true))
 	return {
 		"tank": tank,
 		"rocket_launcher": rocket_launcher,
