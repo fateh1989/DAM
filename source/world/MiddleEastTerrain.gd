@@ -636,7 +636,15 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
-			if event.pressed:
+			if event.pressed and _box_select_mode and not _box_select_active:
+				_mouse_dragging = false
+				_mouse_press_position = event.position
+				_mouse_drag_distance = 0.0
+				_begin_box_selection(-1, event.position)
+			elif not event.pressed and _box_select_active and _box_select_pointer_id == -1:
+				_finish_box_selection(event.position)
+				_mouse_dragging = false
+			elif event.pressed:
 				_mouse_dragging = true
 				_mouse_press_position = event.position
 				_mouse_drag_distance = 0.0
@@ -654,6 +662,12 @@ func _unhandled_input(event: InputEvent) -> void:
 				_set_rts_zoom_level(_rts_zoom_level - 1)
 			else:
 				_set_map_zoom(_map_zoom - 1, _map_zoom - 1 <= SYRIA_OVERVIEW_ZOOM)
+		get_viewport().set_input_as_handled()
+		return
+
+	if event is InputEventMouseMotion and _box_select_active and _box_select_pointer_id == -1:
+		_mouse_drag_distance += event.relative.length()
+		_update_box_selection(event.position)
 		get_viewport().set_input_as_handled()
 		return
 
