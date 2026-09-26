@@ -188,3 +188,22 @@ func get_heavy_unit(unit_id: String) -> Dictionary:
 	if heavy_force_roster == null:
 		return {}
 	return heavy_force_roster.get_unit(unit_id)
+
+
+func record_heavy_loss(unit_id: String) -> bool:
+	if heavy_force_roster == null or army_core == null:
+		return false
+	var unit: Dictionary = heavy_force_roster.get_unit(unit_id)
+	if unit.is_empty() or not bool(unit.get("alive", true)):
+		return false
+	var unit_type := str(unit.get("unit_type", ""))
+	if unit_type.is_empty():
+		return false
+	var snapshot: Dictionary = army_core.get_country_snapshot("syria")
+	var deployed: Dictionary = snapshot.get("deployed", {})
+	if int(deployed.get(unit_type, 0)) <= 0:
+		return false
+	var loss: Dictionary = army_core.record_loss("syria", unit_type, 1)
+	if not bool(loss.get("ok", false)):
+		return false
+	return heavy_force_roster.record_destroyed(unit_id)
