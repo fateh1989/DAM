@@ -4514,17 +4514,17 @@ func select_previous_unit() -> bool:
 	return false
 
 
-func select_next_unit() -> void:
+func select_next_unit() -> bool:
 	if _units.is_empty():
 		clear_selected_units()
-		return
+		return false
 	var start := _selected_unit_index
 	for step in range(1, _units.size() + 1):
 		var index := posmod(start + step, _units.size())
 		if _is_unit_selectable(index):
-			select_single_unit(index)
-			return
+			return select_single_unit(index)
 	clear_selected_units()
+	return false
 
 
 func select_all_units() -> void:
