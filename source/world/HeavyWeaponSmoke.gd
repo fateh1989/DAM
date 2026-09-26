@@ -48,6 +48,32 @@ func run(scene: Node) -> String:
 		return "heavy weapon inventory could not be restored after loss test"
 	if int(scene.call("get_heavy_weapon_country_total")) != 1400:
 		return "heavy weapon total did not return to fourteen hundred after restore"
+	scene.set("_terrain_mode", true)
+	scene.set("_governorate_index", 2)
+	scene.set("_center_lon", float(scene.GOVERNORATES[2]["lon"]))
+	scene.set("_center_lat", float(scene.GOVERNORATES[2]["lat"]))
+	scene.set("_origin_lon", float(scene.GOVERNORATES[2]["lon"]))
+	scene.set("_origin_lat", float(scene.GOVERNORATES[2]["lat"]))
+	scene.set("_rts_zoom_level", 5)
+	scene.call("_sync_heavy_weapon_arsenals")
+	var close_visible := int(scene.call("get_visible_heavy_weapon_marker_count"))
+	if close_visible < 3 or close_visible >= 42:
+		return "close heavy weapon culling does not keep only the local arsenal region"
+	var focused_marker: Node3D = null
+	for marker in live_markers:
+		if int(marker.get("province_index")) == 2 and str(marker.get("weapon_type")) == "launcher":
+			focused_marker = marker
+			break
+	if focused_marker == null or int(focused_marker.get("lod_level")) != 2:
+		return "focused heavy weapon marker did not receive detailed LOD"
+	if int(focused_marker.call("get_visible_fine_detail_count")) <= 0:
+		return "close heavy weapon marker lacks detailed wheels or launcher tubes"
+	scene.set("_rts_zoom_level", 1)
+	scene.call("_sync_heavy_weapon_arsenals")
+	if int(focused_marker.get("lod_level")) != 1:
+		return "distant heavy weapon marker did not switch to simplified LOD"
+	if int(focused_marker.call("get_visible_fine_detail_count")) != 0:
+		return "distant heavy weapon LOD still renders fine mechanical details"
 
 	var west_tank := VISUAL_SCRIPT.new()
 	west_tank.setup("tank", "west", 0, 50)

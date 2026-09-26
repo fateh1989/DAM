@@ -2283,9 +2283,18 @@ func _sync_heavy_weapon_arsenals() -> void:
 		var height_km := _designed_height_m(lon, lat) / 1000.0 + 0.012
 		marker.position = _geo_to_local(lon, lat, height_km)
 		marker.scale = Vector3.ONE * get_rts_unit_visual_scale()
+		var marker_lod := 2 if _rts_zoom_level >= 3 else 1
+		marker.call("set_lod", marker_lod)
+		var visibility_radius := 135.0
+		match _rts_zoom_level:
+			1: visibility_radius = 360.0
+			2: visibility_radius = 285.0
+			3: visibility_radius = 220.0
+			4: visibility_radius = 170.0
+			_: visibility_radius = 135.0
 		var is_focused := province_index == _governorate_index
 		var distance_km := Vector2(marker.position.x, marker.position.z).length()
-		marker.visible = _terrain_mode and (is_focused or distance_km <= 135.0)
+		marker.visible = _terrain_mode and (is_focused or distance_km <= visibility_radius)
 
 
 func get_heavy_weapon_inventory(province_index: int) -> Dictionary:
@@ -2325,6 +2334,14 @@ func restore_heavy_weapon(province_index: int, weapon_type: String, quantity: in
 	if marker != null and restored >= 0:
 		marker.call("set_represented_count", restored)
 	return restored
+
+
+func get_visible_heavy_weapon_marker_count() -> int:
+	var count := 0
+	for marker in _arsenal_markers:
+		if is_instance_valid(marker) and marker.visible:
+			count += 1
+	return count
 
 
 func get_heavy_weapon_markers() -> Array[Node3D]:
