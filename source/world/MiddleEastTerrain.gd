@@ -625,10 +625,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_pinch_accumulator += new_distance - old_distance
 
 			if abs(_pinch_accumulator) >= 42.0:
-				if _terrain_mode:
-					_set_rts_zoom_level(_rts_zoom_level + (1 if _pinch_accumulator > 0.0 else -1))
-				else:
-					_set_map_zoom(_map_zoom + (1 if _pinch_accumulator > 0.0 else -1), _map_zoom - 1 <= SYRIA_OVERVIEW_ZOOM)
+				_set_rts_zoom_level(_rts_zoom_level + (1 if _pinch_accumulator > 0.0 else -1))
 				_pinch_accumulator = 0.0
 
 		get_viewport().set_input_as_handled()
@@ -653,15 +650,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				if _mouse_drag_distance <= TAP_MAX_DRAG_PX:
 					_handle_world_tap(event.position)
 		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			if _terrain_mode:
-				_set_rts_zoom_level(_rts_zoom_level + 1)
-			else:
-				_set_map_zoom(_map_zoom + 1)
+			_set_rts_zoom_level(_rts_zoom_level + 1)
 		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			if _terrain_mode:
-				_set_rts_zoom_level(_rts_zoom_level - 1)
-			else:
-				_set_map_zoom(_map_zoom - 1, _map_zoom - 1 <= SYRIA_OVERVIEW_ZOOM)
+			_set_rts_zoom_level(_rts_zoom_level - 1)
 		get_viewport().set_input_as_handled()
 		return
 
@@ -4969,25 +4960,15 @@ func _update_status() -> void:
 
 
 func _on_zoom_in_pressed() -> void:
-	if _terrain_mode:
-		_set_rts_zoom_level(_rts_zoom_level + 1)
-	else:
-		_set_map_zoom(_map_zoom + 1)
+	_set_rts_zoom_level(_rts_zoom_level + 1)
 
 
 func _on_zoom_out_pressed() -> void:
-	if _terrain_mode:
-		_set_rts_zoom_level(_rts_zoom_level - 1)
-	else:
-		_set_map_zoom(_map_zoom - 1, _map_zoom - 1 <= SYRIA_OVERVIEW_ZOOM)
+	_set_rts_zoom_level(_rts_zoom_level - 1)
 
 
 func _on_zoom_wheel_changed(value: float) -> void:
-	if _terrain_mode:
-		_set_rts_zoom_level(clampi(int(round(value)), RTS_ZOOM_LEVEL_MIN, RTS_ZOOM_LEVEL_MAX))
-		return
-	var requested_zoom := clampi(int(round(value)), ZOOM_WHEEL_MIN, ZOOM_WHEEL_MAX)
-	_set_map_zoom(requested_zoom, requested_zoom <= SYRIA_OVERVIEW_ZOOM)
+	_set_rts_zoom_level(clampi(int(round(value)), RTS_ZOOM_LEVEL_MIN, RTS_ZOOM_LEVEL_MAX))
 
 
 func _on_reset_pressed() -> void:
