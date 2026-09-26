@@ -4300,9 +4300,10 @@ func select_nearest_radar_target_uv(uv: Vector2, max_distance: float = 0.06) -> 
 		return false
 	var index := int(best.get("index", -1))
 	if index >= 0:
-		clear_logical_heavy_selection()
-		select_unit(index, false)
-		return true
+		if select_unit(index, false):
+			clear_logical_heavy_selection()
+			return true
+		return false
 	return false
 
 
