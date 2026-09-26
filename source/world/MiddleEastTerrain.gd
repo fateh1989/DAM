@@ -3984,12 +3984,16 @@ func get_radar_units() -> Array:
 		var unit: Dictionary = _units[i]
 		var u := clampf((float(unit["lon"]) - REGION_WEST) / (REGION_EAST - REGION_WEST), 0.0, 1.0)
 		var v := clampf((REGION_NORTH - float(unit["lat"])) / (REGION_NORTH - REGION_SOUTH), 0.0, 1.0)
+		var logical_id := str(unit.get("logical_unit_id", ""))
+		var logical_selected := not logical_id.is_empty() and logical_id in _selected_logical_unit_ids
 		result.append({
 			"index": i,
+			"logical_id": logical_id,
+			"unit_type": str(unit.get("unit_type", "tank")),
 			"uv": Vector2(u, v),
 			"color": _army_color(i),
-			"selected": i in _selected_unit_indices,
-			"primary": i == _selected_unit_index,
+			"selected": i in _selected_unit_indices or logical_selected,
+			"primary": i == _selected_unit_index or (logical_selected and not _selected_logical_unit_ids.is_empty() and logical_id == _selected_logical_unit_ids.back()),
 		})
 	return result
 
