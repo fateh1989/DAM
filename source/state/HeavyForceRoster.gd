@@ -263,6 +263,8 @@ func tick_movement(delta: float, excluded_ids: Dictionary = {}) -> int:
 		var delta_lon_km: float = (target_lon - lon) * lon_scale_km
 		var delta_lat_km: float = (target_lat - lat) * lat_scale_km
 		var distance_km: float = sqrt(delta_lon_km * delta_lon_km + delta_lat_km * delta_lat_km)
+		if distance_km > 0.000001:
+			unit["heading_rad"] = atan2(-delta_lon_km, delta_lat_km)
 		var speed_km_sec: float = maxf(0.0, float(unit.get("speed_km_sec", 0.0)))
 		var step_km: float = speed_km_sec * delta
 
