@@ -207,3 +207,9 @@ func record_heavy_loss(unit_id: String) -> bool:
 	if not bool(loss.get("ok", false)):
 		return false
 	return heavy_force_roster.record_destroyed(unit_id)
+
+
+func get_heavy_roster_snapshot() -> Array[Dictionary]:
+	if heavy_force_roster == null:
+		return []
+	return heavy_force_roster.get_units_snapshot()
