@@ -273,6 +273,23 @@ func _logical_heavy_combat_state(unit_id: String) -> Dictionary:
 	return state
 
 
+func _logical_heavy_distance_km(attacker_id: String, target_id: String) -> float:
+	if heavy_force_roster == null:
+		return INF
+	var attacker: Dictionary = heavy_force_roster.get_unit(attacker_id)
+	var target: Dictionary = heavy_force_roster.get_unit(target_id)
+	if attacker.is_empty() or target.is_empty():
+		return INF
+	var lat_a := float(attacker.get("lat", 0.0))
+	var lon_a := float(attacker.get("lon", 0.0))
+	var lat_b := float(target.get("lat", 0.0))
+	var lon_b := float(target.get("lon", 0.0))
+	var mid_lat := deg_to_rad((lat_a + lat_b) * 0.5)
+	var north_km := (lat_b - lat_a) * 111.32
+	var east_km := (lon_b - lon_a) * 111.32 * cos(mid_lat)
+	return sqrt(north_km * north_km + east_km * east_km)
+
+
 func resolve_heavy_shot(attacker_id: String, target_id: String, weapon_id: String) -> Dictionary:
 	if attacker_id.is_empty() or target_id.is_empty() or attacker_id == target_id:
 		return {"ok": false, "reason": "invalid_logical_ids"}
@@ -282,7 +299,21 @@ func resolve_heavy_shot(attacker_id: String, target_id: String, weapon_id: Strin
 		return {"ok": false, "reason": "attacker_missing"}
 	if target_state.is_empty():
 		return {"ok": false, "reason": "target_missing"}
-	return army_core.resolve_shot(attacker_state, target_state, weapon_id)
+	var weapon: Dictionary = army_core.weapon_spec(weapon_id)
+	if weapon.is_empty():
+		return {"ok": false, "reason": "unknown_weapon"}
+	var distance_km := _logical_heavy_distance_km(attacker_id, target_id)
+	var range_km := maxf(0.0, float(weapon.get("range_km", 0.0)))
+	if distance_km > range_km:
+		return {
+			"ok": false,
+			"reason": "out_of_range",
+			"distance_km": distance_km,
+			"range_km": range_km,
+		}
+	var result: Dictionary = army_core.resolve_shot(attacker_state, target_state, weapon_id)
+	result["distance_km"] = distance_km
+	return result
 
 
 func apply_heavy_shot_result(target_id: String, result: Dictionary) -> bool:
