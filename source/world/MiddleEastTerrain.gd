@@ -4444,7 +4444,8 @@ func issue_selected_logical_group_move(destination: Vector2) -> int:
 		var column: int = order_index % columns
 		var centered_column: float = float(column) - float(columns - 1) * 0.5
 		var centered_row: float = float(row) - float(rows - 1) * 0.5
-		var lateral_km := centered_column * formation_spacing_km
+		var row_stagger := 0.5 * formation_spacing_km if row % 2 == 1 else 0.0
+		var lateral_km := centered_column * formation_spacing_km + row_stagger
 		var depth_km := -centered_row * formation_spacing_km + _formation_type_depth_km(unit_type)
 		var east_km: float = right.x * lateral_km + forward.x * depth_km
 		var north_km: float = right.y * lateral_km + forward.y * depth_km
