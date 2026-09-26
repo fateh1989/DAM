@@ -3691,6 +3691,17 @@ func set_heavy_visual_weapon_pose(node: Node3D, yaw_degrees: float, elevation_de
 		node.set_meta("weapon_yaw_deg", turret.rotation_degrees.y)
 		node.set_meta("weapon_elevation_deg", gun_mount.rotation_degrees.x)
 		return true
+	if unit_type == "rocket_launcher":
+		var launcher := node.get_node_or_null("LauncherModel/LauncherPivot") as Node3D
+		var elevation := node.get_node_or_null("LauncherModel/LauncherPivot/ElevationPivot") as Node3D
+		if launcher == null or elevation == null:
+			return false
+		launcher.rotation_degrees.y = wrapf(yaw_degrees, -180.0, 180.0)
+		var clamped_elevation := clampf(elevation_degrees, 0.0, 50.0)
+		elevation.rotation_degrees.x = -clamped_elevation
+		node.set_meta("weapon_yaw_deg", launcher.rotation_degrees.y)
+		node.set_meta("weapon_elevation_deg", clamped_elevation)
+		return true
 	return false
 
 
