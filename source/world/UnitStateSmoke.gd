@@ -443,5 +443,15 @@ func _run() -> void:
 		_fail(92, "Logical force group smoke: " + logical_force_group_error)
 		return
 
+	var touch_logical_selection_smoke_script := load("res://source/world/TouchLogicalSelectionSmoke.gd") as Script
+	if touch_logical_selection_smoke_script == null:
+		_fail(93, "Touch logical selection smoke: contract script missing")
+		return
+	var touch_logical_selection_smoke = touch_logical_selection_smoke_script.new()
+	var touch_logical_selection_error := str(touch_logical_selection_smoke.call("run", scene))
+	if not touch_logical_selection_error.is_empty():
+		_fail(94, "Touch logical selection smoke: " + touch_logical_selection_error)
+		return
+
 	print("Strategic unit smoke: 14 armies / 42 heavy representatives + radar + group movement OK")
 	quit(0)
