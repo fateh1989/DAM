@@ -125,6 +125,10 @@ func set_unit_position(unit_id: String, lon: float, lat: float) -> bool:
 	var unit: Dictionary = _units[index]
 	unit["lon"] = lon
 	unit["lat"] = lat
+	if not bool(unit.get("moving", false)):
+		unit["target_lon"] = lon
+		unit["target_lat"] = lat
+		unit["route_points"] = []
 	_units[index] = unit
 	return true
 
