@@ -2932,11 +2932,28 @@ func _create_tank_visual(index: int) -> Node3D:
 	gun_mount.position = Vector3(0.0, 0.74 if family == "western" else 0.64, -0.54 if family == "western" else -0.48)
 	turret_pivot.add_child(gun_mount)
 
-	var barrel_mesh := BoxMesh.new()
-	barrel_mesh.size = Vector3(0.15, 0.15, 1.86) if family == "western" else Vector3(0.13, 0.13, 1.62)
+	var mantlet_mesh := CylinderMesh.new()
+	mantlet_mesh.top_radius = 0.25 if family == "western" else 0.22
+	mantlet_mesh.bottom_radius = 0.29 if family == "western" else 0.25
+	mantlet_mesh.height = 0.30
+	mantlet_mesh.radial_segments = 12
+	var mantlet := MeshInstance3D.new()
+	mantlet.name = "GunMantlet"
+	mantlet.mesh = mantlet_mesh
+	mantlet.rotation_degrees.x = 90.0
+	mantlet.position = Vector3(0.0, 0.0, -0.10)
+	mantlet.material_override = _solid_unshaded_material(army_color.darkened(0.12))
+	gun_mount.add_child(mantlet)
+
+	var barrel_mesh := CylinderMesh.new()
+	barrel_mesh.top_radius = 0.075 if family == "western" else 0.065
+	barrel_mesh.bottom_radius = 0.085 if family == "western" else 0.074
+	barrel_mesh.height = 1.86 if family == "western" else 1.62
+	barrel_mesh.radial_segments = 12
 	var barrel := MeshInstance3D.new()
 	barrel.name = "Barrel"
 	barrel.mesh = barrel_mesh
+	barrel.rotation_degrees.x = 90.0
 	barrel.position = Vector3(0.0, 0.0, -1.00 if family == "western" else -0.88)
 	barrel.material_override = _solid_unshaded_material(army_color.lightened(0.08))
 	gun_mount.add_child(barrel)
