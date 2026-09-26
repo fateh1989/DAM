@@ -168,3 +168,17 @@ func get_heavy_representative_id(governorate_index: int, unit_type: String) -> S
 	if heavy_force_roster == null:
 		return ""
 	return heavy_force_roster.representative_id(governorate_index, unit_type)
+
+
+func get_heavy_force_counts() -> Dictionary:
+	if heavy_force_roster == null:
+		return {}
+	var tank := heavy_force_roster.count_type("tank", true)
+	var rocket_launcher := heavy_force_roster.count_type("rocket_launcher", true)
+	var artillery := heavy_force_roster.count_type("artillery", true)
+	return {
+		"tank": tank,
+		"rocket_launcher": rocket_launcher,
+		"artillery": artillery,
+		"total": tank + rocket_launcher + artillery,
+	}
