@@ -3504,6 +3504,17 @@ func _process(delta: float) -> void:
 	if _units.is_empty():
 		return
 
+	var representative_ids: Dictionary = {}
+	for visible_unit in _units:
+		var representative_id: String = str((visible_unit as Dictionary).get("logical_unit_id", ""))
+		if not representative_id.is_empty():
+			representative_ids[representative_id] = true
+
+	var logical_moved_count: int = 0
+	var roster_state := _game_state_node()
+	if roster_state != null:
+		logical_moved_count = int(roster_state.call("tick_heavy_force_movement", delta, representative_ids))
+
 	var any_moved := false
 	for i in range(_units.size()):
 		var unit: Dictionary = _units[i]
@@ -3543,6 +3554,8 @@ func _process(delta: float) -> void:
 
 	if any_moved:
 		_sync_unit_visuals()
+	if logical_moved_count > 0:
+		_sync_detail_unit_lod()
 
 func _governorate() -> Dictionary:
 	return GOVERNORATES[_governorate_index]
