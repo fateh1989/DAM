@@ -2445,6 +2445,32 @@ func get_rts_unit_visual_scale(level: int = _rts_zoom_level) -> float:
 	return lerpf(0.0085, 0.0038, t)
 
 
+func validate_strategic_tank_visuals() -> String:
+	var families := {}
+	for unit in _units:
+		var node = unit.get("node")
+		if not (node is Node3D) or not is_instance_valid(node):
+			return "strategic tank node is missing"
+		var family := str(node.get_meta("visual_family", ""))
+		if family != "western" and family != "eastern":
+			return "strategic tank visual family is invalid"
+		families[family] = true
+		for required_path in [
+			"TankModel/UpperHull",
+			"TankModel/TrackLeft",
+			"TankModel/TrackRight",
+			"TankModel/TurretPivot/Turret",
+			"TankModel/TurretPivot/GunMount/Barrel",
+			"TankModel/TurretPivot/CommanderHatch",
+			"TankModel/EngineDeck",
+		]:
+			if node.get_node_or_null(required_path) == null:
+				return "strategic tank visual missing %s" % required_path
+	if not families.has("western") or not families.has("eastern"):
+		return "both strategic tank families must be present"
+	return ""
+
+
 func _tank_visual_scale() -> float:
 	if _terrain_mode:
 		return get_rts_unit_visual_scale()
