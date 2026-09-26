@@ -1675,11 +1675,13 @@ func _build_art_directed_battlefield() -> void:
 	var creek_bank := SurfaceTool.new()
 	var creek := SurfaceTool.new()
 	var buildings := SurfaceTool.new()
+	var fields := SurfaceTool.new()
 	shoulders.begin(Mesh.PRIMITIVE_TRIANGLES)
 	roads.begin(Mesh.PRIMITIVE_TRIANGLES)
 	creek_bank.begin(Mesh.PRIMITIVE_TRIANGLES)
 	creek.begin(Mesh.PRIMITIVE_TRIANGLES)
 	buildings.begin(Mesh.PRIMITIVE_TRIANGLES)
+	fields.begin(Mesh.PRIMITIVE_TRIANGLES)
 
 	var main_road: Array[Vector3] = []
 	var cross_road: Array[Vector3] = []
@@ -1728,6 +1730,13 @@ func _build_art_directed_battlefield() -> void:
 	_commit_vector_batch(creek, "ArtCreek", Color(0.08, 0.34, 0.39, 1.0))
 	_commit_vector_batch(buildings, "ArtSettlement", Color(0.72, 0.62, 0.50, 1.0))
 
+	for field_row in range(3):
+		for field_column in range(4):
+			var field_x := -4.65 + float(field_column) * 0.72
+			var field_z := -3.85 + float(field_row) * 0.62
+			_append_art_box(fields, _art_point(field_x, field_z, 0.004), 0.52, 0.38, 0.008)
+	_commit_vector_batch(fields, "ArtFields", Color(0.48, 0.43, 0.20, 1.0))
+
 	var grove: Array[Transform3D] = []
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 91001 + _governorate_index * 1009
@@ -1754,7 +1763,7 @@ func _build_art_directed_battlefield() -> void:
 	_road_feature_count = 3
 	_building_feature_count = building_count
 	_water_feature_count = 1
-	_landcover_feature_count = 1
+	_landcover_feature_count = 13
 	_tree_instance_count = grove.size()
 	_feature_count = _road_feature_count + _building_feature_count + _water_feature_count + _landcover_feature_count
 	_add_fallback_governorate_label()
