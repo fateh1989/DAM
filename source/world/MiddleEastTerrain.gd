@@ -2275,6 +2275,22 @@ func _create_tank_visual(index: int) -> Node3D:
 		track.material_override = _solid_unshaded_material(Color(0.10, 0.11, 0.10, 1.0))
 		model.add_child(track)
 
+	var wheel_positions := [-0.92, -0.56, -0.20, 0.20, 0.56, 0.92]
+	for side in [-1.0, 1.0]:
+		for wheel_index in range(wheel_positions.size()):
+			var wheel_mesh := CylinderMesh.new()
+			wheel_mesh.top_radius = 0.19 if family == "western" else 0.17
+			wheel_mesh.bottom_radius = wheel_mesh.top_radius
+			wheel_mesh.height = 0.16
+			wheel_mesh.radial_segments = 12
+			var wheel := MeshInstance3D.new()
+			wheel.name = "Wheel_%s_%02d" % ["L" if side < 0.0 else "R", wheel_index]
+			wheel.mesh = wheel_mesh
+			wheel.rotation_degrees = Vector3(0.0, 0.0, 90.0)
+			wheel.position = Vector3(side * (0.94 if family == "western" else 0.82), 0.20, float(wheel_positions[wheel_index]) * (1.03 if family == "western" else 0.92))
+			wheel.material_override = _solid_unshaded_material(Color(0.16, 0.17, 0.15, 1.0))
+			model.add_child(wheel)
+
 	var turret_mesh := CylinderMesh.new()
 	turret_mesh.top_radius = 0.52
 	turret_mesh.bottom_radius = 0.58
