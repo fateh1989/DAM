@@ -19,6 +19,22 @@ func _run() -> void:
 	root.add_child(scene)
 	await process_frame
 
+	var continuous_world_id := scene.get_instance_id()
+	if not bool(scene.call("start_battle_in_current_world")):
+		_fail(70, "Continuous RTS smoke: battle did not start in current world")
+		return
+	await process_frame
+	if not is_instance_valid(scene) or scene.get_instance_id() != continuous_world_id or scene.get_parent() != root:
+		_fail(71, "Continuous RTS smoke: START BATTLE replaced the world scene")
+		return
+	if str(scene.mode_button.text) != "BATTLE ACTIVE":
+		_fail(72, "Continuous RTS smoke: current-world battle state was not exposed in HUD")
+		return
+	if GameState.active_battle.is_empty():
+		_fail(73, "Continuous RTS smoke: GameState battle state is missing")
+		return
+	GameState.finish_battle({"result": "continuous-world-smoke"})
+
 	var selection_contract_script := load("res://source/world/SelectionCoreSmoke.gd") as Script
 	if selection_contract_script == null:
 		_fail(52, "Selection core smoke: contract script missing")
