@@ -2790,6 +2790,13 @@ func resolve_logical_heavy_attack(attacker_id: String, target_id: String, weapon
 	return result
 
 
+func _default_heavy_weapon(unit_type: String) -> String:
+	match unit_type:
+		"artillery": return "artillery_shell"
+		"rocket_launcher": return "rocket_salvo"
+		_: return "tank_cannon"
+
+
 func resolve_unit_attack(attacker_index: int, target_index: int, weapon_id: String = "tank_cannon") -> Dictionary:
 	if _army_core == null:
 		return {"ok": false, "reason": "army_core_unavailable"}
