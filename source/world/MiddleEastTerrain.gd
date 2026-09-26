@@ -3963,6 +3963,7 @@ func _on_select_all_units_pressed() -> void:
 
 func _on_clear_selection_pressed() -> void:
 	clear_selected_units()
+	clear_logical_heavy_selection()
 
 
 func _on_previous_unit_pressed() -> void:
