@@ -1771,6 +1771,12 @@ func _build_art_directed_battlefield() -> void:
 		var vh := 0.035 + 0.010 * float(village_index % 3)
 		_append_art_box(buildings, _art_point(vx, vz, 0.010), 0.10, 0.085, vh)
 		building_count += 1
+	for hamlet_index in range(6):
+		var hx := 3.35 + float(hamlet_index % 3) * 0.24
+		var hz := -2.15 + float(int(hamlet_index / 3)) * 0.24
+		var hh := 0.040 + 0.010 * float(hamlet_index % 2)
+		_append_art_box(buildings, _art_point(hx, hz, 0.010), 0.11, 0.09, hh)
+		building_count += 1
 	_commit_vector_batch(buildings, "ArtSettlement", Color(0.72, 0.62, 0.50, 1.0))
 
 	for field_row in range(3):
