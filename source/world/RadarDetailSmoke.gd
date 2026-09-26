@@ -2,7 +2,8 @@ extends RefCounted
 
 func run(scene: Node) -> String:
 	var original_zoom := int(scene.call("get_rts_zoom_level"))
-	scene.call("_set_rts_zoom_level", 8)
+	var detail_zoom := int(scene.call("get_rts_detail_lod_min"))
+	scene.call("_set_rts_zoom_level", detail_zoom)
 	var radar_units: Array = scene.call("get_radar_units")
 	var focused_detail := 0
 	var sample_detail: Dictionary = {}
