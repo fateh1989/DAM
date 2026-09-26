@@ -19,7 +19,7 @@ func _run() -> void:
 	root.add_child(scene)
 	await process_frame
 
-	var continuous_world_id := scene.get_instance_id()
+	var continuous_world_id: int = int(scene.get_instance_id())
 	if not bool(scene.call("start_battle_in_current_world")):
 		_fail(70, "Continuous RTS smoke: battle did not start in current world")
 		return
@@ -30,10 +30,15 @@ func _run() -> void:
 	if str(scene.mode_button.text) != "BATTLE ACTIVE":
 		_fail(72, "Continuous RTS smoke: current-world battle state was not exposed in HUD")
 		return
-	if GameState.active_battle.is_empty():
-		_fail(73, "Continuous RTS smoke: GameState battle state is missing")
+	var game_state := root.get_node_or_null("GameState")
+	if game_state == null:
+		_fail(73, "Continuous RTS smoke: GameState autoload node is missing")
 		return
-	GameState.finish_battle({"result": "continuous-world-smoke"})
+	var active_battle: Dictionary = game_state.get("active_battle")
+	if active_battle.is_empty():
+		_fail(74, "Continuous RTS smoke: GameState battle state is missing")
+		return
+	game_state.call("finish_battle", {"result": "continuous-world-smoke"})
 
 	var selection_contract_script := load("res://source/world/SelectionCoreSmoke.gd") as Script
 	if selection_contract_script == null:

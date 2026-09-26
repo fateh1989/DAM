@@ -126,9 +126,9 @@ const VECTOR_REFRESH_DISTANCE_DEG := 0.025
 @onready var rts_radar: Control = $HUD/RTSRadar
 @onready var province_clock_grid: GridContainer = $HUD/ProvinceClockPanel/Grid
 
-var _terrain_mode := false
-var _map_zoom := DEFAULT_MAP_ZOOM
-var _map_zoom_before_terrain := DEFAULT_MAP_ZOOM
+var _terrain_mode := true
+var _map_zoom := MAX_MAP_ZOOM
+var _map_zoom_before_terrain := MAX_MAP_ZOOM
 var _rts_zoom_level := RTS_ZOOM_LEVEL_MIN
 var _governorate_index := DEFAULT_GOVERNORATE_INDEX
 var _center_lon := float(GOVERNORATES[DEFAULT_GOVERNORATE_INDEX]["lon"])
