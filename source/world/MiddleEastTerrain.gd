@@ -4918,6 +4918,8 @@ func stop_selected_units() -> int:
 		unit["target_lon"] = float(unit["lon"])
 		unit["target_lat"] = float(unit["lat"])
 		unit["route_points"] = []
+		unit.erase("attack_target_index")
+		unit.erase("attack_weapon_id")
 		_units[index] = unit
 	return stopped_count
 
