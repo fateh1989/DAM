@@ -2868,6 +2868,28 @@ func _orient_unit_hull_to_target(node: Node3D, unit: Dictionary) -> void:
 	node.rotation.y = atan2(-delta.x, -delta.y)
 
 
+func _apply_wreck_visual(node: Node3D) -> void:
+	if not is_instance_valid(node) or bool(node.get_meta("is_wreck", false)):
+		return
+	node.set_meta("is_wreck", true)
+	var model := _get_unit_model_node(node)
+	if model == null:
+		return
+	model.rotation_degrees.z = -7.0
+	model.position.y -= 0.05
+	var wreck_overlay := StandardMaterial3D.new()
+	wreck_overlay.albedo_color = Color(0.16, 0.14, 0.11, 1.0)
+	wreck_overlay.roughness = 1.0
+	var stack: Array[Node] = [model]
+	while not stack.is_empty():
+		var current: Node = stack.pop_back()
+		for child in current.get_children():
+			if child is MeshInstance3D:
+				(child as MeshInstance3D).material_overlay = wreck_overlay
+			if child is Node:
+				stack.append(child)
+
+
 func _sync_unit_visuals() -> void:
 	if not is_instance_valid(_unit_root):
 		return
