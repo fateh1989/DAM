@@ -27,9 +27,10 @@ func run(scene: Node) -> String:
 	if not bool(scene.call("select_nearest_radar_target_uv", sample_detail.get("uv", Vector2.ZERO), 0.002)):
 		scene.call("_set_rts_zoom_level", original_zoom)
 		return "persistent radar target could not be selected"
-	if sample_id not in scene.call("get_selected_logical_heavy_ids"):
+	var selected_ids: Array[String] = scene.call("get_selected_logical_heavy_ids")
+	if selected_ids.size() != 1 or selected_ids[0] != sample_id:
 		scene.call("_set_rts_zoom_level", original_zoom)
-		return "radar selection did not reach persistent unit state"
+		return "radar selection did not reach exact persistent unit state"
 	scene.call("clear_logical_heavy_selection")
 	scene.call("_set_rts_zoom_level", original_zoom)
 	return ""
