@@ -1676,12 +1676,14 @@ func _build_art_directed_battlefield() -> void:
 	var creek := SurfaceTool.new()
 	var buildings := SurfaceTool.new()
 	var fields := SurfaceTool.new()
+	var rocks := SurfaceTool.new()
 	shoulders.begin(Mesh.PRIMITIVE_TRIANGLES)
 	roads.begin(Mesh.PRIMITIVE_TRIANGLES)
 	creek_bank.begin(Mesh.PRIMITIVE_TRIANGLES)
 	creek.begin(Mesh.PRIMITIVE_TRIANGLES)
 	buildings.begin(Mesh.PRIMITIVE_TRIANGLES)
 	fields.begin(Mesh.PRIMITIVE_TRIANGLES)
+	rocks.begin(Mesh.PRIMITIVE_TRIANGLES)
 
 	var main_road: Array[Vector3] = []
 	var cross_road: Array[Vector3] = []
@@ -1736,6 +1738,13 @@ func _build_art_directed_battlefield() -> void:
 			var field_z := -3.85 + float(field_row) * 0.62
 			_append_art_box(fields, _art_point(field_x, field_z, 0.004), 0.52, 0.38, 0.008)
 	_commit_vector_batch(fields, "ArtFields", Color(0.48, 0.43, 0.20, 1.0))
+
+	for rock_index in range(12):
+		var rock_x := -5.6 + float(rock_index % 6) * 0.55
+		var rock_z := 3.45 + float(int(rock_index / 6)) * 0.52 + sin(float(rock_index)) * 0.16
+		var rock_h := 0.035 + 0.010 * float(rock_index % 3)
+		_append_art_box(rocks, _art_point(rock_x, rock_z, 0.006), 0.14, 0.11, rock_h)
+	_commit_vector_batch(rocks, "ArtRocks", Color(0.37, 0.34, 0.29, 1.0))
 
 	var grove: Array[Transform3D] = []
 	var rng := RandomNumberGenerator.new()
