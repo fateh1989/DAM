@@ -197,6 +197,16 @@ func _run() -> void:
 		_fail(84, "Heavy movement persistence smoke: " + heavy_movement_error)
 		return
 
+	var route_queue_smoke_script := load("res://source/world/RouteQueueSmoke.gd") as Script
+	if route_queue_smoke_script == null:
+		_fail(124, "Route queue smoke: contract script missing")
+		return
+	var route_queue_smoke = route_queue_smoke_script.new()
+	var route_queue_error := str(route_queue_smoke.call("run", scene))
+	if not route_queue_error.is_empty():
+		_fail(125, "Route queue smoke: " + route_queue_error)
+		return
+
 	var partial_damage_smoke_script := load("res://source/world/PartialDamagePersistenceSmoke.gd") as Script
 	if partial_damage_smoke_script == null:
 		_fail(85, "Partial damage persistence smoke: contract script missing")
