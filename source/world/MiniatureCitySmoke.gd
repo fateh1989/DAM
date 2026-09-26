@@ -66,4 +66,22 @@ func run(scene: Node) -> String:
 		return "Deir ez-Zor miniature city did not receive eastern style"
 	if str(cities[12].call("get_style_id")) != "southern":
 		return "Suwayda miniature city did not receive southern basalt style"
+	scene.set("_terrain_mode", true)
+	scene.set("_governorate_index", 2)
+	scene.set("_center_lon", float(scene.GOVERNORATES[2]["lon"]))
+	scene.set("_center_lat", float(scene.GOVERNORATES[2]["lat"]))
+	scene.set("_origin_lon", float(scene.GOVERNORATES[2]["lon"]))
+	scene.set("_origin_lat", float(scene.GOVERNORATES[2]["lat"]))
+	scene.set("_rts_zoom_level", 5)
+	scene.call("_sync_city_marker_positions")
+	var visible_count := int(scene.call("get_visible_city_count"))
+	if visible_count < 1 or visible_count >= 14:
+		return "miniature city culling is not limiting local draw cost"
+	if not bool(cities[2].visible):
+		return "focused Aleppo miniature city was culled"
+	if int(cities[2].lod_level) != 2:
+		return "close miniature city LOD is not detailed"
+	var label := cities[2].get_node_or_null("CityLabel") as Label3D
+	if label == null or not label.visible:
+		return "focused city label is not visible at close zoom"
 	return ""

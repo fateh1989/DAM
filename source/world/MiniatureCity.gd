@@ -337,3 +337,8 @@ func set_lod(level: int) -> void:
 		_street_root.visible = lod_level >= 2
 	if _industrial_root != null:
 		_industrial_root.visible = lod_level >= 2
+	if _rubble_root != null:
+		_rubble_root.visible = lod_level >= 2
+	for i in range(_roof_nodes.size()):
+		var building_visible := i < _building_nodes.size() and _building_nodes[i].visible
+		_roof_nodes[i].visible = lod_level >= 2 and building_visible

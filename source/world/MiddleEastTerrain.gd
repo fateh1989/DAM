@@ -313,6 +313,38 @@ func _sync_city_marker_positions() -> void:
 		var lat := float(data["lat"])
 		var height_km := _designed_height_m(lon, lat) / 1000.0 + 0.016
 		city.position = _geo_to_local(lon, lat, height_km)
+	_sync_city_marker_lod()
+
+
+func _city_visibility_radius_km() -> float:
+	match _rts_zoom_level:
+		1: return 350.0
+		2: return 280.0
+		3: return 220.0
+		4: return 165.0
+		_: return 125.0
+
+
+func _sync_city_marker_lod() -> void:
+	var lod := 2 if _rts_zoom_level >= 3 else 1
+	var radius_km := _city_visibility_radius_km()
+	for city in _city_markers:
+		if not is_instance_valid(city):
+			continue
+		city.call("set_lod", lod)
+		var province_index := int(city.get("governorate_index"))
+		var focused := province_index == _governorate_index
+		var local_distance := Vector2(city.position.x, city.position.z).length()
+		city.visible = _terrain_mode and (focused or local_distance <= radius_km)
+		city.call("set_label_visible", _terrain_mode and _rts_zoom_level >= 3 and city.visible)
+
+
+func get_visible_city_count() -> int:
+	var count := 0
+	for city in _city_markers:
+		if is_instance_valid(city) and city.visible:
+			count += 1
+	return count
 
 
 func get_city_markers() -> Array[Node3D]:
