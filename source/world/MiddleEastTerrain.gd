@@ -591,11 +591,6 @@ func _pan_from_screen_delta(delta: Vector2) -> void:
 	_center_lat = clampf(_center_lat + lat_delta, REGION_SOUTH, REGION_NORTH)
 	_center_lon = clampf(_center_lon + lon_delta, REGION_WEST, REGION_EAST)
 
-	if _terrain_mode and Vector2(_origin_lon, _origin_lat).distance_to(Vector2(_center_lon, _center_lat)) > 0.18:
-		_origin_lon = _center_lon
-		_origin_lat = _center_lat
-		_clear_all_world_nodes()
-
 	_position_camera()
 	_refresh_tiles()
 	_sync_unit_visuals()
