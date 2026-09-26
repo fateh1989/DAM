@@ -8,6 +8,7 @@ const FORCE_TEMPLATE := {
 }
 const UNIT_ORDER := ["tank", "rocket_launcher", "artillery"]
 const ROUTE_CURRENT_EPSILON_KM := 0.00001
+const ROUTE_DUPLICATE_EPSILON_KM := 0.0005
 
 var _units: Array[Dictionary] = []
 var _index_by_id: Dictionary = {}
@@ -165,7 +166,7 @@ func issue_route(unit_id: String, waypoints: Array) -> bool:
 		if not normalized.is_empty():
 			var previous: Dictionary = normalized.back()
 			var previous_point := Vector2(float(previous["lon"]), float(previous["lat"]))
-			if _route_distance_km(previous_point, point) < 0.0005:
+			if _route_distance_km(previous_point, point) < ROUTE_DUPLICATE_EPSILON_KM:
 				continue
 		normalized.append({"lon": point.x, "lat": point.y})
 	var current_point := Vector2(float(unit.get("lon", 0.0)), float(unit.get("lat", 0.0)))
