@@ -46,6 +46,11 @@ func run(scene: Node) -> String:
 		return "non-represented logical heavy unit did not move"
 	if not bool(after.get("moving", false)):
 		return "non-represented logical heavy unit stopped before reaching destination"
+	var heading_after := float(after.get("heading_rad", 0.0))
+	if absf(heading_after) < 0.10:
+		return "logical heavy heading did not change during eastward movement"
+	if absf(wrapf(detail_node.rotation.y - heading_after, -PI, PI)) > 0.01:
+		return "detail LOD heading does not match persistent logical heading"
 
 	var expected_local: Vector3 = scene.call("_geo_to_local", after_position.x, after_position.y, 0.0)
 	var detail_flat := Vector2(detail_node.position.x, detail_node.position.z)
@@ -58,6 +63,8 @@ func run(scene: Node) -> String:
 	var stopped: Dictionary = game_state.call("get_heavy_unit", logical_id)
 	if bool(stopped.get("moving", true)):
 		return "logical heavy unit remained moving after STOP"
+	if absf(wrapf(float(stopped.get("heading_rad", 0.0)) - heading_after, -PI, PI)) > 0.001:
+		return "logical heavy heading was lost after STOP"
 
 	scene.call("_set_rts_zoom_level", original_zoom)
 	return ""
