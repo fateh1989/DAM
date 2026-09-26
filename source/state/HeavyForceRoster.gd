@@ -31,6 +31,7 @@ func seed(governorates: Array, unit_specs: Dictionary) -> bool:
 			var quantity := int(FORCE_TEMPLATE[unit_type])
 			var spec: Dictionary = unit_specs.get(unit_type, {})
 			var max_hp := maxf(1.0, float(spec.get("hp", 100.0)))
+			var speed_km_sec := maxf(0.0, float(spec.get("speed_km_sec", 0.0)))
 			for slot in range(quantity):
 				var unit_id := "G%02d-%s-%03d" % [governorate_index + 1, unit_type, slot + 1]
 				var spread := _spawn_offset(unit_type, slot, quantity)
@@ -48,6 +49,7 @@ func seed(governorates: Array, unit_specs: Dictionary) -> bool:
 					"alive": true,
 					"hp": max_hp,
 					"max_hp": max_hp,
+					"speed_km_sec": speed_km_sec,
 				}
 				_index_by_id[unit_id] = _units.size()
 				_units.append(unit)
