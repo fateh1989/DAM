@@ -221,6 +221,12 @@ func issue_heavy_move(unit_id: String, target_lon: float, target_lat: float) -> 
 	return heavy_force_roster.issue_move(unit_id, target_lon, target_lat)
 
 
+func issue_heavy_route(unit_id: String, waypoints: Array) -> bool:
+	if heavy_force_roster == null:
+		return false
+	return heavy_force_roster.issue_route(unit_id, waypoints)
+
+
 func stop_heavy_unit(unit_id: String) -> bool:
 	if heavy_force_roster == null:
 		return false

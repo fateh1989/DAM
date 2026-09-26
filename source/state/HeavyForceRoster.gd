@@ -128,14 +128,31 @@ func set_unit_position(unit_id: String, lon: float, lat: float) -> bool:
 
 
 func issue_move(unit_id: String, target_lon: float, target_lat: float) -> bool:
-	if not _index_by_id.has(unit_id):
+	return issue_route(unit_id, [Vector2(target_lon, target_lat)])
+
+
+func issue_route(unit_id: String, waypoints: Array) -> bool:
+	if not _index_by_id.has(unit_id) or waypoints.is_empty():
 		return false
 	var index := int(_index_by_id[unit_id])
 	var unit: Dictionary = _units[index]
 	if not bool(unit.get("alive", true)):
 		return false
-	unit["target_lon"] = target_lon
-	unit["target_lat"] = target_lat
+	var normalized: Array = []
+	for raw_point in waypoints:
+		if raw_point is Vector2:
+			var point: Vector2 = raw_point
+			normalized.append({"lon": point.x, "lat": point.y})
+		elif typeof(raw_point) == TYPE_DICTIONARY:
+			var point_dict: Dictionary = raw_point
+			if point_dict.has("lon") and point_dict.has("lat"):
+				normalized.append({"lon": float(point_dict["lon"]), "lat": float(point_dict["lat"])})
+	if normalized.is_empty():
+		return false
+	var first: Dictionary = normalized.pop_front()
+	unit["target_lon"] = float(first["lon"])
+	unit["target_lat"] = float(first["lat"])
+	unit["route_points"] = normalized
 	unit["moving"] = true
 	_units[index] = unit
 	return true
@@ -148,6 +165,7 @@ func stop_unit(unit_id: String) -> bool:
 	var unit: Dictionary = _units[index]
 	unit["target_lon"] = float(unit.get("lon", 0.0))
 	unit["target_lat"] = float(unit.get("lat", 0.0))
+	unit["route_points"] = []
 	unit["moving"] = false
 	_units[index] = unit
 	return true
@@ -165,6 +183,7 @@ func record_destroyed(unit_id: String) -> bool:
 	unit["moving"] = false
 	unit["target_lon"] = float(unit.get("lon", 0.0))
 	unit["target_lat"] = float(unit.get("lat", 0.0))
+	unit["route_points"] = []
 	_units[index] = unit
 	return true
 
@@ -271,7 +290,15 @@ func tick_movement(delta: float, excluded_ids: Dictionary = {}) -> int:
 		if distance_km <= maxf(0.0001, step_km):
 			unit["lon"] = target_lon
 			unit["lat"] = target_lat
-			unit["moving"] = false
+			var pending: Array = unit.get("route_points", [])
+			if not pending.is_empty():
+				var next_point: Dictionary = pending.pop_front()
+				unit["target_lon"] = float(next_point.get("lon", target_lon))
+				unit["target_lat"] = float(next_point.get("lat", target_lat))
+				unit["route_points"] = pending
+				unit["moving"] = true
+			else:
+				unit["moving"] = false
 		else:
 			var ratio: float = step_km / distance_km
 			unit["lon"] = lerpf(lon, target_lon, ratio)
