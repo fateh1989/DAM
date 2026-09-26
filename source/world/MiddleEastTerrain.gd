@@ -1819,6 +1819,10 @@ func _build_art_directed_battlefield() -> void:
 	_add_fallback_governorate_label()
 
 
+func has_art_battlefield_layer(layer_name: String) -> bool:
+	return is_instance_valid(vector_root) and vector_root.get_node_or_null(layer_name) != null
+
+
 func get_art_battlefield_feature_snapshot() -> Dictionary:
 	return {
 		"roads": _road_feature_count,
