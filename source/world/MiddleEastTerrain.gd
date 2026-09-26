@@ -3085,6 +3085,15 @@ func _create_artillery_visual(index: int) -> Node3D:
 	cradle.material_override = _solid_unshaded_material(army_color.darkened(0.12))
 	gun_mount.add_child(cradle)
 
+	var breech_mesh := BoxMesh.new()
+	breech_mesh.size = Vector3(0.42, 0.34, 0.48)
+	var breech := MeshInstance3D.new()
+	breech.name = "BreechBlock"
+	breech.mesh = breech_mesh
+	breech.position = Vector3(0.0, 0.0, 0.18)
+	breech.material_override = _solid_unshaded_material(army_color.darkened(0.20))
+	gun_mount.add_child(breech)
+
 	var barrel_mesh := BoxMesh.new()
 	barrel_mesh.size = Vector3(0.13, 0.13, 2.44 if family == "western" else 2.22)
 	var barrel := MeshInstance3D.new()
@@ -3665,6 +3674,7 @@ func validate_support_heavy_visuals() -> String:
 				"ArtilleryModel/TurretPivot/Turret",
 				"ArtilleryModel/TurretPivot/TurretBustle",
 				"ArtilleryModel/TurretPivot/GunMount/RecoilCradle",
+				"ArtilleryModel/TurretPivot/GunMount/BreechBlock",
 				"ArtilleryModel/TurretPivot/GunMount/Barrel",
 				"ArtilleryModel/TurretPivot/GunMount/MuzzleBrake",
 				"ArtilleryModel/RearStabilizerLeft",
