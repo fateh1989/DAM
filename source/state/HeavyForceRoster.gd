@@ -33,16 +33,17 @@ func seed(governorates: Array, unit_specs: Dictionary) -> bool:
 			var max_hp := maxf(1.0, float(spec.get("hp", 100.0)))
 			for slot in range(quantity):
 				var unit_id := "G%02d-%s-%03d" % [governorate_index + 1, unit_type, slot + 1]
+				var spread := _spawn_offset(unit_type, slot, quantity)
 				var unit := {
 					"id": unit_id,
 					"home_governorate_index": governorate_index,
 					"current_governorate_index": governorate_index,
 					"unit_type": unit_type,
 					"slot": slot,
-					"lon": base_lon,
-					"lat": base_lat,
-					"target_lon": base_lon,
-					"target_lat": base_lat,
+					"lon": base_lon + spread.x,
+					"lat": base_lat + spread.y,
+					"target_lon": base_lon + spread.x,
+					"target_lat": base_lat + spread.y,
 					"moving": false,
 					"alive": true,
 					"hp": max_hp,
@@ -64,3 +65,18 @@ func get_units_snapshot() -> Array[Dictionary]:
 	for unit in _units:
 		result.append(unit.duplicate(true))
 	return result
+
+
+func _spawn_offset(unit_type: String, slot: int, quantity: int) -> Vector2:
+	var columns := 10
+	var rows := maxi(1, int(ceil(float(quantity) / float(columns))))
+	var column := slot % columns
+	var row := int(slot / columns)
+	var x := (float(column) - float(columns - 1) * 0.5) * 0.006
+	var y := (float(row) - float(rows - 1) * 0.5) * 0.006
+	match unit_type:
+		"rocket_launcher":
+			x -= 0.035
+		"artillery":
+			x += 0.035
+	return Vector2(x, y)
