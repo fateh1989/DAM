@@ -4,11 +4,14 @@ var governorate_index := -1
 var city_name_ar := ""
 var style_id := "central"
 var lod_level := 2
+var city_health := 1.0
+var damage_stage := 0
 
 var _body_root: Node3D = null
 var _street_root: Node3D = null
 var _industrial_root: Node3D = null
 var _building_nodes: Array[MeshInstance3D] = []
+var _roof_nodes: Array[MeshInstance3D] = []
 var _industrial_nodes: Array[Node3D] = []
 var _street_nodes: Array[MeshInstance3D] = []
 var _label: Label3D = null
@@ -140,6 +143,7 @@ func _build_residential_rings(palette: Dictionary) -> void:
 			var roof_height := 0.010
 			var roof := _add_box(_body_root, p + Vector3(0, height * 0.5 + roof_height * 0.5, 0), Vector3(width * 1.04, roof_height, depth * 1.04), roof_mat, "Roof_%02d_%02d" % [ring_index, slot])
 			roof.rotation.y = building.rotation.y
+			_roof_nodes.append(roof)
 
 
 func _build_industrial_edge(palette: Dictionary) -> void:
@@ -190,6 +194,7 @@ func _rebuild() -> void:
 	for child in get_children():
 		child.free()
 	_building_nodes.clear()
+	_roof_nodes.clear()
 	_industrial_nodes.clear()
 	_street_nodes.clear()
 	_ensure_roots()
@@ -199,6 +204,61 @@ func _rebuild() -> void:
 	_build_residential_rings(palette)
 	_build_industrial_edge(palette)
 	_build_label()
+	_apply_damage_visuals()
+
+
+func _damage_stage_for_health(value: float) -> int:
+	if value >= 0.85:
+		return 0
+	if value >= 0.60:
+		return 1
+	if value >= 0.30:
+		return 2
+	return 3
+
+
+func _apply_damage_visuals() -> void:
+	damage_stage = _damage_stage_for_health(city_health)
+	var collapse_fraction := clampf((0.65 - city_health) / 0.65, 0.0, 1.0)
+	var count := maxi(1, _building_nodes.size())
+	for i in range(_building_nodes.size()):
+		var building := _building_nodes[i]
+		var roof := _roof_nodes[i] if i < _roof_nodes.size() else null
+		var threshold := float(i + 1) / float(count)
+		var collapsed := threshold <= collapse_fraction
+		building.visible = not collapsed
+		building.scale = Vector3(1.0, lerpf(1.0, 0.76, 1.0 - city_health), 1.0)
+		building.rotation.x = 0.0
+		building.rotation.z = 0.0 if damage_stage == 0 else sin(float(i) * 1.73) * 0.06 * float(damage_stage)
+		if roof != null:
+			roof.visible = not collapsed
+			roof.scale = Vector3.ONE
+			roof.rotation.x = 0.0
+			roof.rotation.z = building.rotation.z
+	for i in range(_industrial_nodes.size()):
+		var threshold := float(i + 1) / float(maxi(1, _industrial_nodes.size()))
+		_industrial_nodes[i].visible = threshold > collapse_fraction
+
+
+func set_city_health(value: float) -> void:
+	city_health = clampf(value, 0.0, 1.0)
+	_apply_damage_visuals()
+
+
+func get_city_health() -> float:
+	return city_health
+
+
+func get_damage_stage() -> int:
+	return damage_stage
+
+
+func get_collapsed_building_count() -> int:
+	var count := 0
+	for building in _building_nodes:
+		if not building.visible:
+			count += 1
+	return count
 
 
 func get_building_count() -> int:

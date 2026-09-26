@@ -23,6 +23,14 @@ func run(scene: Node) -> String:
 	if int(sample.call("get_industrial_count")) != 4:
 		sample.free()
 		return "miniature city lacks industrial buildings on the outer edge"
+	sample.call("set_city_health", 0.45)
+	if int(sample.call("get_damage_stage")) != 2:
+		sample.free()
+		return "miniature city did not enter critical damage stage"
+	if int(sample.call("get_collapsed_building_count")) <= 0:
+		sample.free()
+		return "critical city damage did not collapse any buildings"
+	sample.call("set_city_health", 1.0)
 	sample.free()
 	var cities: Array = scene.call("get_city_markers")
 	if cities.size() != 14:
