@@ -44,4 +44,22 @@ func run(scene: Node) -> String:
 		if int(logical.get("home_governorate_index", -1)) != int(unit.get("governorate_index", -2)):
 			return "visible representative governorate does not match logical roster"
 
+	var loss_id := "G01-tank-050"
+	var before_loss: Dictionary = game_state.call("get_heavy_unit", loss_id)
+	if before_loss.is_empty() or not bool(before_loss.get("alive", false)):
+		return "permanent loss test unit is unavailable"
+	if not bool(game_state.call("record_heavy_loss", loss_id)):
+		return "permanent heavy loss was rejected"
+	var after_loss: Dictionary = game_state.call("get_heavy_unit", loss_id)
+	if bool(after_loss.get("alive", true)) or float(after_loss.get("hp", 1.0)) != 0.0:
+		return "destroyed heavy unit returned alive in roster"
+	var after_counts: Dictionary = game_state.call("get_heavy_force_counts")
+	if int(after_counts.get("total", 0)) != 1399 or int(after_counts.get("tank", 0)) != 699:
+		return "permanent heavy loss did not reduce live roster counts"
+	var after_country: Dictionary = game_state.call("get_country_snapshot", "syria")
+	var after_deployed: Dictionary = after_country.get("deployed", {})
+	var destroyed: Dictionary = after_country.get("destroyed", {})
+	if int(after_deployed.get("tank", 0)) != 699 or int(destroyed.get("tank", 0)) != 1:
+		return "permanent heavy loss did not update combat inventory"
+
 	return ""
