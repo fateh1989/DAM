@@ -2249,10 +2249,10 @@ func _create_tank_visual(index: int) -> Node3D:
 	root_node.add_child(model)
 
 	var hull_mesh := BoxMesh.new()
-	hull_mesh.size = Vector3(1.55, 0.42, 2.25)
+	hull_mesh.size = Vector3(1.78, 0.46, 2.56) if family == "western" else Vector3(1.52, 0.38, 2.30)
 	var hull := MeshInstance3D.new()
 	hull.mesh = hull_mesh
-	hull.position.y = 0.30
+	hull.position.y = 0.32 if family == "western" else 0.28
 	hull.material_override = _solid_unshaded_material(army_color.darkened(0.24))
 	model.add_child(hull)
 
