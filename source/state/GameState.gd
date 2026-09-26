@@ -124,3 +124,39 @@ func ensure_heavy_force_roster(governorates: Array) -> bool:
 	if not heavy_force_roster.seed(governorates, specs):
 		return false
 	return str(heavy_force_roster.validate()).is_empty()
+
+
+func _ensure_heavy_roster_deployed() -> bool:
+	if _heavy_roster_deployed:
+		return true
+	if army_core == null or heavy_force_roster == null or not heavy_force_roster.is_seeded():
+		return false
+	var desired := {"tank": 700, "rocket_launcher": 280, "artillery": 420}
+	var snapshot: Dictionary = army_core.get_country_snapshot("syria")
+	var deployed: Dictionary = snapshot.get("deployed", {})
+	var inventory: Dictionary = snapshot.get("inventory", {})
+
+	var complete := true
+	for unit_type in desired.keys():
+		if int(deployed.get(unit_type, 0)) != int(desired[unit_type]):
+			complete = false
+			break
+	if complete:
+		_heavy_roster_deployed = true
+		return true
+
+	for unit_type in desired.keys():
+		var needed := int(desired[unit_type]) - int(deployed.get(unit_type, 0))
+		if needed < 0 or int(inventory.get(unit_type, 0)) < needed:
+			return false
+
+	for unit_type in desired.keys():
+		var needed := int(desired[unit_type]) - int(deployed.get(unit_type, 0))
+		if needed <= 0:
+			continue
+		var result: Dictionary = army_core.deploy("syria", str(unit_type), needed)
+		if not bool(result.get("ok", false)):
+			return false
+
+	_heavy_roster_deployed = true
+	return true
