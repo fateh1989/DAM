@@ -3413,6 +3413,49 @@ func select_governorate_logical_heavy_units(governorate_index: int, unit_type: S
 	return _selected_logical_unit_ids.size()
 
 
+
+func issue_selected_logical_group_move(destination: Vector2) -> int:
+	if _selected_logical_unit_ids.is_empty() or not _is_move_destination_valid(destination):
+		return 0
+	var game_state := _game_state_node()
+	if game_state == null:
+		return 0
+	destination = Vector2(
+		clampf(destination.x, REGION_WEST, REGION_EAST),
+		clampf(destination.y, REGION_SOUTH, REGION_NORTH)
+	)
+	_move_order_serial += 1
+	var issued_count: int = 0
+	var columns: int = maxi(1, int(ceil(sqrt(float(_selected_logical_unit_ids.size())))))
+	var rows: int = int(ceil(float(_selected_logical_unit_ids.size()) / float(columns)))
+	for order_index in range(_selected_logical_unit_ids.size()):
+		var row: int = int(order_index / columns)
+		var column: int = order_index % columns
+		var centered_column: float = float(column) - float(columns - 1) * 0.5
+		var centered_row: float = float(row) - float(rows - 1) * 0.5
+		var east_km: float = centered_column * GROUP_FORMATION_SPACING_KM
+		var north_km: float = -centered_row * GROUP_FORMATION_SPACING_KM
+		var target_lat: float = destination.y + rad_to_deg(north_km / EARTH_RADIUS_KM)
+		var lon_radius: float = EARTH_RADIUS_KM * maxf(0.15, cos(deg_to_rad(destination.y)))
+		var target_lon: float = destination.x + rad_to_deg(east_km / lon_radius)
+		var target := Vector2(
+			clampf(target_lon, REGION_WEST, REGION_EAST),
+			clampf(target_lat, REGION_SOUTH, REGION_NORTH)
+		)
+		var logical_id: String = _selected_logical_unit_ids[order_index]
+		var representative_index: int = -1
+		for visible_index in range(_units.size()):
+			var visible_unit: Dictionary = _units[visible_index]
+			if str(visible_unit.get("logical_unit_id", "")) == logical_id:
+				representative_index = visible_index
+				break
+		if representative_index >= 0:
+			if _issue_move_order(representative_index, target):
+				issued_count += 1
+		elif bool(game_state.call("issue_heavy_move", logical_id, target.x, target.y)):
+			issued_count += 1
+	return issued_count
+
 func focus_selected_units() -> bool:
 	var lon_sum := 0.0
 	var lat_sum := 0.0
