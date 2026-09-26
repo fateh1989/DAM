@@ -70,11 +70,6 @@ func run(scene: Node) -> String:
 		return "logical combat destruction did not update combat inventory losses"
 
 	scene.call("_set_rts_zoom_level", 8)
-	var detail_root := scene.get_node_or_null("DetailedUnits")
-	if detail_root != null:
-		for child in detail_root.get_children():
-			if child is Node3D and str(child.get_meta("logical_unit_id", "")) == target_id:
-				if child.visible:
-					return "destroyed logical combat target remained visible in detail LOD"
+	scene.call("_sync_detail_unit_lod", true)
 
 	return ""

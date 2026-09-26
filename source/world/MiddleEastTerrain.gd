@@ -2437,7 +2437,7 @@ func _rebuild_detail_unit_visuals() -> void:
 	var game_state := _game_state_node()
 	if game_state == null:
 		return
-	var roster_units: Array = game_state.call("get_heavy_units_for_governorate", _governorate_index, true)
+	var roster_units: Array = game_state.call("get_heavy_units_for_governorate", _governorate_index, false)
 	var representative_ids := {}
 	for representative in _units:
 		if int(representative.get("governorate_index", -1)) != _governorate_index:
