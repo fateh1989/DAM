@@ -2340,9 +2340,25 @@ func _sync_detail_unit_lod(force: bool = false) -> void:
 		_rebuild_detail_unit_visuals()
 		return
 	var scale_value := get_rts_unit_visual_scale()
+	var game_state := _game_state_node()
 	for node in _detail_unit_nodes:
-		if is_instance_valid(node):
-			node.scale = Vector3.ONE * scale_value
+		if not is_instance_valid(node):
+			continue
+		node.scale = Vector3.ONE * scale_value
+		if game_state == null:
+			continue
+		var logical_id: String = str(node.get_meta("logical_unit_id", ""))
+		if logical_id.is_empty():
+			continue
+		var logical: Dictionary = game_state.call("get_heavy_unit", logical_id)
+		if logical.is_empty() or not bool(logical.get("alive", true)):
+			node.visible = false
+			continue
+		node.visible = true
+		var lon: float = float(logical.get("lon", 0.0))
+		var lat: float = float(logical.get("lat", 0.0))
+		var height: float = _designed_height_m(lon, lat) / 1000.0 + 0.012
+		node.position = _geo_to_local(lon, lat, height)
 
 
 func get_detail_unit_visual_count() -> int:
