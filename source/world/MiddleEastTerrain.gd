@@ -304,7 +304,14 @@ func _sync_landmark_positions() -> void:
 		var lat := float(data["lat"])
 		var height_km := _designed_height_m(lon, lat) / 1000.0 + 0.02
 		item.position = _geo_to_local(lon, lat, height_km)
+	_sync_landmark_selection()
 	_sync_landmark_labels()
+
+
+func _sync_landmark_selection() -> void:
+	for item in _landmarks:
+		if is_instance_valid(item) and item.has_method("set_selected"):
+			item.call("set_selected", int(item.get("governorate_index")) == _governorate_index)
 
 
 func _sync_landmark_labels() -> void:

@@ -38,4 +38,10 @@ func run(scene: Node) -> String:
 	scene.call("_sync_landmark_labels")
 	if label.visible:
 		return "landmark labels remain visible at distant RTS zoom"
+	scene.set("_governorate_index", 2)
+	scene.call("_sync_landmark_selection")
+	if not bool(landmarks[2].selected_landmark):
+		return "focused governorate landmark is not highlighted"
+	if bool(landmarks[1].selected_landmark):
+		return "non-focused governorate landmark is incorrectly highlighted"
 	return ""
