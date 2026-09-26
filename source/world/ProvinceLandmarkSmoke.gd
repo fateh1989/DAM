@@ -47,4 +47,12 @@ func run(scene: Node) -> String:
 	var noria_body := landmarks[4].get_node_or_null("Body") as Node3D
 	if noria_body == null or noria_body.get_child_count() < 10:
 		return "Hama noria silhouette lacks wheel detail"
+	scene.set("_rts_zoom_level", 1)
+	scene.call("_sync_landmark_lod")
+	if int(landmarks[2].lod_level) != 1:
+		return "distant landmark LOD is not simplified"
+	scene.set("_rts_zoom_level", 5)
+	scene.call("_sync_landmark_lod")
+	if int(landmarks[2].lod_level) != 2:
+		return "close landmark LOD is not detailed"
 	return ""

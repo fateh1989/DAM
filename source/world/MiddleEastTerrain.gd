@@ -305,7 +305,15 @@ func _sync_landmark_positions() -> void:
 		var height_km := _designed_height_m(lon, lat) / 1000.0 + 0.02
 		item.position = _geo_to_local(lon, lat, height_km)
 	_sync_landmark_selection()
+	_sync_landmark_lod()
 	_sync_landmark_labels()
+
+
+func _sync_landmark_lod() -> void:
+	var lod := 2 if _rts_zoom_level >= 3 else 1
+	for item in _landmarks:
+		if is_instance_valid(item) and item.has_method("set_lod"):
+			item.call("set_lod", lod)
 
 
 func _sync_landmark_selection() -> void:
