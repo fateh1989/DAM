@@ -1892,6 +1892,74 @@ func _commit_hydrology_batch(st: SurfaceTool, node_name: String, color: Color, r
 	_hydrology_root.add_child(node)
 
 
+func _river_width_for_id(river_id: String) -> float:
+	for raw_feature in _hydrology_data.get("rivers", []):
+		if typeof(raw_feature) != TYPE_DICTIONARY:
+			continue
+		var feature: Dictionary = raw_feature
+		if str(feature.get("id", "")) == river_id:
+			return _river_width_km(feature)
+	return 0.075
+
+
+func _bridge_road_width_km(road_class: String) -> float:
+	match road_class:
+		"motorway", "trunk":
+			return 0.038
+		"primary":
+			return 0.032
+		"secondary":
+			return 0.028
+		"tertiary":
+			return 0.025
+		_:
+			return 0.022
+
+
+func _add_bridge_crossing_visual(crossing: Dictionary) -> void:
+	var lon := float(crossing.get("lon", 0.0))
+	var lat := float(crossing.get("lat", 0.0))
+	var river_id := str(crossing.get("river_id", ""))
+	var river_width := _river_width_for_id(river_id)
+	var tagged_length := maxf(0.0, float(crossing.get("bridge_length_m", 0.0)) / 1000.0)
+	var deck_length := maxf(maxf(river_width * 1.35, tagged_length), 0.055)
+	var deck_width := _bridge_road_width_km(str(crossing.get("road_class", "")))
+	var heading := float(crossing.get("heading_rad", 0.0))
+
+	var bridge := Node3D.new()
+	bridge.name = "BridgeCrossing"
+	bridge.position = _geo_to_local(lon, lat, _designed_height_m(lon, lat) / 1000.0 + 0.006)
+	bridge.rotation.y = heading
+	bridge.set_meta("crossing_kind", "bridge")
+	bridge.set_meta("river_id", river_id)
+	bridge.set_meta("source_id", str(crossing.get("source_id", "")))
+	_hydrology_root.add_child(bridge)
+
+	var deck_mesh := BoxMesh.new()
+	deck_mesh.size = Vector3(deck_width, 0.006, deck_length)
+	var deck := MeshInstance3D.new()
+	deck.name = "Deck"
+	deck.mesh = deck_mesh
+	var deck_material := StandardMaterial3D.new()
+	deck_material.albedo_color = Color(0.34, 0.33, 0.30, 1.0)
+	deck_material.roughness = 0.92
+	deck.material_override = deck_material
+	bridge.add_child(deck)
+
+	for side in [-1.0, 1.0]:
+		var rail_mesh := BoxMesh.new()
+		rail_mesh.size = Vector3(0.0025, 0.006, deck_length)
+		var rail := MeshInstance3D.new()
+		rail.name = "RailLeft" if side < 0.0 else "RailRight"
+		rail.mesh = rail_mesh
+		rail.position = Vector3(side * deck_width * 0.46, 0.006, 0.0)
+		var rail_material := StandardMaterial3D.new()
+		rail_material.albedo_color = Color(0.62, 0.60, 0.53, 1.0)
+		rail_material.roughness = 0.78
+		rail.material_override = rail_material
+		bridge.add_child(rail)
+
+
 func _refresh_hydrology(force: bool = false) -> void:
 	if not is_instance_valid(_hydrology_root):
 		return
@@ -1932,6 +2000,12 @@ func _refresh_hydrology(force: bool = false) -> void:
 	_commit_hydrology_batch(water, "RiverWater", Color(0.08, 0.34, 0.50, 0.93), 0.24)
 	_hydrology_river_count = segment_count
 	_hydrology_crossing_count = int((_hydrology_data.get("crossings", []) as Array).size())
+	for raw_crossing in _hydrology_data.get("crossings", []):
+		if typeof(raw_crossing) != TYPE_DICTIONARY:
+			continue
+		var crossing: Dictionary = raw_crossing
+		if str(crossing.get("kind", "")) == "bridge":
+			_add_bridge_crossing_visual(crossing)
 
 
 func _setup_geo_overlay_layer() -> void:
