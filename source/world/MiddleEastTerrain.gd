@@ -2599,6 +2599,15 @@ func _create_artillery_visual(index: int) -> Node3D:
 	turret.material_override = _solid_unshaded_material(army_color)
 	turret_pivot.add_child(turret)
 
+	var bustle_mesh := BoxMesh.new()
+	bustle_mesh.size = Vector3(1.06, 0.30, 0.62) if family == "western" else Vector3(0.92, 0.26, 0.54)
+	var bustle := MeshInstance3D.new()
+	bustle.name = "TurretBustle"
+	bustle.mesh = bustle_mesh
+	bustle.position = Vector3(0.0, 0.64 if family == "western" else 0.57, 0.62)
+	bustle.material_override = _solid_unshaded_material(army_color.darkened(0.14))
+	turret_pivot.add_child(bustle)
+
 	var gun_mount := Node3D.new()
 	gun_mount.name = "GunMount"
 	gun_mount.position = Vector3(0.0, 0.69 if family == "western" else 0.61, -0.48)
@@ -2612,6 +2621,19 @@ func _create_artillery_visual(index: int) -> Node3D:
 	barrel.position = Vector3(0.0, 0.0, -1.30 if family == "western" else -1.18)
 	barrel.material_override = _solid_unshaded_material(army_color.lightened(0.06))
 	gun_mount.add_child(barrel)
+
+	var muzzle_mesh := CylinderMesh.new()
+	muzzle_mesh.top_radius = 0.17
+	muzzle_mesh.bottom_radius = 0.19
+	muzzle_mesh.height = 0.32
+	muzzle_mesh.radial_segments = 12
+	var muzzle := MeshInstance3D.new()
+	muzzle.name = "MuzzleBrake"
+	muzzle.mesh = muzzle_mesh
+	muzzle.rotation_degrees.x = 90.0
+	muzzle.position = Vector3(0.0, 0.0, -2.56 if family == "western" else -2.38)
+	muzzle.material_override = _solid_unshaded_material(Color(0.16, 0.17, 0.15, 1.0))
+	gun_mount.add_child(muzzle)
 
 	for side in [-1.0, 1.0]:
 		var stabilizer_mesh := BoxMesh.new()
