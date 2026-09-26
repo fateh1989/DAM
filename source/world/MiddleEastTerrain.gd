@@ -3370,7 +3370,7 @@ func pick_detail_logical_id_from_screen(screen_position: Vector2) -> String:
 	var closest_id := ""
 	var closest_distance := UNIT_SELECT_RADIUS_PX
 	for node in _detail_unit_nodes:
-		if not is_instance_valid(node) or not node.visible:
+		if not is_instance_valid(node) or not node.visible or bool(node.get_meta("logical_wreck", false)):
 			continue
 		if camera.is_position_behind(node.global_position):
 			continue
