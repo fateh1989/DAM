@@ -65,10 +65,15 @@ func run(scene: Node) -> String:
 	if issued != 10:
 		return "mixed logical force movement did not issue ten orders"
 
+	var formation_targets := {}
 	for raw_id in scene.call("get_selected_logical_heavy_ids"):
 		var logical: Dictionary = game_state.call("get_heavy_unit", str(raw_id))
 		if not bool(logical.get("moving", false)):
 			return "mixed logical force contains unit without moving state"
+		var target_key := "%.7f:%.7f" % [float(logical.get("target_lon", 0.0)), float(logical.get("target_lat", 0.0))]
+		formation_targets[target_key] = true
+	if formation_targets.size() != 10:
+		return "mixed logical force collapsed multiple units onto the same formation slot"
 
 	if not bool(scene.call("focus_selected_logical_heavy_units")):
 		return "logical force camera focus failed"
