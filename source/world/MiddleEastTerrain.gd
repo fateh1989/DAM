@@ -2326,6 +2326,17 @@ func _create_artillery_visual(index: int) -> Node3D:
 	barrel.material_override = _solid_unshaded_material(army_color.lightened(0.06))
 	gun_mount.add_child(barrel)
 
+	for side in [-1.0, 1.0]:
+		var stabilizer_mesh := BoxMesh.new()
+		stabilizer_mesh.size = Vector3(0.18, 0.14, 0.68)
+		var stabilizer := MeshInstance3D.new()
+		stabilizer.name = "RearStabilizerLeft" if side < 0.0 else "RearStabilizerRight"
+		stabilizer.mesh = stabilizer_mesh
+		stabilizer.position = Vector3(side * 0.58, 0.14, 1.12)
+		stabilizer.rotation_degrees.x = -12.0
+		stabilizer.material_override = _solid_unshaded_material(army_color.darkened(0.18))
+		model.add_child(stabilizer)
+
 	var marker := Node3D.new()
 	marker.name = "MapMarker"
 	root_node.add_child(marker)
