@@ -42,7 +42,7 @@ func run(scene: Node) -> String:
 	roster.stop_unit(unit_id)
 	var stopped: Dictionary = roster.get_unit(unit_id)
 	var tiny_start := Vector2(float(stopped["lon"]), float(stopped["lat"]))
-	var tiny_destination := Vector2(tiny_start.x + 0.000001, tiny_start.y)
+	var tiny_destination := Vector2(tiny_start.x + 0.00001, tiny_start.y)
 	if not roster.issue_move(unit_id, tiny_destination.x, tiny_destination.y):
 		return "precise short heavy movement was rejected as duplicate"
 	return ""
