@@ -60,6 +60,9 @@ func run(scene: Node) -> String:
 		if not bool(tank.call("set_aim_yaw", 73.0)):
 			tank.free()
 			return "tank turret yaw control is unavailable"
+		if not bool(tank.call("set_weapon_elevation", 14.0)) or absf(float(tank.call("get_weapon_elevation")) - 14.0) > 0.01:
+			tank.free()
+			return "tank gun elevation joint is unavailable"
 		if absf(float(tank.call("get_aim_yaw")) - 73.0) > 0.01:
 			tank.free()
 			return "tank turret does not rotate independently"
@@ -77,6 +80,9 @@ func run(scene: Node) -> String:
 		if not bool(launcher.call("set_aim_yaw", -61.0)) or absf(float(launcher.call("get_aim_yaw")) + 61.0) > 0.01:
 			launcher.free()
 			return "launcher does not rotate independently from chassis"
+		if not bool(launcher.call("set_weapon_elevation", 35.0)) or absf(float(launcher.call("get_weapon_elevation")) - 35.0) > 0.01:
+			launcher.free()
+			return "launcher elevation joint is unavailable"
 		launcher.free()
 
 		var artillery := VISUAL_SCRIPT.new()
@@ -84,6 +90,9 @@ func run(scene: Node) -> String:
 		if artillery.get_part("TurretPivot") == null or artillery.get_part("BarrelPivot") == null:
 			artillery.free()
 			return "artillery visual lacks turret and elevation pivot"
+		if not bool(artillery.call("set_weapon_elevation", 42.0)) or absf(float(artillery.call("get_weapon_elevation")) - 42.0) > 0.01:
+			artillery.free()
+			return "artillery gun elevation joint is unavailable"
 		if family_name == "west" and artillery.get_part("RearAmmoBox") == null:
 			artillery.free()
 			return "western artillery lacks rear ammunition housing"
