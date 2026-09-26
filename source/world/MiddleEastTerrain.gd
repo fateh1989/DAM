@@ -2387,6 +2387,77 @@ func _create_artillery_visual(index: int) -> Node3D:
 	return root_node
 
 
+func _create_launcher_visual(index: int) -> Node3D:
+	var root_node := Node3D.new()
+	root_node.name = "ArmyLauncher_%02d" % [index + 1]
+	var army_color := _army_color(index)
+	var family := _tank_family(index)
+	root_node.set_meta("visual_family", family)
+	root_node.set_meta("unit_type", "rocket_launcher")
+
+	var model := Node3D.new()
+	model.name = "LauncherModel"
+	root_node.add_child(model)
+
+	var hull_mesh := BoxMesh.new()
+	hull_mesh.size = Vector3(1.64, 0.38, 2.42) if family == "western" else Vector3(1.50, 0.34, 2.24)
+	var hull := MeshInstance3D.new()
+	hull.name = "Hull"
+	hull.mesh = hull_mesh
+	hull.position.y = 0.28
+	hull.material_override = _solid_unshaded_material(army_color.darkened(0.22))
+	model.add_child(hull)
+
+	var marker := Node3D.new()
+	marker.name = "MapMarker"
+	root_node.add_child(marker)
+	var marker_mesh := CylinderMesh.new()
+	marker_mesh.top_radius = 1.0
+	marker_mesh.bottom_radius = 1.0
+	marker_mesh.height = 0.12
+	marker_mesh.radial_segments = 18
+	var marker_disc := MeshInstance3D.new()
+	marker_disc.mesh = marker_mesh
+	marker_disc.material_override = _solid_unshaded_material(army_color, 0.25)
+	marker.add_child(marker_disc)
+
+	var marker_label := Label3D.new()
+	marker_label.text = "R"
+	marker_label.position = Vector3(0.0, 0.18, 0.0)
+	marker_label.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	marker_label.font_size = 30
+	marker_label.pixel_size = 0.015
+	marker_label.modulate = Color.WHITE
+	marker.add_child(marker_label)
+
+	var selection_mesh := CylinderMesh.new()
+	selection_mesh.top_radius = 1.45
+	selection_mesh.bottom_radius = 1.45
+	selection_mesh.height = 0.055
+	selection_mesh.radial_segments = 24
+	var selection := MeshInstance3D.new()
+	selection.name = "Selection"
+	selection.mesh = selection_mesh
+	selection.position.y = 0.03
+	selection.material_override = _solid_unshaded_material(Color(1.0, 0.92, 0.20, 0.82), 0.50)
+	selection.visible = false
+	root_node.add_child(selection)
+
+	var engine_audio := AudioStreamPlayer3D.new()
+	engine_audio.name = "EngineAudio"
+	engine_audio.max_distance = 42.0
+	engine_audio.unit_size = 3.0
+	root_node.add_child(engine_audio)
+
+	var weapon_audio := AudioStreamPlayer3D.new()
+	weapon_audio.name = "WeaponAudio"
+	weapon_audio.max_distance = 78.0
+	weapon_audio.unit_size = 4.0
+	root_node.add_child(weapon_audio)
+
+	return root_node
+
+
 func _create_tank_visual(index: int) -> Node3D:
 	var root_node := Node3D.new()
 	root_node.name = "ArmyTank_%02d" % [index + 1]
