@@ -55,6 +55,11 @@ const RTS_CAMERA_BACKS := [220.0, 130.0, 72.0, 38.0, 20.0, 11.0, 5.8, 3.05]
 const RTS_MARKER_SCALES := [0.24, 0.14, 0.075]
 const CONTINUOUS_MACRO_GRID := 36
 const GROUP_FORMATION_SPACING_KM := 0.035
+const HEAVY_FORCE_TEMPLATE := {
+	"tank": 50,
+	"rocket_launcher": 20,
+	"artillery": 30,
+}
 const UNIT_SPEED_KM_PER_SEC := 0.60
 const GOVERNORORATE_TANK_SEED := 14
 const UNIT_SELECT_RADIUS_PX := 54.0
