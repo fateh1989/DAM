@@ -3378,6 +3378,7 @@ func _process(delta: float) -> void:
 			unit["lat"] = next_geo.y
 
 		_units[i] = unit
+		_sync_logical_unit_position(unit)
 		any_moved = true
 
 	if any_moved:
