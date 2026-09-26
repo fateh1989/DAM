@@ -430,6 +430,36 @@ func _rebuild_rubble() -> void:
 		rubble.rotation.y = root.rotation.y + 0.35
 
 
+func _rebuild_damage_marks() -> void:
+	if _damage_root == null:
+		return
+	for child in _damage_root.get_children():
+		child.free()
+	_damage_nodes.clear()
+	if city_health >= 0.85:
+		return
+	var scorch_mat := _material(Color(0.11, 0.09, 0.08, 1.0))
+	var frequency := 6 if city_health >= 0.60 else 4
+	for i in range(_building_nodes.size()):
+		if i % frequency != 0:
+			continue
+		var building := _building_nodes[i]
+		if not building.visible:
+			continue
+		var box := building.mesh as BoxMesh
+		if box == null:
+			continue
+		var mark := _add_box(
+			_damage_root,
+			building.position + Vector3(0, box.size.y * 0.08, box.size.z * 0.53),
+			Vector3(box.size.x * 0.28, maxf(0.009, box.size.y * 0.22), 0.006),
+			scorch_mat,
+			"DamageMark_%03d" % i
+		)
+		mark.rotation = building.rotation
+		_damage_nodes.append(mark)
+
+
 func _apply_damage_visuals() -> void:
 	damage_stage = _damage_stage_for_health(city_health)
 	var collapse_fraction := clampf((0.65 - city_health) / 0.65, 0.0, 1.0)
@@ -452,6 +482,7 @@ func _apply_damage_visuals() -> void:
 		var threshold := float(i + 1) / float(maxi(1, _industrial_nodes.size()))
 		_industrial_nodes[i].visible = threshold > collapse_fraction
 	_rebuild_rubble()
+	_rebuild_damage_marks()
 
 
 func set_city_health(value: float) -> void:

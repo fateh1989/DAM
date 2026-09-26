@@ -51,6 +51,9 @@ func run(scene: Node) -> String:
 	coastal.free()
 	eastern.free()
 	sample.call("set_city_health", 0.45)
+	if int(sample.call("get_damage_mark_count")) <= 0:
+		sample.free()
+		return "damaged miniature city lacks visible facade damage marks"
 	if int(sample.call("get_damage_stage")) != 2:
 		sample.free()
 		return "miniature city did not enter critical damage stage"
@@ -62,6 +65,9 @@ func run(scene: Node) -> String:
 		sample.free()
 		return "devastated city did not leave visible rubble"
 	sample.call("set_city_health", 1.0)
+	if int(sample.call("get_damage_mark_count")) != 0:
+		sample.free()
+		return "repaired miniature city kept stale facade damage marks"
 	if int(sample.call("get_rubble_count")) != 0:
 		sample.free()
 		return "fully repaired city kept stale rubble"
