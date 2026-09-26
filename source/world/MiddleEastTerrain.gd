@@ -2533,6 +2533,16 @@ func _create_launcher_visual(index: int) -> Node3D:
 	return root_node
 
 
+func _create_heavy_unit_visual(unit_type: String, index: int) -> Node3D:
+	match unit_type:
+		"artillery":
+			return _create_artillery_visual(index)
+		"rocket_launcher":
+			return _create_launcher_visual(index)
+		_:
+			return _create_tank_visual(index)
+
+
 func _create_tank_visual(index: int) -> Node3D:
 	var root_node := Node3D.new()
 	root_node.name = "ArmyTank_%02d" % [index + 1]
