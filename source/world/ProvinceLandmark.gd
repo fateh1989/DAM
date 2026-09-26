@@ -214,4 +214,7 @@ func set_lod(level: int) -> void:
 	lod_level = clampi(level, 0, 2)
 	if _body_root != null:
 		_body_root.visible = lod_level > 0
-		_body_root.scale = Vector3.ONE * (0.82 if lod_level == 1 else 1.0)
+		if archetype == "city":
+			_body_root.scale = Vector3.ONE * (1.08 if lod_level == 1 else 1.32)
+		else:
+			_body_root.scale = Vector3.ONE * (0.82 if lod_level == 1 else 1.0)
