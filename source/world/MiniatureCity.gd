@@ -10,6 +10,7 @@ var damage_stage := 0
 var _body_root: Node3D = null
 var _street_root: Node3D = null
 var _industrial_root: Node3D = null
+var _rubble_root: Node3D = null
 var _building_nodes: Array[MeshInstance3D] = []
 var _roof_nodes: Array[MeshInstance3D] = []
 var _industrial_nodes: Array[Node3D] = []
@@ -83,6 +84,9 @@ func _ensure_roots() -> void:
 	_industrial_root = Node3D.new()
 	_industrial_root.name = "Industrial"
 	add_child(_industrial_root)
+	_rubble_root = Node3D.new()
+	_rubble_root.name = "Rubble"
+	add_child(_rubble_root)
 
 
 func _build_base(palette: Dictionary) -> void:
@@ -217,6 +221,29 @@ func _damage_stage_for_health(value: float) -> int:
 	return 3
 
 
+func _rebuild_rubble() -> void:
+	if _rubble_root == null:
+		return
+	for child in _rubble_root.get_children():
+		child.free()
+	if city_health >= 0.65:
+		return
+	var rubble_mat := _material(Color(0.26, 0.24, 0.21, 1.0))
+	for i in range(_building_nodes.size()):
+		var building := _building_nodes[i]
+		if building.visible:
+			continue
+		var p := building.position
+		var rubble := _add_box(_rubble_root, Vector3(p.x, 0.022, p.z), Vector3(0.050, 0.020, 0.038), rubble_mat, "Rubble_%03d" % i)
+		rubble.rotation.y = building.rotation.y + sin(float(i) * 2.1) * 0.45
+	for i in range(_industrial_nodes.size()):
+		var root := _industrial_nodes[i]
+		if root.visible:
+			continue
+		var rubble := _add_box(_rubble_root, Vector3(root.position.x, 0.025, root.position.z), Vector3(0.090, 0.026, 0.060), rubble_mat, "IndustrialRubble_%02d" % i)
+		rubble.rotation.y = root.rotation.y + 0.35
+
+
 func _apply_damage_visuals() -> void:
 	damage_stage = _damage_stage_for_health(city_health)
 	var collapse_fraction := clampf((0.65 - city_health) / 0.65, 0.0, 1.0)
@@ -238,6 +265,7 @@ func _apply_damage_visuals() -> void:
 	for i in range(_industrial_nodes.size()):
 		var threshold := float(i + 1) / float(maxi(1, _industrial_nodes.size()))
 		_industrial_nodes[i].visible = threshold > collapse_fraction
+	_rebuild_rubble()
 
 
 func set_city_health(value: float) -> void:
@@ -259,6 +287,10 @@ func get_collapsed_building_count() -> int:
 		if not building.visible:
 			count += 1
 	return count
+
+
+func get_rubble_count() -> int:
+	return 0 if _rubble_root == null else _rubble_root.get_child_count()
 
 
 func get_building_count() -> int:

@@ -30,7 +30,14 @@ func run(scene: Node) -> String:
 	if int(sample.call("get_collapsed_building_count")) <= 0:
 		sample.free()
 		return "critical city damage did not collapse any buildings"
+	sample.call("set_city_health", 0.20)
+	if int(sample.call("get_rubble_count")) <= 0:
+		sample.free()
+		return "devastated city did not leave visible rubble"
 	sample.call("set_city_health", 1.0)
+	if int(sample.call("get_rubble_count")) != 0:
+		sample.free()
+		return "fully repaired city kept stale rubble"
 	sample.free()
 	var cities: Array = scene.call("get_city_markers")
 	if cities.size() != 14:
