@@ -483,5 +483,15 @@ func _run() -> void:
 		_fail(100, "Logical heavy combat smoke: " + logical_heavy_combat_error)
 		return
 
+	var logical_wreck_smoke_script := load("res://source/world/LogicalWreckPersistenceSmoke.gd") as Script
+	if logical_wreck_smoke_script == null:
+		_fail(101, "Logical wreck persistence smoke: contract script missing")
+		return
+	var logical_wreck_smoke = logical_wreck_smoke_script.new()
+	var logical_wreck_error := str(logical_wreck_smoke.call("run", scene))
+	if not logical_wreck_error.is_empty():
+		_fail(102, "Logical wreck persistence smoke: " + logical_wreck_error)
+		return
+
 	print("Strategic unit smoke: 14 armies / 42 heavy representatives + radar + group movement OK")
 	quit(0)
