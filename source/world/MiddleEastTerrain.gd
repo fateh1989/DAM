@@ -2241,6 +2241,8 @@ func _create_tank_visual(index: int) -> Node3D:
 	var root_node := Node3D.new()
 	root_node.name = "ArmyTank_%02d" % [index + 1]
 	var army_color := _army_color(index)
+	var family := _tank_family(index)
+	root_node.set_meta("visual_family", family)
 
 	var model := Node3D.new()
 	model.name = "TankModel"
