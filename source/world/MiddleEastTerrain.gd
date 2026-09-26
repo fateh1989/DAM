@@ -1391,13 +1391,16 @@ func _hash_noise(x: int, y: int) -> float:
 
 func _continuous_macro_color(height_m: float, lon: float, lat: float) -> Color:
 	var dry_wave := 0.5 + 0.5 * sin(lon * 2.9 + lat * 1.7)
+	var base := Color(0.32, 0.40, 0.24, 1.0).lerp(Color(0.47, 0.44, 0.27, 1.0), dry_wave * 0.28)
 	if height_m >= 900.0:
-		return Color(0.34, 0.31, 0.26, 1.0).lerp(Color(0.47, 0.42, 0.34, 1.0), dry_wave * 0.45)
-	if height_m >= 450.0:
-		return Color(0.45, 0.43, 0.28, 1.0).lerp(Color(0.55, 0.49, 0.31, 1.0), dry_wave * 0.35)
-	if lat < 34.0:
-		return Color(0.52, 0.43, 0.25, 1.0).lerp(Color(0.62, 0.52, 0.31, 1.0), dry_wave * 0.30)
-	return Color(0.32, 0.40, 0.24, 1.0).lerp(Color(0.47, 0.44, 0.27, 1.0), dry_wave * 0.28)
+		base = Color(0.34, 0.31, 0.26, 1.0).lerp(Color(0.47, 0.42, 0.34, 1.0), dry_wave * 0.45)
+	elif height_m >= 450.0:
+		base = Color(0.45, 0.43, 0.28, 1.0).lerp(Color(0.55, 0.49, 0.31, 1.0), dry_wave * 0.35)
+	elif lat < 34.0:
+		base = Color(0.52, 0.43, 0.25, 1.0).lerp(Color(0.62, 0.52, 0.31, 1.0), dry_wave * 0.30)
+	var coastal_green := clampf((37.0 - lon) / 1.25, 0.0, 1.0)
+	base = base.lerp(Color(0.24, 0.43, 0.22, 1.0), coastal_green * 0.34)
+	return base
 
 
 func _build_continuous_macro_world() -> void:
