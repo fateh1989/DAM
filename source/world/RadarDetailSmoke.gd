@@ -5,11 +5,12 @@ func run(scene: Node) -> String:
 	var detail_zoom := int(scene.call("get_rts_detail_lod_min"))
 	scene.call("_set_rts_zoom_level", detail_zoom)
 	var radar_units: Array = scene.call("get_radar_units")
+	var focused_governorate := int(scene.get("_governorate_index"))
 	var focused_detail := 0
 	var sample_detail: Dictionary = {}
 	for raw_item in radar_units:
 		var item: Dictionary = raw_item
-		if bool(item.get("logical_detail", false)) and int(item.get("governorate_index", -1)) == int(scene.get("_governorate_index")):
+		if bool(item.get("logical_detail", false)) and int(item.get("governorate_index", -1)) == focused_governorate:
 			focused_detail += 1
 			if sample_detail.is_empty():
 				sample_detail = item
