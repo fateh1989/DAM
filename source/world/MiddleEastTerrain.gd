@@ -194,6 +194,7 @@ var _detail_unit_nodes: Array[Node3D] = []
 var _detail_governorate_index := -1
 var _selected_unit_index := -1
 var _selected_unit_indices: Array[int] = []
+var _selected_logical_unit_ids: Array[String] = []
 var _touch_press_positions := {}
 var _touch_drag_distance := {}
 var _multi_touch_gesture_active := false
@@ -3356,6 +3357,21 @@ func get_selected_unit_indices() -> Array[int]:
 
 func get_selected_unit_count() -> int:
 	return _selected_unit_indices.size()
+
+
+func clear_logical_heavy_selection() -> void:
+	_selected_logical_unit_ids.clear()
+	_sync_unit_visuals()
+	_sync_detail_unit_lod()
+	_update_status()
+
+
+func get_selected_logical_heavy_ids() -> Array[String]:
+	return _selected_logical_unit_ids.duplicate()
+
+
+func get_selected_logical_heavy_count() -> int:
+	return _selected_logical_unit_ids.size()
 
 
 func focus_selected_units() -> bool:
