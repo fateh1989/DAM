@@ -3982,7 +3982,10 @@ func _on_focus_units_pressed() -> void:
 
 
 func _on_stop_units_pressed() -> void:
-	stop_selected_units()
+	if not _selected_logical_unit_ids.is_empty():
+		stop_selected_logical_heavy_units()
+	else:
+		stop_selected_units()
 
 
 func _on_radar_mode_pressed() -> void:
