@@ -41,6 +41,7 @@ var _battle_ground_material: Material = null
 var _rock_prop_material: StandardMaterial3D = null
 var _scrub_prop_material: StandardMaterial3D = null
 var _terrain_prop_count := 0
+var _zoom_tween: Tween = null
 
 
 func _game_state_node() -> Node:
@@ -454,12 +455,28 @@ func get_zoom_target_size_for_level(level: int) -> float:
 	return float(ZOOM_SIZES[clamped_level - ZOOM_LEVEL_MIN])
 
 
-func toggle_zoom() -> void:
-	_zoom_level += 1
-	if _zoom_level > ZOOM_LEVEL_MAX:
-		_zoom_level = ZOOM_LEVEL_MIN
-	set_camera_size_safely(get_zoom_target_size())
+func _set_zoom_size_frame(value: float) -> void:
+	set_camera_size_safely(value)
+
+
+func set_zoom_level(new_level: int, animate: bool = true) -> void:
+	_zoom_level = clampi(new_level, ZOOM_LEVEL_MIN, ZOOM_LEVEL_MAX)
+	var target := get_zoom_target_size()
+	if _zoom_tween != null and _zoom_tween.is_valid():
+		_zoom_tween.kill()
+	if animate:
+		_zoom_tween = create_tween()
+		_zoom_tween.tween_method(Callable(self, "_set_zoom_size_frame"), camera.size, target, 0.24).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	else:
+		set_camera_size_safely(target)
 	_update_zoom_ui()
+
+
+func toggle_zoom() -> void:
+	var next_level := _zoom_level + 1
+	if next_level > ZOOM_LEVEL_MAX:
+		next_level = ZOOM_LEVEL_MIN
+	set_zoom_level(next_level, true)
 
 
 func get_zoom_level() -> int:

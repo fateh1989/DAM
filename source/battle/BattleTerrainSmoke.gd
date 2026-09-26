@@ -15,6 +15,15 @@ func run(_world_scene: Node) -> String:
 	if battle.get_zoom_level() != 4 or absf(battle.get_zoom_target_size() - 1100.0) > 0.01:
 		battle.free()
 		return "default tactical view no longer matches proven 1100 camera size"
+	battle.call("set_zoom_level", 1, false)
+	if battle.get_zoom_level() != 1 or absf(battle.camera.size - 6800.0) > 0.01:
+		battle.free()
+		return "safe far tactical zoom level did not apply"
+	battle.call("set_zoom_level", 6, false)
+	if battle.get_zoom_level() != 6 or absf(battle.camera.size - 450.0) > 0.01:
+		battle.free()
+		return "safe close tactical zoom level did not apply"
+	battle.call("set_zoom_level", 4, false)
 	battle.camera.position = Vector3(9000.0, 850.0, 9000.0)
 	battle.call("_clamp_camera_to_battlefield")
 	var target_z: float = battle.camera.position.z - battle.CAMERA_BACK_OFFSET_Z
