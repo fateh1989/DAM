@@ -2841,6 +2841,10 @@ func resolve_unit_attack(attacker_index: int, target_index: int, weapon_id: Stri
 		return {"ok": false, "reason": "unit_destroyed"}
 	if int(attacker.get("army_id", -1)) == int(target.get("army_id", -2)):
 		return {"ok": false, "reason": "friendly_target"}
+	var weapon_range_km := _weapon_range_km(weapon_id)
+	var attack_distance_km := _heavy_attack_distance_km(attacker, target)
+	if weapon_range_km > 0.0 and attack_distance_km > weapon_range_km:
+		return {"ok": false, "reason": "out_of_range", "distance_km": attack_distance_km, "range_km": weapon_range_km}
 
 	var attacker_node = attacker.get("node")
 	if attacker_node is Node3D and is_instance_valid(attacker_node):
