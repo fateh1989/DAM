@@ -2132,6 +2132,10 @@ func _setup_army_combat_core() -> void:
 		push_error("DAM GameState: persistent army failed to initialize")
 		_army_core = null
 		return
+	if not bool(game_state.call("ensure_heavy_force_roster", GOVERNORATES)):
+		push_error("DAM GameState: heavy force roster failed to initialize")
+		_army_core = null
+		return
 	_army_core = game_state.get("army_core")
 
 
