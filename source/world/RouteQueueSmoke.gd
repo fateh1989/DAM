@@ -32,6 +32,8 @@ func run(scene: Node) -> String:
 	var pending: Array = queued.get("route_points", [])
 	if pending.size() != 1:
 		return "route queue did not collapse duplicate waypoints"
+	if int(roster.get_pending_route_point_count(unit_id)) != 1:
+		return "persistent route queue depth disagrees with normalized route"
 	var remaining: Dictionary = pending[0]
 	if absf(float(remaining["lon"]) - second.x) > 0.000001 or absf(float(remaining["lat"]) - second.y) > 0.000001:
 		return "route queue lost the final valid waypoint"
