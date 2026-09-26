@@ -2858,6 +2858,16 @@ func _create_tank_visual(index: int) -> Node3D:
 	upper_hull.material_override = _solid_unshaded_material(army_color.darkened(0.14))
 	model.add_child(upper_hull)
 
+	var glacis_mesh := BoxMesh.new()
+	glacis_mesh.size = Vector3(1.54, 0.16, 0.92) if family == "western" else Vector3(1.34, 0.14, 0.82)
+	var glacis := MeshInstance3D.new()
+	glacis.name = "GlacisPlate"
+	glacis.mesh = glacis_mesh
+	glacis.position = Vector3(0.0, 0.57 if family == "western" else 0.49, -0.86 if family == "western" else -0.76)
+	glacis.rotation_degrees.x = -18.0 if family == "western" else -22.0
+	glacis.material_override = _solid_unshaded_material(army_color.darkened(0.10))
+	model.add_child(glacis)
+
 	for side in [-1.0, 1.0]:
 		var track_mesh := BoxMesh.new()
 		track_mesh.size = Vector3(0.28, 0.30, 2.48 if family == "western" else 2.22)
@@ -2905,6 +2915,17 @@ func _create_tank_visual(index: int) -> Node3D:
 		turret.position = Vector3(0.0, 0.62, -0.04)
 	turret.material_override = _solid_unshaded_material(army_color)
 	turret_pivot.add_child(turret)
+
+	for side in [-1.0, 1.0]:
+		var cheek_mesh := BoxMesh.new()
+		cheek_mesh.size = Vector3(0.42, 0.34, 0.88) if family == "western" else Vector3(0.36, 0.28, 0.76)
+		var cheek := MeshInstance3D.new()
+		cheek.name = "TurretCheekLeft" if side < 0.0 else "TurretCheekRight"
+		cheek.mesh = cheek_mesh
+		cheek.position = Vector3(side * (0.48 if family == "western" else 0.40), 0.73 if family == "western" else 0.62, -0.30)
+		cheek.rotation_degrees.y = side * (9.0 if family == "western" else 14.0)
+		cheek.material_override = _solid_unshaded_material(army_color.darkened(0.06))
+		turret_pivot.add_child(cheek)
 
 	var gun_mount := Node3D.new()
 	gun_mount.name = "GunMount"
