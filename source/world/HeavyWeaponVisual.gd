@@ -4,6 +4,7 @@ var weapon_type := "tank"
 var family := "east"
 var province_index := -1
 var represented_count := 0
+var lod_level := 2
 
 var _model_root: Node3D
 var _count_label: Label3D
@@ -251,6 +252,35 @@ func get_part(name_value: String) -> Node:
 	if _model_root == null:
 		return null
 	return _model_root.find_child(name_value, true, false)
+
+
+func _is_fine_detail_name(name_value: String) -> bool:
+	return (
+		name_value.begins_with("Wheel_")
+		or name_value.begins_with("Tube_")
+		or name_value in ["TurretDome", "RearStowage", "RearAmmoBox", "CommanderCupola", "BreechHousing"]
+	)
+
+
+func set_lod(level: int) -> void:
+	lod_level = clampi(level, 0, 2)
+	if _model_root != null:
+		_model_root.visible = lod_level > 0
+		for node in _model_root.find_children("*", "MeshInstance3D", true, false):
+			if _is_fine_detail_name(str(node.name)):
+				node.visible = lod_level >= 2
+	if _count_label != null:
+		_count_label.visible = lod_level >= 1
+
+
+func get_visible_fine_detail_count() -> int:
+	if _model_root == null:
+		return 0
+	var count := 0
+	for node in _model_root.find_children("*", "MeshInstance3D", true, false):
+		if _is_fine_detail_name(str(node.name)) and bool(node.visible):
+			count += 1
+	return count
 
 
 func get_model_root() -> Node3D:
