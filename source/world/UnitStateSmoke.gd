@@ -167,6 +167,16 @@ func _run() -> void:
 		_fail(86, "Partial damage persistence smoke: " + partial_damage_error)
 		return
 
+	var logical_heavy_movement_smoke_script := load("res://source/world/LogicalHeavyMovementSmoke.gd") as Script
+	if logical_heavy_movement_smoke_script == null:
+		_fail(87, "Logical heavy movement smoke: contract script missing")
+		return
+	var logical_heavy_movement_smoke = logical_heavy_movement_smoke_script.new()
+	var logical_heavy_movement_error := str(logical_heavy_movement_smoke.call("run", scene))
+	if not logical_heavy_movement_error.is_empty():
+		_fail(88, "Logical heavy movement smoke: " + logical_heavy_movement_error)
+		return
+
 	var radar = scene.get_node_or_null("HUD/RTSRadar")
 	if radar == null:
 		_fail(6, "Strategic unit smoke: RTS radar is missing")
