@@ -2766,6 +2766,12 @@ func resolve_logical_heavy_attack(attacker_id: String, target_id: String, weapon
 	var game_state := _game_state_node()
 	if game_state == null:
 		return {"ok": false, "reason": "game_state_missing"}
+	var attacker_logical: Dictionary = game_state.call("get_heavy_unit", attacker_id)
+	var target_logical: Dictionary = game_state.call("get_heavy_unit", target_id)
+	if attacker_logical.is_empty() or target_logical.is_empty():
+		return {"ok": false, "reason": "logical_unit_missing"}
+	if not _logical_units_are_enemies(attacker_logical, target_logical):
+		return {"ok": false, "reason": "friendly_target"}
 	var result: Dictionary = game_state.call("resolve_heavy_shot", attacker_id, target_id, weapon_id)
 	if not bool(result.get("ok", false)):
 		return result
