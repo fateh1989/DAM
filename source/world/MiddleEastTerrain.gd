@@ -2408,6 +2408,32 @@ func _create_launcher_visual(index: int) -> Node3D:
 	hull.material_override = _solid_unshaded_material(army_color.darkened(0.22))
 	model.add_child(hull)
 
+	for side in [-1.0, 1.0]:
+		var track_mesh := BoxMesh.new()
+		track_mesh.size = Vector3(0.25, 0.28, 2.34 if family == "western" else 2.14)
+		var track := MeshInstance3D.new()
+		track.name = "TrackLeft" if side < 0.0 else "TrackRight"
+		track.mesh = track_mesh
+		track.position = Vector3(side * (0.84 if family == "western" else 0.76), 0.18, 0.02)
+		track.material_override = _solid_unshaded_material(Color(0.10, 0.11, 0.10, 1.0))
+		model.add_child(track)
+
+	var wheel_positions := [-0.80, -0.40, 0.0, 0.40, 0.80]
+	for side in [-1.0, 1.0]:
+		for wheel_index in range(wheel_positions.size()):
+			var wheel_mesh := CylinderMesh.new()
+			wheel_mesh.top_radius = 0.18
+			wheel_mesh.bottom_radius = 0.18
+			wheel_mesh.height = 0.15
+			wheel_mesh.radial_segments = 10
+			var wheel := MeshInstance3D.new()
+			wheel.name = "Wheel_%s_%02d" % ["L" if side < 0.0 else "R", wheel_index]
+			wheel.mesh = wheel_mesh
+			wheel.rotation_degrees = Vector3(0.0, 0.0, 90.0)
+			wheel.position = Vector3(side * (0.87 if family == "western" else 0.79), 0.19, float(wheel_positions[wheel_index]))
+			wheel.material_override = _solid_unshaded_material(Color(0.16, 0.17, 0.15, 1.0))
+			model.add_child(wheel)
+
 	var marker := Node3D.new()
 	marker.name = "MapMarker"
 	root_node.add_child(marker)
