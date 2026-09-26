@@ -255,3 +255,19 @@ func update_heavy_heading(unit_id: String, heading_rad: float) -> bool:
 	if heavy_force_roster == null:
 		return false
 	return heavy_force_roster.set_heading(unit_id, heading_rad)
+
+
+func _logical_heavy_combat_state(unit_id: String) -> Dictionary:
+	if heavy_force_roster == null or army_core == null:
+		return {}
+	var logical: Dictionary = heavy_force_roster.get_unit(unit_id)
+	if logical.is_empty():
+		return {}
+	var unit_type := str(logical.get("unit_type", ""))
+	var state: Dictionary = army_core.create_unit_state(unit_type, "syria")
+	if state.is_empty():
+		return {}
+	state["hp"] = float(logical.get("hp", state.get("hp", 0.0)))
+	state["max_hp"] = float(logical.get("max_hp", state.get("max_hp", 0.0)))
+	state["alive"] = bool(logical.get("alive", true))
+	return state
