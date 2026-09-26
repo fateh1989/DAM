@@ -64,6 +64,8 @@ func get_blip_style(item: Dictionary) -> Dictionary:
 	var primary := bool(item.get("primary", false))
 	var unit_type := str(item.get("unit_type", "tank"))
 	var base_radius := 3.5
+	if bool(item.get("logical_detail", false)):
+		base_radius = 3.0
 	if unit_type == "artillery":
 		base_radius = 4.0
 	elif unit_type == "rocket_launcher":
@@ -101,6 +103,8 @@ func _draw() -> void:
 			draw_line(point + Vector2(-4.5, 0.0), point + Vector2(4.5, 0.0), Color(0.95, 0.92, 0.78, 0.95), 1.4)
 		elif str(item.get("unit_type", "")) == "rocket_launcher":
 			draw_rect(Rect2(point - Vector2(4.8, 4.8), Vector2(9.6, 9.6)), Color(0.95, 0.92, 0.78, 0.95), false, 1.4)
+		if bool(item.get("logical_detail", false)):
+			draw_circle(point, float(style.get("radius", 3.0)) + 2.4, Color(0.95, 0.95, 0.82, 0.72), false, 1.0)
 		if selected:
 			draw_arc(
 				point,
