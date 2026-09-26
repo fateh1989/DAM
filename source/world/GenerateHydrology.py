@@ -81,6 +81,25 @@ def grid_cell(lon, lat):
     return (int(math.floor((lon - WEST) / GRID_DEG)), int(math.floor((lat - SOUTH) / GRID_DEG)))
 
 
+def bridge_geometry_metadata(points):
+    if len(points) < 2:
+        return 0.0, 0.0
+    ref_lat = sum(p[1] for p in points) / float(len(points))
+    east_total = 0.0
+    north_total = 0.0
+    length_km = 0.0
+    for i in range(len(points) - 1):
+        ax, ay = xy_km(points[i][0], points[i][1], ref_lat)
+        bx, by = xy_km(points[i + 1][0], points[i + 1][1], ref_lat)
+        east = bx - ax
+        north = by - ay
+        east_total += east
+        north_total += north
+        length_km += math.hypot(east, north)
+    heading_rad = math.atan2(-east_total, north_total) if abs(east_total) + abs(north_total) > 1e-9 else 0.0
+    return heading_rad, length_km * 1000.0
+
+
 class HydrologyCollector(osmium.SimpleHandler):
     def __init__(self):
         super().__init__()
@@ -214,6 +233,7 @@ def main():
             continue
         _, river_index, q = nearest
         river = handler.rivers[river_index]
+        heading_rad, bridge_length_m = bridge_geometry_metadata(pts)
         add_crossing(crossings, {
             "kind": "bridge",
             "river_id": river["id"],
@@ -223,6 +243,8 @@ def main():
             "source_id": "way:%d" % bridge["way_id"],
             "lon": round(q[0], 6),
             "lat": round(q[1], 6),
+            "heading_rad": round(heading_rad, 6),
+            "bridge_length_m": round(bridge_length_m, 1),
         })
 
     for ford in handler.ford_nodes:
