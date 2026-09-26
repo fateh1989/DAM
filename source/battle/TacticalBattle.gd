@@ -4,6 +4,7 @@ const BATTLEFIELD_SIZE := 10000.0
 const BATTLEFIELD_HALF := BATTLEFIELD_SIZE * 0.5
 const TERRAIN_CHUNKS_PER_SIDE := 5
 const TERRAIN_CHUNK_SIZE := BATTLEFIELD_SIZE / float(TERRAIN_CHUNKS_PER_SIDE)
+const TERRAIN_GRID_RESOLUTION := 16
 const CAMERA_BACK_OFFSET_Z := 720.0
 const ZOOM_NORMAL := 1100.0
 const ZOOM_CLOSE := 550.0
@@ -102,6 +103,42 @@ func _setup_camera() -> void:
 	camera.look_at(Vector3.ZERO, Vector3.UP)
 
 
+func terrain_height_at(x: float, z: float) -> float:
+	var broad := sin(x * 0.00105) * 42.0 + cos(z * 0.00120) * 34.0
+	var diagonal := sin((x + z) * 0.00072 + 1.3) * 24.0
+	var ridge := sin(x * 0.00195 - z * 0.00061) * 16.0
+	return broad + diagonal + ridge
+
+
+func _build_terrain_chunk_mesh(center_x: float, center_z: float) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var cell := TERRAIN_CHUNK_SIZE / float(TERRAIN_GRID_RESOLUTION)
+	var half := TERRAIN_CHUNK_SIZE * 0.5
+	for row in range(TERRAIN_GRID_RESOLUTION):
+		for column in range(TERRAIN_GRID_RESOLUTION):
+			var x0 := -half + float(column) * cell
+			var x1 := x0 + cell
+			var z0 := -half + float(row) * cell
+			var z1 := z0 + cell
+			var p00 := Vector3(x0, terrain_height_at(center_x + x0, center_z + z0), z0)
+			var p10 := Vector3(x1, terrain_height_at(center_x + x1, center_z + z0), z0)
+			var p01 := Vector3(x0, terrain_height_at(center_x + x0, center_z + z1), z1)
+			var p11 := Vector3(x1, terrain_height_at(center_x + x1, center_z + z1), z1)
+			var u0 := float(column) / float(TERRAIN_GRID_RESOLUTION)
+			var u1 := float(column + 1) / float(TERRAIN_GRID_RESOLUTION)
+			var v0 := float(row) / float(TERRAIN_GRID_RESOLUTION)
+			var v1 := float(row + 1) / float(TERRAIN_GRID_RESOLUTION)
+			st.set_uv(Vector2(u0, v0)); st.add_vertex(p00)
+			st.set_uv(Vector2(u0, v1)); st.add_vertex(p01)
+			st.set_uv(Vector2(u1, v0)); st.add_vertex(p10)
+			st.set_uv(Vector2(u1, v0)); st.add_vertex(p10)
+			st.set_uv(Vector2(u0, v1)); st.add_vertex(p01)
+			st.set_uv(Vector2(u1, v1)); st.add_vertex(p11)
+	st.generate_normals()
+	return st.commit()
+
+
 func _setup_ground() -> void:
 	ground.mesh = null
 	ground.material_override = null
@@ -117,15 +154,11 @@ func _setup_ground() -> void:
 		for column in range(TERRAIN_CHUNKS_PER_SIDE):
 			var chunk := MeshInstance3D.new()
 			chunk.name = "TerrainChunk_%02d_%02d" % [column, row]
-			var plane := PlaneMesh.new()
-			plane.size = Vector2(TERRAIN_CHUNK_SIZE, TERRAIN_CHUNK_SIZE)
-			chunk.mesh = plane
+			var center_x := -BATTLEFIELD_HALF + TERRAIN_CHUNK_SIZE * (float(column) + 0.5)
+			var center_z := -BATTLEFIELD_HALF + TERRAIN_CHUNK_SIZE * (float(row) + 0.5)
+			chunk.mesh = _build_terrain_chunk_mesh(center_x, center_z)
 			chunk.material_override = material
-			chunk.position = Vector3(
-				-BATTLEFIELD_HALF + TERRAIN_CHUNK_SIZE * (float(column) + 0.5),
-				0.0,
-				-BATTLEFIELD_HALF + TERRAIN_CHUNK_SIZE * (float(row) + 0.5)
-			)
+			chunk.position = Vector3(center_x, 0.0, center_z)
 			ground.add_child(chunk)
 			_terrain_chunks.append(chunk)
 
