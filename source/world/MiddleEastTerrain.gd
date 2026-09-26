@@ -3391,6 +3391,28 @@ func select_logical_heavy_unit(unit_id: String, additive: bool = false) -> bool:
 	return true
 
 
+func select_governorate_logical_heavy_units(governorate_index: int, unit_type: String = "", quantity: int = -1) -> int:
+	var game_state := _game_state_node()
+	if game_state == null or governorate_index < 0 or governorate_index >= GOVERNORATES.size():
+		return 0
+	var roster_units: Array = game_state.call("get_heavy_units_for_governorate", governorate_index, true)
+	_selected_logical_unit_ids.clear()
+	for raw_unit in roster_units:
+		var logical: Dictionary = raw_unit
+		if not unit_type.is_empty() and str(logical.get("unit_type", "")) != unit_type:
+			continue
+		var logical_id := str(logical.get("id", ""))
+		if logical_id.is_empty():
+			continue
+		_selected_logical_unit_ids.append(logical_id)
+		if quantity > 0 and _selected_logical_unit_ids.size() >= quantity:
+			break
+	_sync_unit_visuals()
+	_sync_detail_unit_lod()
+	_update_status()
+	return _selected_logical_unit_ids.size()
+
+
 func focus_selected_units() -> bool:
 	var lon_sum := 0.0
 	var lat_sum := 0.0
