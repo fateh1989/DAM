@@ -3092,6 +3092,18 @@ func _game_visual_yaw_between_nodes(source_node: Node3D, target_node: Node3D) ->
 	return atan2(-delta.x, -delta.y)
 
 
+func _game_visual_pitch_for_unit_type(unit_type: String) -> float:
+	match unit_type:
+		"tank":
+			return deg_to_rad(3.0)
+		"artillery":
+			return deg_to_rad(14.0)
+		"rocket_launcher":
+			return deg_to_rad(22.0)
+		_:
+			return 0.0
+
+
 func _orient_unit_hull_to_target(node: Node3D, unit: Dictionary) -> void:
 	if not bool(unit.get("moving", false)):
 		return
