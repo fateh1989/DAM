@@ -208,3 +208,16 @@ func validate() -> String:
 		if float(unit.get("max_hp", 0.0)) <= 0.0:
 			return "heavy roster contains invalid hit points"
 	return ""
+
+
+func get_governorate_units(governorate_index: int, alive_only: bool = true) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if governorate_index < 0 or governorate_index >= 14:
+		return result
+	for unit in _units:
+		if int(unit.get("current_governorate_index", -1)) != governorate_index:
+			continue
+		if alive_only and not bool(unit.get("alive", true)):
+			continue
+		result.append(unit.duplicate(true))
+	return result
