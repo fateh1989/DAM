@@ -3250,6 +3250,12 @@ func _handle_world_tap(screen_position: Vector2) -> void:
 	if _units.is_empty():
 		return
 
+	var detail_logical_id := pick_detail_logical_id_from_screen(screen_position)
+	if not detail_logical_id.is_empty():
+		clear_selected_units()
+		toggle_logical_heavy_selection(detail_logical_id)
+		return
+
 	var closest_index := -1
 	var closest_distance := UNIT_SELECT_RADIUS_PX
 	for i in range(_units.size()):
