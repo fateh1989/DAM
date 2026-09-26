@@ -84,6 +84,26 @@ func _build() -> void:
 	var dark_stone := Color(0.38, 0.33, 0.26, 1.0)
 	var wood := Color(0.28, 0.19, 0.10, 1.0)
 	match archetype:
+		"city":
+			var city_stone := Color(0.52, 0.48, 0.38, 1.0)
+			var city_dark := Color(0.34, 0.35, 0.32, 1.0)
+			var city_light := Color(0.68, 0.62, 0.48, 1.0)
+			var plaza := _add_box(Vector3(0, 0.009, 0), Vector3(0.34, 0.018, 0.28), Color(0.30, 0.29, 0.25, 1.0))
+			plaza.name = "CityPlaza"
+			var center := _add_box(Vector3(0.0, 0.090, -0.015), Vector3(0.075, 0.18, 0.070), city_light)
+			center.name = "CityCenter"
+			var b1 := _add_box(Vector3(-0.105, 0.050, -0.070), Vector3(0.080, 0.10, 0.070), city_stone)
+			b1.name = "CityBlock_01"
+			var b2 := _add_box(Vector3(0.105, 0.065, -0.065), Vector3(0.082, 0.13, 0.072), city_dark)
+			b2.name = "CityBlock_02"
+			var b3 := _add_box(Vector3(-0.110, 0.065, 0.060), Vector3(0.075, 0.13, 0.075), city_dark)
+			b3.name = "CityBlock_03"
+			var b4 := _add_box(Vector3(0.105, 0.047, 0.070), Vector3(0.088, 0.094, 0.072), city_stone)
+			b4.name = "CityBlock_04"
+			var b5 := _add_box(Vector3(-0.020, 0.038, 0.105), Vector3(0.095, 0.076, 0.055), city_stone)
+			b5.name = "CityBlock_05"
+			var tower := _add_cylinder(Vector3(0.120, 0.105, 0.015), 0.018, 0.21, city_light)
+			tower.name = "CityTower"
 		"citadel", "castle":
 			_add_box(Vector3(0, 0.035, 0), Vector3(0.22, 0.07, 0.18), stone)
 			for x in [-0.085, 0.085]:
