@@ -31,6 +31,18 @@ func run(scene: Node) -> String:
 	if hp_before <= 0.0 or absf(hp_before - max_hp) > 0.001:
 		return "partial damage target did not start at full persistent health"
 
+	var original_lon := float(target.get("lon", 0.0))
+	var original_lat := float(target.get("lat", 0.0))
+	var close_lon := float(attacker.get("lon", 0.0)) + 0.004
+	var close_lat := float(attacker.get("lat", 0.0))
+	game_state.call("update_heavy_unit_position", logical_id, close_lon, close_lat)
+	target["lon"] = close_lon
+	target["lat"] = close_lat
+	target["target_lon"] = close_lon
+	target["target_lat"] = close_lat
+	units[target_index] = target
+	scene.set("_units", units)
+
 	var counts_before: Dictionary = game_state.call("get_heavy_force_counts")
 	var result: Dictionary = scene.call("resolve_unit_attack", attacker_index, target_index, "tank_cannon")
 	if not bool(result.get("ok", false)):
@@ -72,5 +84,12 @@ func run(scene: Node) -> String:
 	var visible_restored: Dictionary = units[target_index]
 	if absf(float(visible_restored.get("hp", 0.0)) - logical_hp) > 0.001:
 		return "visible representative HP diverged after zoom round trip"
-
+	game_state.call("update_heavy_unit_position", logical_id, original_lon, original_lat)
+	visible_restored["lon"] = original_lon
+	visible_restored["lat"] = original_lat
+	visible_restored["target_lon"] = original_lon
+	visible_restored["target_lat"] = original_lat
+	units[target_index] = visible_restored
+	scene.set("_units", units)
+	scene.call("_sync_unit_visuals")
 	return ""
