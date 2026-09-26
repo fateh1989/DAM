@@ -88,6 +88,16 @@ func _run() -> void:
 		_fail(63, "Terrain zoom smoke: " + terrain_zoom_error)
 		return
 
+	var visual_style_smoke_script := load("res://source/world/RTSVisualStyleSmoke.gd") as Script
+	if visual_style_smoke_script == null:
+		_fail(103, "RTS visual style smoke: contract script missing")
+		return
+	var visual_style_smoke = visual_style_smoke_script.new()
+	var visual_style_error := str(visual_style_smoke.call("run", scene))
+	if not visual_style_error.is_empty():
+		_fail(104, "RTS visual style smoke: " + visual_style_error)
+		return
+
 	var landmark_smoke_script := load("res://source/world/ProvinceLandmarkSmoke.gd") as Script
 	if landmark_smoke_script == null:
 		_fail(64, "Province landmark smoke: contract script missing")
