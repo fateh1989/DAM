@@ -27,6 +27,15 @@ func run(scene: Node) -> String:
 	if palette_delta < 0.12:
 		return "RTS terrain palette lost elevation separation"
 
+	var coast := scene.call("_continuous_macro_color", 220.0, 35.8, 35.5) as Color
+	var east := scene.call("_continuous_macro_color", 220.0, 41.0, 35.5) as Color
+	var south := scene.call("_continuous_macro_color", 220.0, 36.7, 32.8) as Color
+	var north := scene.call("_continuous_macro_color", 220.0, 37.5, 36.8) as Color
+	if Vector3(coast.r - east.r, coast.g - east.g, coast.b - east.b).length() < 0.10:
+		return "RTS macro terrain lost west-to-east biome contrast"
+	if Vector3(south.r - north.r, south.g - north.g, south.b - north.b).length() < 0.08:
+		return "RTS macro terrain lost south-to-north biome contrast"
+
 	var source := FileAccess.get_file_as_string("res://source/world/MiddleEastTerrain.gd")
 	if 'width_km * 1.72' not in source:
 		return "RTS roads lost readable shoulder width"
