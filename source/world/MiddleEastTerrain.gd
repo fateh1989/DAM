@@ -2481,10 +2481,19 @@ func _sync_detail_unit_lod(force: bool = false) -> void:
 		if logical_id.is_empty():
 			continue
 		var logical: Dictionary = game_state.call("get_heavy_unit", logical_id)
-		if logical.is_empty() or not bool(logical.get("alive", true)):
+		if logical.is_empty():
 			node.visible = false
 			continue
+		if not bool(logical.get("alive", true)):
+			node.visible = true
+			_apply_wreck_visual(node)
+			node.set_meta("logical_wreck", true)
+			var wreck_selection := node.get_node_or_null("Selection")
+			if wreck_selection != null:
+				wreck_selection.visible = false
+			continue
 		node.visible = true
+		node.set_meta("logical_wreck", false)
 		var lon: float = float(logical.get("lon", 0.0))
 		var lat: float = float(logical.get("lat", 0.0))
 		var height: float = _designed_height_m(lon, lat) / 1000.0 + 0.012
