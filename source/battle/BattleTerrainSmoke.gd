@@ -48,6 +48,15 @@ func run(_world_scene: Node) -> String:
 	if int(battle.call("get_terrain_prop_count")) < 40:
 		battle.free()
 		return "terrain lacks procedural rock and scrub detail"
+	var initial_visible := int(battle.call("get_visible_ground_chunk_count"))
+	if initial_visible <= 0 or initial_visible >= int(battle.call("get_ground_chunk_count")):
+		battle.free()
+		return "terrain chunk culling is not limiting rendered ground"
+	battle.call("radar_center_on_uv", Vector2(0.94, 0.94))
+	var edge_visible := int(battle.call("get_visible_ground_chunk_count"))
+	if edge_visible <= 0 or edge_visible >= int(battle.call("get_ground_chunk_count")):
+		battle.free()
+		return "terrain culling failed after moving to battlefield edge"
 	if not (battle.call("get_battle_ground_material") is ShaderMaterial):
 		battle.free()
 		return "battle terrain is not using the natural ground shader"

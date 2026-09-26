@@ -5,6 +5,7 @@ const BATTLEFIELD_HALF := BATTLEFIELD_SIZE * 0.5
 const TERRAIN_CHUNKS_PER_SIDE := 5
 const TERRAIN_CHUNK_SIZE := BATTLEFIELD_SIZE / float(TERRAIN_CHUNKS_PER_SIDE)
 const TERRAIN_GRID_RESOLUTION := 16
+const TERRAIN_VISIBLE_CHUNK_RADIUS := 1
 const BATTLE_GROUND_SHADER_PATH := "res://source/battle/shaders/BattleGround.gdshader"
 const CAMERA_BACK_OFFSET_Z := 720.0
 const ZOOM_NORMAL := 1100.0
@@ -238,6 +239,25 @@ func _setup_ground() -> void:
 			ground.add_child(chunk)
 			_terrain_chunks.append(chunk)
 			_populate_terrain_chunk(chunk, column, row, center_x, center_z)
+	_sync_terrain_chunk_visibility()
+
+
+func _sync_terrain_chunk_visibility() -> void:
+	var target := Vector2(camera.position.x, camera.position.z - CAMERA_BACK_OFFSET_Z)
+	var visibility_limit := TERRAIN_CHUNK_SIZE * (float(TERRAIN_VISIBLE_CHUNK_RADIUS) + 0.55)
+	for chunk in _terrain_chunks:
+		if not is_instance_valid(chunk):
+			continue
+		var delta := Vector2(chunk.position.x, chunk.position.z) - target
+		chunk.visible = absf(delta.x) <= visibility_limit and absf(delta.y) <= visibility_limit
+
+
+func get_visible_ground_chunk_count() -> int:
+	var count := 0
+	for chunk in _terrain_chunks:
+		if is_instance_valid(chunk) and chunk.visible:
+			count += 1
+	return count
 
 
 func get_ground_chunk_count() -> int:
@@ -490,6 +510,7 @@ func radar_center_on_uv(uv: Vector2) -> void:
 	camera.position.x = (uv.x - 0.5) * BATTLEFIELD_SIZE
 	camera.position.z = (uv.y - 0.5) * BATTLEFIELD_SIZE + CAMERA_BACK_OFFSET_Z
 	_clamp_camera_to_battlefield()
+	_sync_terrain_chunk_visibility()
 
 
 func get_battlefield_size() -> float:
@@ -667,6 +688,7 @@ func _pan_camera(relative: Vector2) -> void:
 	var scale_factor := camera.size / maxf(1.0, float(get_viewport().get_visible_rect().size.y))
 	camera.position += Vector3(-relative.x * scale_factor, 0.0, -relative.y * scale_factor)
 	_clamp_camera_to_battlefield()
+	_sync_terrain_chunk_visibility()
 
 
 func _unhandled_input(event: InputEvent) -> void:
