@@ -2247,6 +2247,26 @@ func purchase_country_units(unit_type: String, quantity: int = 1, country_id: St
 	return _army_core.purchase(country_id, unit_type, quantity)
 
 
+func orient_visible_weapon_visual_at_unit(source_index: int, target_index: int) -> bool:
+	if source_index < 0 or source_index >= _units.size():
+		return false
+	if target_index < 0 or target_index >= _units.size() or source_index == target_index:
+		return false
+	var source: Dictionary = _units[source_index]
+	var target: Dictionary = _units[target_index]
+	if not bool(source.get("alive", true)) or not bool(target.get("alive", true)):
+		return false
+	var source_node = source.get("node")
+	var target_node = target.get("node")
+	if not (source_node is Node3D) or not (target_node is Node3D):
+		return false
+	return _apply_game_visual_aim(
+		source_node,
+		target_node,
+		str(source.get("unit_type", ""))
+	)
+
+
 func resolve_unit_attack(attacker_index: int, target_index: int, weapon_id: String = "tank_cannon") -> Dictionary:
 	if _army_core == null:
 		return {"ok": false, "reason": "army_core_unavailable"}
