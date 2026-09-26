@@ -2492,6 +2492,14 @@ func _tank_visual_scale() -> float:
 	return maxf(0.55, camera.size * 0.0085)
 
 
+func _get_unit_model_node(node: Node3D) -> Node3D:
+	for path in ["TankModel", "ArtilleryModel", "LauncherModel"]:
+		var model := node.get_node_or_null(path) as Node3D
+		if model != null:
+			return model
+	return null
+
+
 func _orient_unit_hull_to_target(node: Node3D, unit: Dictionary) -> void:
 	if not bool(unit.get("moving", false)):
 		return
@@ -2530,7 +2538,7 @@ func _sync_unit_visuals() -> void:
 		node.scale = Vector3.ONE * scale_value
 		_orient_unit_hull_to_target(node, unit)
 
-		var model := node.get_node_or_null("TankModel")
+		var model := _get_unit_model_node(node)
 		var marker := node.get_node_or_null("MapMarker")
 		var selection := node.get_node_or_null("Selection")
 		var marker_lod := uses_unit_marker_lod()
