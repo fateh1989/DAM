@@ -244,12 +244,42 @@ func _setup_ground() -> void:
 
 func _sync_terrain_chunk_visibility() -> void:
 	var target := Vector2(camera.position.x, camera.position.z - CAMERA_BACK_OFFSET_Z)
-	var visibility_limit := TERRAIN_CHUNK_SIZE * (float(TERRAIN_VISIBLE_CHUNK_RADIUS) + 0.55)
+	var half_view := _camera_target_half_extents()
+	var margin := TERRAIN_CHUNK_SIZE * 0.75
+	var chunk_half := TERRAIN_CHUNK_SIZE * 0.5
 	for chunk in _terrain_chunks:
 		if not is_instance_valid(chunk):
 			continue
 		var delta := Vector2(chunk.position.x, chunk.position.z) - target
-		chunk.visible = absf(delta.x) <= visibility_limit and absf(delta.y) <= visibility_limit
+		chunk.visible = (
+			absf(delta.x) <= half_view.x + chunk_half + margin
+			and absf(delta.y) <= half_view.y + chunk_half + margin
+		)
+
+
+func is_camera_ground_covered() -> bool:
+	var target := Vector2(camera.position.x, camera.position.z - CAMERA_BACK_OFFSET_Z)
+	var half_view := _camera_target_half_extents() * 0.92
+	var samples := [
+		target,
+		target + Vector2(-half_view.x, -half_view.y),
+		target + Vector2(half_view.x, -half_view.y),
+		target + Vector2(-half_view.x, half_view.y),
+		target + Vector2(half_view.x, half_view.y),
+		target + Vector2(-half_view.x, 0.0),
+		target + Vector2(half_view.x, 0.0),
+		target + Vector2(0.0, -half_view.y),
+		target + Vector2(0.0, half_view.y),
+	]
+	for point in samples:
+		if absf(point.x) > BATTLEFIELD_HALF or absf(point.y) > BATTLEFIELD_HALF:
+			continue
+		var column := clampi(int(floor((point.x + BATTLEFIELD_HALF) / TERRAIN_CHUNK_SIZE)), 0, TERRAIN_CHUNKS_PER_SIDE - 1)
+		var row := clampi(int(floor((point.y + BATTLEFIELD_HALF) / TERRAIN_CHUNK_SIZE)), 0, TERRAIN_CHUNKS_PER_SIDE - 1)
+		var index := row * TERRAIN_CHUNKS_PER_SIDE + column
+		if index < 0 or index >= _terrain_chunks.size() or not _terrain_chunks[index].visible:
+			return false
+	return true
 
 
 func get_visible_ground_chunk_count() -> int:

@@ -52,6 +52,14 @@ func run(_world_scene: Node) -> String:
 	if initial_visible <= 0 or initial_visible >= int(battle.call("get_ground_chunk_count")):
 		battle.free()
 		return "terrain chunk culling is not limiting rendered ground"
+	battle.camera.size = 4200.0
+	battle.call("_clamp_camera_to_battlefield")
+	battle.call("_sync_terrain_chunk_visibility")
+	if not bool(battle.call("is_camera_ground_covered")):
+		battle.free()
+		return "terrain culling leaves holes when camera zooms outward"
+	battle.camera.size = battle.ZOOM_NORMAL
+	battle.call("_sync_terrain_chunk_visibility")
 	battle.call("radar_center_on_uv", Vector2(0.94, 0.94))
 	var edge_visible := int(battle.call("get_visible_ground_chunk_count"))
 	if edge_visible <= 0 or edge_visible >= int(battle.call("get_ground_chunk_count")):
