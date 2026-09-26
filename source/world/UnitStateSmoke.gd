@@ -340,5 +340,15 @@ func _run() -> void:
 		_fail(11, "Strategic unit smoke: radar camera did not move")
 		return
 
+	var continuity_smoke_script := load("res://source/world/WorldContinuitySmoke.gd") as Script
+	if continuity_smoke_script == null:
+		_fail(75, "World continuity smoke: contract script missing")
+		return
+	var continuity_smoke = continuity_smoke_script.new()
+	var continuity_error := str(continuity_smoke.call("run", scene))
+	if not continuity_error.is_empty():
+		_fail(76, "World continuity smoke: " + continuity_error)
+		return
+
 	print("Strategic unit smoke: 14 armies + radar + group movement OK")
 	quit(0)
