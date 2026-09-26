@@ -3310,8 +3310,15 @@ func _issue_move_order(unit_index: int, destination: Vector2) -> bool:
 	if unit_index < 0 or unit_index >= _units.size():
 		return false
 	var unit: Dictionary = _units[unit_index]
-	unit["target_lon"] = clampf(destination.x, REGION_WEST, REGION_EAST)
-	unit["target_lat"] = clampf(destination.y, REGION_SOUTH, REGION_NORTH)
+	var target_lon := clampf(destination.x, REGION_WEST, REGION_EAST)
+	var target_lat := clampf(destination.y, REGION_SOUTH, REGION_NORTH)
+	var logical_id := str(unit.get("logical_unit_id", ""))
+	if not logical_id.is_empty():
+		var game_state := _game_state_node()
+		if game_state == null or not bool(game_state.call("issue_heavy_move", logical_id, target_lon, target_lat)):
+			return false
+	unit["target_lon"] = target_lon
+	unit["target_lat"] = target_lat
 	unit["move_order_serial"] = _move_order_serial
 	unit["moving"] = true
 	_units[unit_index] = unit
