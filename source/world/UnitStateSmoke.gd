@@ -89,6 +89,16 @@ func _run() -> void:
 		_fail(65, "Province landmark smoke: " + landmark_error)
 		return
 
+	var city_smoke_script := load("res://source/world/MiniatureCitySmoke.gd") as Script
+	if city_smoke_script == null:
+		_fail(70, "Miniature city smoke: contract script missing")
+		return
+	var city_smoke = city_smoke_script.new()
+	var city_error := str(city_smoke.call("run", scene))
+	if not city_error.is_empty():
+		_fail(71, "Miniature city smoke: " + city_error)
+		return
+
 	var battle_terrain_smoke_script := load("res://source/battle/BattleTerrainSmoke.gd") as Script
 	if battle_terrain_smoke_script == null:
 		_fail(66, "Battle terrain smoke: contract script missing")
