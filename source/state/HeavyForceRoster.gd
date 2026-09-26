@@ -102,3 +102,12 @@ func count_governorate(governorate_index: int, alive_only: bool = false) -> int:
 			continue
 		count += 1
 	return count
+
+
+func get_unit(unit_id: String) -> Dictionary:
+	if not _index_by_id.has(unit_id):
+		return {}
+	var index := int(_index_by_id[unit_id])
+	if index < 0 or index >= _units.size():
+		return {}
+	return _units[index].duplicate(true)
