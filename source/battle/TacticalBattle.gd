@@ -282,6 +282,17 @@ func is_camera_ground_covered() -> bool:
 	return true
 
 
+func get_terrain_integrity_signature() -> Dictionary:
+	return {
+		"battlefield_size": BATTLEFIELD_SIZE,
+		"chunk_count": _terrain_chunks.size(),
+		"prop_count": _terrain_prop_count,
+		"height_a": terrain_height_at(-1400.0, -900.0),
+		"height_b": terrain_height_at(1700.0, 1300.0),
+		"height_c": terrain_height_at(220.0, 0.0),
+	}
+
+
 func get_visible_ground_chunk_count() -> int:
 	var count := 0
 	for chunk in _terrain_chunks:

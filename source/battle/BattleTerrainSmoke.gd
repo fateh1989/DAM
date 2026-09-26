@@ -60,6 +60,15 @@ func run(_world_scene: Node) -> String:
 		return "terrain culling leaves holes when camera zooms outward"
 	battle.camera.size = battle.ZOOM_NORMAL
 	battle.call("_sync_terrain_chunk_visibility")
+	var terrain_signature_before: Dictionary = battle.call("get_terrain_integrity_signature")
+	battle.camera.size = 5200.0
+	battle.call("_sync_terrain_chunk_visibility")
+	var terrain_signature_after: Dictionary = battle.call("get_terrain_integrity_signature")
+	if terrain_signature_before != terrain_signature_after:
+		battle.free()
+		return "camera zoom mutated terrain geometry or world scale"
+	battle.camera.size = battle.ZOOM_NORMAL
+	battle.call("_sync_terrain_chunk_visibility")
 	battle.call("radar_center_on_uv", Vector2(0.94, 0.94))
 	var edge_visible := int(battle.call("get_visible_ground_chunk_count"))
 	if edge_visible <= 0 or edge_visible >= int(battle.call("get_ground_chunk_count")):
