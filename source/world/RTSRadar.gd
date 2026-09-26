@@ -62,8 +62,14 @@ func get_camera_indicator_rect() -> Rect2:
 func get_blip_style(item: Dictionary) -> Dictionary:
 	var selected := bool(item.get("selected", false))
 	var primary := bool(item.get("primary", false))
+	var unit_type := str(item.get("unit_type", "tank"))
+	var base_radius := 3.5
+	if unit_type == "artillery":
+		base_radius = 4.0
+	elif unit_type == "rocket_launcher":
+		base_radius = 4.4
 	return {
-		"radius": 6.5 if primary else (5.0 if selected else 3.5),
+		"radius": 6.5 if primary else (5.2 if selected else base_radius),
 		"ring_radius": 9.0 if primary else 7.5,
 		"ring_width": 2.2 if primary else 1.5,
 	}
