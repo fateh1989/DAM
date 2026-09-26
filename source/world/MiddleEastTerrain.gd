@@ -3996,6 +3996,13 @@ func get_wreck_count() -> int:
 	return count
 
 
+func _radar_uv_from_geo(lon: float, lat: float) -> Vector2:
+	return Vector2(
+		clampf((lon - REGION_WEST) / (REGION_EAST - REGION_WEST), 0.0, 1.0),
+		clampf((REGION_NORTH - lat) / (REGION_NORTH - REGION_SOUTH), 0.0, 1.0)
+	)
+
+
 func get_radar_units() -> Array:
 	var result: Array = []
 	var represented_ids := {}
@@ -4003,8 +4010,7 @@ func get_radar_units() -> Array:
 		if not _is_unit_selectable(i):
 			continue
 		var unit: Dictionary = _units[i]
-		var u := clampf((float(unit["lon"]) - REGION_WEST) / (REGION_EAST - REGION_WEST), 0.0, 1.0)
-		var v := clampf((REGION_NORTH - float(unit["lat"])) / (REGION_NORTH - REGION_SOUTH), 0.0, 1.0)
+		var radar_uv := _radar_uv_from_geo(float(unit["lon"]), float(unit["lat"]))
 		var logical_id := str(unit.get("logical_unit_id", ""))
 		if not logical_id.is_empty():
 			represented_ids[logical_id] = true
@@ -4015,7 +4021,7 @@ func get_radar_units() -> Array:
 			"logical_id": logical_id,
 			"governorate_index": governorate_index,
 			"unit_type": str(unit.get("unit_type", "tank")),
-			"uv": Vector2(u, v),
+			"uv": radar_uv,
 			"color": _army_color(governorate_index),
 			"selected": i in _selected_unit_indices or logical_selected,
 			"primary": i == _selected_unit_index or (logical_selected and not _selected_logical_unit_ids.is_empty() and logical_id == _selected_logical_unit_ids.back()),
@@ -4036,15 +4042,14 @@ func _append_selected_logical_radar_units(result: Array, represented_ids: Dictio
 			continue
 		var lon := float(logical.get("lon", 0.0))
 		var lat := float(logical.get("lat", 0.0))
-		var u := clampf((lon - REGION_WEST) / (REGION_EAST - REGION_WEST), 0.0, 1.0)
-		var v := clampf((REGION_NORTH - lat) / (REGION_NORTH - REGION_SOUTH), 0.0, 1.0)
+		var radar_uv := _radar_uv_from_geo(lon, lat)
 		var governorate_index := int(logical.get("current_governorate_index", logical.get("home_governorate_index", 0)))
 		result.append({
 			"index": -1,
 			"logical_id": logical_id,
 			"governorate_index": governorate_index,
 			"unit_type": str(logical.get("unit_type", "tank")),
-			"uv": Vector2(u, v),
+			"uv": radar_uv,
 			"color": _army_color(governorate_index),
 			"selected": true,
 			"primary": not _selected_logical_unit_ids.is_empty() and logical_id == _selected_logical_unit_ids.back(),
