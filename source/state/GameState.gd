@@ -243,3 +243,9 @@ func update_heavy_surviving_hp(unit_id: String, hp: float) -> bool:
 	if heavy_force_roster == null:
 		return false
 	return heavy_force_roster.set_surviving_hp(unit_id, hp)
+
+
+func tick_heavy_force_movement(delta: float, excluded_ids: Dictionary = {}) -> int:
+	if heavy_force_roster == null:
+		return 0
+	return int(heavy_force_roster.tick_movement(delta, excluded_ids))
