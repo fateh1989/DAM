@@ -3593,7 +3593,7 @@ func select_logical_heavy_units_in_screen_rect(screen_rect: Rect2, additive: boo
 
 	if _rts_zoom_level >= RTS_DETAIL_UNIT_LOD_MIN:
 		for node in _detail_unit_nodes:
-			if not is_instance_valid(node) or not node.visible or camera.is_position_behind(node.global_position):
+			if not is_instance_valid(node) or not node.visible or bool(node.get_meta("logical_wreck", false)) or camera.is_position_behind(node.global_position):
 				continue
 			var logical_id := str(node.get_meta("logical_unit_id", ""))
 			if logical_id.is_empty():
