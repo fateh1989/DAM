@@ -2417,6 +2417,9 @@ func _create_detail_unit_visual(logical: Dictionary) -> Node3D:
 	var model := _get_unit_model_node(node)
 	if model != null:
 		model.visible = _terrain_mode
+	if not bool(logical.get("alive", true)):
+		_apply_wreck_visual(node)
+		node.set_meta("logical_wreck", true)
 	return node
 
 
