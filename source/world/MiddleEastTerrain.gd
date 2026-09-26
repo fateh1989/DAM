@@ -2284,6 +2284,66 @@ func _create_detail_unit_visual(logical: Dictionary) -> Node3D:
 	return node
 
 
+func _clear_detail_unit_visuals() -> void:
+	if not is_instance_valid(_detail_unit_root):
+		return
+	for child in _detail_unit_root.get_children():
+		_detail_unit_root.remove_child(child)
+		child.queue_free()
+	_detail_unit_nodes.clear()
+	_detail_governorate_index = -1
+
+
+func _rebuild_detail_unit_visuals() -> void:
+	_clear_detail_unit_visuals()
+	if _rts_zoom_level < RTS_DETAIL_UNIT_LOD_MIN or not is_instance_valid(_detail_unit_root):
+		return
+	var game_state := _game_state_node()
+	if game_state == null:
+		return
+	var roster_units: Array = game_state.call("get_heavy_units_for_governorate", _governorate_index, true)
+	var representative_ids := {}
+	for representative in _units:
+		if int(representative.get("governorate_index", -1)) != _governorate_index:
+			continue
+		var representative_id := str(representative.get("logical_unit_id", ""))
+		if not representative_id.is_empty():
+			representative_ids[representative_id] = true
+	for raw_logical in roster_units:
+		var logical: Dictionary = raw_logical
+		var logical_id := str(logical.get("id", ""))
+		if representative_ids.has(logical_id):
+			continue
+		var node := _create_detail_unit_visual(logical)
+		if node == null:
+			continue
+		_detail_unit_root.add_child(node)
+		_detail_unit_nodes.append(node)
+	_detail_governorate_index = _governorate_index
+
+
+func _sync_detail_unit_lod(force: bool = false) -> void:
+	if _rts_zoom_level < RTS_DETAIL_UNIT_LOD_MIN:
+		if not _detail_unit_nodes.is_empty():
+			_clear_detail_unit_visuals()
+		return
+	if force or _detail_governorate_index != _governorate_index or _detail_unit_nodes.is_empty():
+		_rebuild_detail_unit_visuals()
+		return
+	var scale_value := get_rts_unit_visual_scale()
+	for node in _detail_unit_nodes:
+		if is_instance_valid(node):
+			node.scale = Vector3.ONE * scale_value
+
+
+func get_detail_unit_visual_count() -> int:
+	var count := 0
+	for node in _detail_unit_nodes:
+		if is_instance_valid(node):
+			count += 1
+	return count
+
+
 func _army_color(index: int) -> Color:
 	var hue := fmod(float(index) * 0.61803398875, 1.0)
 	return Color.from_hsv(hue, 0.78, 0.96, 1.0)
