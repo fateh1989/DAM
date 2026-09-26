@@ -221,12 +221,22 @@ func _create_tank(name_text: String, position: Vector3, body_color: Color, turre
 	return root
 
 
+func _unit_ground_y(x: float, z: float) -> float:
+	return terrain_height_at(x, z) + 10.0
+
+
+func _snap_position_to_ground(position: Vector3) -> Vector3:
+	position.y = _unit_ground_y(position.x, position.z)
+	return position
+
+
 func _spawn_friendly_units() -> void:
 	var positions := [
 		Vector3(-260, 10, 260), Vector3(-100, 10, 260), Vector3(60, 10, 260),
 		Vector3(-260, 10, 410), Vector3(-100, 10, 410), Vector3(60, 10, 410),
 	]
 	for i in range(positions.size()):
+		positions[i] = _snap_position_to_ground(positions[i])
 		var root := _create_tank(
 			"Friendly_%02d" % (i + 1),
 			positions[i],
@@ -250,6 +260,7 @@ func _spawn_enemy_units() -> void:
 		Vector3(-250, 10, -430), Vector3(-90, 10, -430), Vector3(70, 10, -430),
 	]
 	for i in range(positions.size()):
+		positions[i] = _snap_position_to_ground(positions[i])
 		var root := _create_tank(
 			"Enemy_%02d" % (i + 1),
 			positions[i],
@@ -542,6 +553,7 @@ func _issue_group_move(center: Vector3) -> void:
 		var target := center + offset
 		target.x = clampf(target.x, -BATTLEFIELD_SIZE * 0.48, BATTLEFIELD_SIZE * 0.48)
 		target.z = clampf(target.z, -BATTLEFIELD_SIZE * 0.48, BATTLEFIELD_SIZE * 0.48)
+		target = _snap_position_to_ground(target)
 		var index := movable[order_index]
 		var unit: Dictionary = _units[index]
 		unit["target"] = target
@@ -627,6 +639,7 @@ func _process(delta: float) -> void:
 			var distance := delta_vec.length()
 			if distance > ATTACK_RANGE:
 				node.position += delta_vec.normalized() * minf(UNIT_SPEED * delta, distance - ATTACK_RANGE)
+				node.position = _snap_position_to_ground(node.position)
 			else:
 				enemy["hp"] = float(enemy.get("hp", ENEMY_HP)) - ATTACK_DPS * delta
 				if float(enemy["hp"]) <= 0.0:
@@ -647,10 +660,11 @@ func _process(delta: float) -> void:
 		var distance := delta_vec.length()
 		var step := UNIT_SPEED * delta
 		if distance <= step:
-			node.position = target
+			node.position = _snap_position_to_ground(target)
 			unit["moving"] = false
 		else:
 			node.position += delta_vec.normalized() * step
+			node.position = _snap_position_to_ground(node.position)
 		_units[i] = unit
 
 
