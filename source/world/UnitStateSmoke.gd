@@ -463,5 +463,15 @@ func _run() -> void:
 		_fail(96, "Rectangle logical selection smoke: " + rectangle_selection_error)
 		return
 
+	var box_select_gesture_smoke_script := load("res://source/world/BoxSelectGestureSmoke.gd") as Script
+	if box_select_gesture_smoke_script == null:
+		_fail(97, "Box select gesture smoke: contract script missing")
+		return
+	var box_select_gesture_smoke = box_select_gesture_smoke_script.new()
+	var box_select_gesture_error := str(box_select_gesture_smoke.call("run", scene))
+	if not box_select_gesture_error.is_empty():
+		_fail(98, "Box select gesture smoke: " + box_select_gesture_error)
+		return
+
 	print("Strategic unit smoke: 14 armies / 42 heavy representatives + radar + group movement OK")
 	quit(0)
