@@ -107,6 +107,8 @@ func _build() -> void:
 			b4.name = "CityBlock_04"
 			var b5 := _add_box(Vector3(-0.020, 0.038, 0.105), Vector3(0.095, 0.076, 0.055), city_stone)
 			b5.name = "CityBlock_05"
+			var industrial := _add_box(Vector3(0.115, 0.037, 0.105), Vector3(0.085, 0.074, 0.050), Color(0.40, 0.41, 0.38, 1.0))
+			industrial.name = "CityIndustrialHall"
 			var tower := _add_cylinder(Vector3(0.120, 0.105, 0.015), 0.018, 0.21, city_light)
 			tower.name = "CityTower"
 		"citadel", "castle":
