@@ -17,4 +17,10 @@ func run(scene: Node) -> String:
 		return "near RTS zoom did not lower the camera"
 	if float(near_profile["look_y"]) <= float(far_profile["look_y"]):
 		return "near RTS zoom did not increase terrain viewing angle"
+	var far_unit_scale := float(scene.call("get_rts_unit_visual_scale", 1))
+	var near_unit_scale := float(scene.call("get_rts_unit_visual_scale", 5))
+	if far_unit_scale <= near_unit_scale:
+		return "far RTS zoom does not preserve unit readability"
+	if near_unit_scale < 0.0035:
+		return "near RTS unit scale became too small"
 	return ""
