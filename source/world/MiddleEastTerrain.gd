@@ -3225,6 +3225,27 @@ func _screen_to_ground(screen_position: Vector2):
 	return ground_plane.intersects_ray(ray_origin, ray_direction)
 
 
+func pick_detail_logical_id_from_screen(screen_position: Vector2) -> String:
+	if _rts_zoom_level < RTS_DETAIL_UNIT_LOD_MIN:
+		return ""
+	var closest_id := ""
+	var closest_distance := UNIT_SELECT_RADIUS_PX
+	for node in _detail_unit_nodes:
+		if not is_instance_valid(node) or not node.visible:
+			continue
+		if camera.is_position_behind(node.global_position):
+			continue
+		var logical_id := str(node.get_meta("logical_unit_id", ""))
+		if logical_id.is_empty():
+			continue
+		var unit_screen := camera.unproject_position(node.global_position)
+		var distance := unit_screen.distance_to(screen_position)
+		if distance < closest_distance:
+			closest_distance = distance
+			closest_id = logical_id
+	return closest_id
+
+
 func _handle_world_tap(screen_position: Vector2) -> void:
 	if _units.is_empty():
 		return
