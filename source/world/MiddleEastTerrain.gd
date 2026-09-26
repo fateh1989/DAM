@@ -1683,6 +1683,7 @@ func _build_art_directed_battlefield() -> void:
 
 	var main_road: Array[Vector3] = []
 	var cross_road: Array[Vector3] = []
+	var feeder_road: Array[Vector3] = []
 	var river: Array[Vector3] = []
 
 	for i in range(19):
@@ -1691,11 +1692,16 @@ func _build_art_directed_battlefield() -> void:
 		var z := -5.5 + float(i) * 0.62
 		cross_road.append(_art_point(sin(z * 0.46 + 0.8) * 1.25 + 0.65, z, 0.020))
 		river.append(_art_point(x, 2.25 + sin(x * 0.38 + 1.2) * 0.55, 0.010))
+	for i in range(15):
+		var x := -5.2 + float(i) * 0.74
+		feeder_road.append(_art_point(x, -2.55 + sin(x * 0.72) * 0.42, 0.017))
 
 	_append_ribbon_geometry(shoulders, main_road, ART_ROAD_SHOULDER_KM, 0.0)
 	_append_ribbon_geometry(roads, main_road, ART_ROAD_WIDTH_KM, 0.004)
 	_append_ribbon_geometry(shoulders, cross_road, ART_ROAD_SHOULDER_KM * 0.82, 0.0)
 	_append_ribbon_geometry(roads, cross_road, ART_ROAD_WIDTH_KM * 0.72, 0.004)
+	_append_ribbon_geometry(shoulders, feeder_road, ART_ROAD_SHOULDER_KM * 0.66, 0.0)
+	_append_ribbon_geometry(roads, feeder_road, ART_ROAD_WIDTH_KM * 0.58, 0.004)
 	_append_ribbon_geometry(creek_bank, river, ART_CREEK_WIDTH_KM * 2.2, 0.002)
 	_append_ribbon_geometry(creek, river, ART_CREEK_WIDTH_KM, 0.004)
 
@@ -1745,7 +1751,7 @@ func _build_art_directed_battlefield() -> void:
 
 	_commit_tree_multimesh(grove, "ArtTrees", Color(0.20, 0.38, 0.10, 1.0))
 
-	_road_feature_count = 2
+	_road_feature_count = 3
 	_building_feature_count = building_count
 	_water_feature_count = 1
 	_landcover_feature_count = 1
