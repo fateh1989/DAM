@@ -2360,6 +2360,13 @@ func _sync_detail_unit_lod(force: bool = false) -> void:
 		var lat: float = float(logical.get("lat", 0.0))
 		var height: float = _designed_height_m(lon, lat) / 1000.0 + 0.012
 		node.position = _geo_to_local(lon, lat, height)
+		var selection := node.get_node_or_null("Selection")
+		if selection != null:
+			var is_selected := logical_id in _selected_logical_unit_ids
+			selection.visible = is_selected
+			var is_primary := is_selected and not _selected_logical_unit_ids.is_empty() and logical_id == _selected_logical_unit_ids.back()
+			var ring_scale: float = 1.28 if is_primary else (0.92 if is_selected and _selected_logical_unit_ids.size() > 1 else 1.0)
+			selection.scale = Vector3.ONE * ring_scale
 
 
 func get_detail_unit_visual_count() -> int:
@@ -3059,10 +3066,15 @@ func _sync_unit_visuals() -> void:
 		if marker != null:
 			marker.visible = _terrain_mode and marker_lod
 		if selection != null:
-			var is_selected := i in _selected_unit_indices
-			var is_primary := is_selected and i == _selected_unit_index
+			var logical_id := str(unit.get("logical_unit_id", ""))
+			var logical_selected := not logical_id.is_empty() and logical_id in _selected_logical_unit_ids
+			var is_selected := i in _selected_unit_indices or logical_selected
+			var is_primary := (i in _selected_unit_indices and i == _selected_unit_index)
+			if logical_selected and not _selected_logical_unit_ids.is_empty():
+				is_primary = logical_id == _selected_logical_unit_ids.back()
 			selection.visible = is_selected
-			var ring_scale: float = 1.28 if is_primary else (0.92 if is_selected and _selected_unit_indices.size() > 1 else 1.0)
+			var selection_count: int = maxi(_selected_unit_indices.size(), _selected_logical_unit_ids.size())
+			var ring_scale: float = 1.28 if is_primary else (0.92 if is_selected and selection_count > 1 else 1.0)
 			selection.scale = Vector3.ONE * ring_scale
 
 
