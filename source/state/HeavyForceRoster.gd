@@ -159,6 +159,8 @@ func issue_route(unit_id: String, waypoints: Array) -> bool:
 				valid_point = true
 		if not valid_point:
 			continue
+		if absf(point.x) > 180.0 or absf(point.y) > 90.0:
+			continue
 		if not normalized.is_empty():
 			var previous: Dictionary = normalized.back()
 			var previous_point := Vector2(float(previous["lon"]), float(previous["lat"]))
