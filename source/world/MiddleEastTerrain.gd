@@ -2265,6 +2265,16 @@ func _create_tank_visual(index: int) -> Node3D:
 	upper_hull.material_override = _solid_unshaded_material(army_color.darkened(0.14))
 	model.add_child(upper_hull)
 
+	for side in [-1.0, 1.0]:
+		var track_mesh := BoxMesh.new()
+		track_mesh.size = Vector3(0.28, 0.30, 2.48 if family == "western" else 2.22)
+		var track := MeshInstance3D.new()
+		track.name = "TrackLeft" if side < 0.0 else "TrackRight"
+		track.mesh = track_mesh
+		track.position = Vector3(side * (0.91 if family == "western" else 0.79), 0.20, 0.0)
+		track.material_override = _solid_unshaded_material(Color(0.10, 0.11, 0.10, 1.0))
+		model.add_child(track)
+
 	var turret_mesh := CylinderMesh.new()
 	turret_mesh.top_radius = 0.52
 	turret_mesh.bottom_radius = 0.58
