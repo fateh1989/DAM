@@ -11,6 +11,7 @@ const HeavyForceRosterScript = preload("res://source/state/HeavyForceRoster.gd")
 var army_core = null
 var economy_core = null
 var heavy_force_roster = null
+var _heavy_roster_deployed := false
 var selected_province_id := "aleppo"
 var selected_province_name := "حلب"
 var active_battle: Dictionary = {}
