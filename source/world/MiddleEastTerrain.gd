@@ -2186,6 +2186,10 @@ func resolve_unit_attack(attacker_index: int, target_index: int, weapon_id: Stri
 			if not bool(game_state.call("record_heavy_loss", logical_id)):
 				return {"ok": false, "reason": "persistent_loss_failed"}
 	_units[target_index] = target
+	if not bool(target.get("alive", true)):
+		var wreck_node = target.get("node")
+		if wreck_node is Node3D and is_instance_valid(wreck_node):
+			_apply_wreck_visual(wreck_node)
 	_sync_unit_visuals()
 	return result
 
