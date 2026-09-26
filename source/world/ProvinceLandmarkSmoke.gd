@@ -12,6 +12,14 @@ func run(scene: Node) -> String:
 	var body := item.get_node_or_null("Body") as Node3D
 	if body == null or body.get_child_count() < 8:
 		return "city miniature does not contain enough 3D structure"
+	if not bool(item.call("set_damage_state", "damaged")) or str(item.damage_state) != "damaged":
+		return "city damaged state failed"
+	if not bool(item.call("set_damage_state", "rubble")) or str(item.damage_state) != "rubble":
+		return "city rubble state failed"
+	if not bool(item.call("set_damage_state", "rebuilt")) or str(item.damage_state) != "rebuilt":
+		return "city rebuilt state failed"
+	if bool(item.call("set_damage_state", "invalid")):
+		return "city accepted an invalid damage state"
 	item.free()
 
 	var landmarks: Array = scene.call("get_province_landmarks")
@@ -63,6 +71,9 @@ func run(scene: Node) -> String:
 	scene.call("_sync_landmark_lod")
 	if int(landmarks[2].lod_level) != 1:
 		return "distant city LOD is not active"
+	var distant_body := landmarks[2].get_node_or_null("Body") as Node3D
+	if distant_body == null or distant_body.scale.x < 1.0:
+		return "distant city symbol is too small to recognize"
 
 	scene.set("_terrain_mode", true)
 	scene.set("_governorate_index", 2)
