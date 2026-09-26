@@ -3080,6 +3080,18 @@ func _get_unit_model_node(node: Node3D) -> Node3D:
 	return null
 
 
+func _game_visual_yaw_between_nodes(source_node: Node3D, target_node: Node3D) -> float:
+	if not is_instance_valid(source_node) or not is_instance_valid(target_node):
+		return 0.0
+	var delta := Vector2(
+		target_node.global_position.x - source_node.global_position.x,
+		target_node.global_position.z - source_node.global_position.z
+	)
+	if delta.length_squared() <= 0.000001:
+		return source_node.rotation.y
+	return atan2(-delta.x, -delta.y)
+
+
 func _orient_unit_hull_to_target(node: Node3D, unit: Dictionary) -> void:
 	if not bool(unit.get("moving", false)):
 		return
