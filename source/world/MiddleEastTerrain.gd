@@ -3076,6 +3076,15 @@ func _create_artillery_visual(index: int) -> Node3D:
 	gun_mount.position = Vector3(0.0, 0.69 if family == "western" else 0.61, -0.48)
 	turret_pivot.add_child(gun_mount)
 
+	var cradle_mesh := BoxMesh.new()
+	cradle_mesh.size = Vector3(0.28, 0.22, 0.72)
+	var cradle := MeshInstance3D.new()
+	cradle.name = "RecoilCradle"
+	cradle.mesh = cradle_mesh
+	cradle.position = Vector3(0.0, -0.01, -0.38)
+	cradle.material_override = _solid_unshaded_material(army_color.darkened(0.12))
+	gun_mount.add_child(cradle)
+
 	var barrel_mesh := BoxMesh.new()
 	barrel_mesh.size = Vector3(0.13, 0.13, 2.44 if family == "western" else 2.22)
 	var barrel := MeshInstance3D.new()
@@ -3655,6 +3664,7 @@ func validate_support_heavy_visuals() -> String:
 				"ArtilleryModel/TrackRight",
 				"ArtilleryModel/TurretPivot/Turret",
 				"ArtilleryModel/TurretPivot/TurretBustle",
+				"ArtilleryModel/TurretPivot/GunMount/RecoilCradle",
 				"ArtilleryModel/TurretPivot/GunMount/Barrel",
 				"ArtilleryModel/TurretPivot/GunMount/MuzzleBrake",
 				"ArtilleryModel/RearStabilizerLeft",
