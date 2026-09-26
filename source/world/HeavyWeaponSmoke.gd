@@ -26,6 +26,19 @@ func run(scene: Node) -> String:
 	if roster.get_grand_total() != 1400:
 		return "country heavy weapon total is not fourteen hundred"
 
+	var west_tank := VISUAL_SCRIPT.new()
+	west_tank.setup("tank", "west", 0, 50)
+	var east_tank := VISUAL_SCRIPT.new()
+	east_tank.setup("tank", "east", 0, 50)
+	var west_sig: Dictionary = west_tank.call("get_visual_signature")
+	var east_sig: Dictionary = east_tank.call("get_visual_signature")
+	if west_sig.get("hull_size", Vector3.ZERO) == east_sig.get("hull_size", Vector3.ZERO):
+		west_tank.free()
+		east_tank.free()
+		return "west and east tanks do not have different hull proportions"
+	west_tank.free()
+	east_tank.free()
+
 	for family_name in ["west", "east"]:
 		var tank := VISUAL_SCRIPT.new()
 		tank.setup("tank", family_name, 0, 50)

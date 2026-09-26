@@ -181,3 +181,18 @@ func get_part(name_value: String) -> Node:
 
 func get_model_root() -> Node3D:
 	return _model_root
+
+
+func get_visual_signature() -> Dictionary:
+	var turret := get_part("Turret")
+	var hull := get_part("Hull")
+	var signature := {
+		"weapon_type": weapon_type,
+		"family": family,
+		"represented_count": represented_count,
+	}
+	if turret is MeshInstance3D and turret.mesh is BoxMesh:
+		signature["turret_size"] = (turret.mesh as BoxMesh).size
+	if hull is MeshInstance3D and hull.mesh is BoxMesh:
+		signature["hull_size"] = (hull.mesh as BoxMesh).size
+	return signature
