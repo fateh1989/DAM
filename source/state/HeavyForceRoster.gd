@@ -80,3 +80,25 @@ func _spawn_offset(unit_type: String, slot: int, quantity: int) -> Vector2:
 		"artillery":
 			x += 0.035
 	return Vector2(x, y)
+
+
+func count_type(unit_type: String, alive_only: bool = false) -> int:
+	var count := 0
+	for unit in _units:
+		if str(unit.get("unit_type", "")) != unit_type:
+			continue
+		if alive_only and not bool(unit.get("alive", true)):
+			continue
+		count += 1
+	return count
+
+
+func count_governorate(governorate_index: int, alive_only: bool = false) -> int:
+	var count := 0
+	for unit in _units:
+		if int(unit.get("current_governorate_index", -1)) != governorate_index:
+			continue
+		if alive_only and not bool(unit.get("alive", true)):
+			continue
+		count += 1
+	return count
