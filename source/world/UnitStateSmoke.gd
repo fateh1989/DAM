@@ -69,6 +69,16 @@ func _run() -> void:
 		_fail(61, "Province clock smoke: " + province_clock_error)
 		return
 
+	var terrain_zoom_smoke_script := load("res://source/world/TerrainZoomSmoke.gd") as Script
+	if terrain_zoom_smoke_script == null:
+		_fail(62, "Terrain zoom smoke: contract script missing")
+		return
+	var terrain_zoom_smoke = terrain_zoom_smoke_script.new()
+	var terrain_zoom_error := str(terrain_zoom_smoke.call("run", scene))
+	if not terrain_zoom_error.is_empty():
+		_fail(63, "Terrain zoom smoke: " + terrain_zoom_error)
+		return
+
 	if scene._units.size() != scene.GOVERNORATES.size() or scene._units.size() != 14:
 		_fail(3, "Strategic unit smoke: expected one persistent tank per governorate")
 		return
