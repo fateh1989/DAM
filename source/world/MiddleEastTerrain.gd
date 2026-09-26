@@ -3295,8 +3295,9 @@ func _handle_world_tap(screen_position: Vector2) -> void:
 
 
 func clear_selection_on_empty_ground() -> bool:
-	var had_selection := not _selected_unit_indices.is_empty()
+	var had_selection := not _selected_unit_indices.is_empty() or not _selected_logical_unit_ids.is_empty()
 	clear_selected_units()
+	clear_logical_heavy_selection()
 	return had_selection
 
 
