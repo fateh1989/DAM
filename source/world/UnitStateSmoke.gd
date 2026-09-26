@@ -114,6 +114,11 @@ func _run() -> void:
 		_fail(5, "Strategic unit smoke: each governorate must have a different army")
 		return
 
+	var tank_visual_error := str(scene.call("validate_strategic_tank_visuals"))
+	if not tank_visual_error.is_empty():
+		_fail(77, "Strategic tank visual smoke: " + tank_visual_error)
+		return
+
 	var radar = scene.get_node_or_null("HUD/RTSRadar")
 	if radar == null:
 		_fail(6, "Strategic unit smoke: RTS radar is missing")
