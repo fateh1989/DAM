@@ -113,14 +113,17 @@ func _build_launcher(parent: Node3D, palette: Dictionary) -> void:
 	pivot.name = "LauncherPivot"
 	pivot.position = Vector3(0, 0.88, 0.15)
 	parent.add_child(pivot)
+	var elevation_pivot := Node3D.new()
+	elevation_pivot.name = "LauncherElevationPivot"
+	pivot.add_child(elevation_pivot)
 	var pod_count := 2 if western else 3
 	for pod_index in range(pod_count):
 		var x: float = (float(pod_index) - float(pod_count - 1) * 0.5) * 0.48
-		_box(pivot, "RocketPod_%02d" % pod_index, Vector3(x, 0.12, -0.20), Vector3(0.40, 0.44, 1.55), _mat(palette["dark"]))
+		_box(elevation_pivot, "RocketPod_%02d" % pod_index, Vector3(x, 0.12, -0.20), Vector3(0.40, 0.44, 1.55), _mat(palette["dark"]))
 		for tube_index in range(4):
 			var tx: float = x + (-0.11 if tube_index % 2 == 0 else 0.11)
 			var ty := 0.04 + (0.16 if tube_index >= 2 else 0.0)
-			_cylinder(pivot, "Tube_%02d_%02d" % [pod_index, tube_index], Vector3(tx, ty, -1.03), 0.045, 0.22, _mat(palette["metal"]), 8).rotation_degrees = Vector3(90, 0, 0)
+			_cylinder(elevation_pivot, "Tube_%02d_%02d" % [pod_index, tube_index], Vector3(tx, ty, -1.03), 0.045, 0.22, _mat(palette["metal"]), 8).rotation_degrees = Vector3(90, 0, 0)
 
 
 func _build_artillery(parent: Node3D, palette: Dictionary) -> void:
@@ -186,6 +189,27 @@ func get_aim_yaw() -> float:
 	return 0.0 if pivot == null else pivot.rotation_degrees.y
 
 
+func set_weapon_elevation(degrees: float) -> bool:
+	var pivot: Node3D = null
+	var maximum := 22.0
+	if weapon_type == "launcher":
+		pivot = get_part("LauncherElevationPivot") as Node3D
+		maximum = 55.0
+	else:
+		pivot = get_part("BarrelPivot") as Node3D
+		maximum = 60.0 if weapon_type == "artillery" else 22.0
+	if pivot == null:
+		return false
+	var clamped: float = clampf(degrees, 0.0, maximum)
+	pivot.rotation_degrees.x = -clamped
+	return true
+
+
+func get_weapon_elevation() -> float:
+	var pivot := get_part("LauncherElevationPivot") as Node3D if weapon_type == "launcher" else get_part("BarrelPivot") as Node3D
+	return 0.0 if pivot == null else -pivot.rotation_degrees.x
+
+
 func set_represented_count(value: int) -> void:
 	represented_count = maxi(0, value)
 	if _count_label != null:
@@ -206,11 +230,9 @@ func get_launcher_pod_count() -> int:
 	if _model_root == null:
 		return 0
 	var count := 0
-	for child in _model_root.get_children():
-		if str(child.name).begins_with("LauncherPivot"):
-			for item in child.get_children():
-				if str(item.name).begins_with("RocketPod_"):
-					count += 1
+	for item in _model_root.find_children("RocketPod_*", "", true, false):
+		if str(item.name).begins_with("RocketPod_"):
+			count += 1
 	return count
 
 
