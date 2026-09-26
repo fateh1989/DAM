@@ -24,6 +24,15 @@ const STRATEGIC_HEIGHT_PATH := "res://source/world/generated/syria_macro_height.
 const STRATEGIC_SHADER_PATH := "res://source/world/shaders/StrategicMacro.gdshader"
 const STRATEGIC_OVERLAY_PATH := "res://source/world/generated/syria_geo_overlay.json"
 const TACTICAL_SHADER_PATH := "res://source/world/shaders/TacticalGround.gdshader"
+const PROVINCE_LANDMARK_SCRIPT := preload("res://source/world/ProvinceLandmark.gd")
+
+const PROVINCE_LANDMARKS := [
+	{"governorate_index":0,"name_ar":"الجامع الأموي","name_en":"Umayyad Mosque","kind":"mosque","lat":33.5115,"lon":36.3067},
+	{"governorate_index":1,"name_ar":"معلولا","name_en":"Maaloula","kind":"village","lat":33.8442,"lon":36.5460},
+	{"governorate_index":2,"name_ar":"قلعة حلب","name_en":"Citadel of Aleppo","kind":"citadel","lat":36.1997,"lon":37.1629},
+	{"governorate_index":3,"name_ar":"آثار تدمر","name_en":"Palmyra Ruins","kind":"ruins","lat":34.5503,"lon":38.2681},
+	{"governorate_index":4,"name_ar":"نواعير حماة","name_en":"Norias of Hama","kind":"noria","lat":35.1340,"lon":36.7520},
+]
 const TACTICAL_RELIEF_EXAGGERATION := 1.0
 const TACTICAL_OVERVIEW_ZOOM := 8
 const TACTICAL_OVERVIEW_RELIEF_EXAGGERATION := 60.0
@@ -173,6 +182,8 @@ var _move_order_serial := 0
 var _province_clocks: Array[Control] = []
 var _governorate_military_status: Array[Dictionary] = []
 var _governorate_attack_state: Array[bool] = []
+var _landmark_root: Node3D = null
+var _landmarks: Array[Node3D] = []
 
 
 func _ensure_province_clock_state() -> void:
@@ -249,6 +260,47 @@ func get_governorate_military_status(index: int) -> Dictionary:
 	return result
 
 
+func _setup_landmarks() -> void:
+	if _landmark_root == null or not is_instance_valid(_landmark_root):
+		_landmark_root = Node3D.new()
+		_landmark_root.name = "ProvinceLandmarks"
+		add_child(_landmark_root)
+	for child in _landmark_root.get_children():
+		child.free()
+	_landmarks.clear()
+	for data in PROVINCE_LANDMARKS:
+		var item := PROVINCE_LANDMARK_SCRIPT.new()
+		item.name = "Landmark_%02d" % int(data["governorate_index"])
+		_landmark_root.add_child(item)
+		item.setup(
+			int(data["governorate_index"]),
+			str(data["name_ar"]),
+			str(data["name_en"]),
+			str(data["kind"])
+		)
+		_landmarks.append(item)
+	_sync_landmark_positions()
+
+
+func _sync_landmark_positions() -> void:
+	if _landmark_root == null or not is_instance_valid(_landmark_root):
+		return
+	_landmark_root.visible = _terrain_mode
+	for i in range(mini(_landmarks.size(), PROVINCE_LANDMARKS.size())):
+		var item: Node3D = _landmarks[i]
+		if not is_instance_valid(item):
+			continue
+		var data: Dictionary = PROVINCE_LANDMARKS[i]
+		var lon := float(data["lon"])
+		var lat := float(data["lat"])
+		var height_km := _designed_height_m(lon, lat) / 1000.0 + 0.02
+		item.position = _geo_to_local(lon, lat, height_km)
+
+
+func get_province_landmarks() -> Array[Node3D]:
+	return _landmarks.duplicate()
+
+
 func _game_state_node() -> Node:
 	return get_node_or_null("/root/GameState")
 
@@ -265,6 +317,7 @@ func _ready() -> void:
 	_setup_province_clocks()
 	_origin_lon = _center_lon
 	_origin_lat = _center_lat
+	_setup_landmarks()
 	_update_governorate_ui()
 	zoom_wheel.set_value_no_signal(float(_map_zoom))
 	zoom_wheel.visible = false
@@ -555,6 +608,7 @@ func _set_map_zoom(new_zoom: int, center_syria_at_overview: bool = false) -> voi
 	_update_status()
 
 func _position_camera() -> void:
+	_sync_landmark_positions()
 	if _terrain_mode and _is_tactical_overview():
 		camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 		match _map_zoom:
