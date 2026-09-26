@@ -297,7 +297,7 @@ func _run() -> void:
 			_fail(128, "Radar army-color smoke: one governorate has multiple army colors")
 			return
 
-	var game_state_for_radar := scene.get_node_or_null("/root/GameState")
+	var game_state_for_radar: Node = scene.get_node_or_null("/root/GameState")
 	var detail_radar_id := "G01-tank-002"
 	if game_state_for_radar == null or not bool(scene.call("select_logical_heavy_unit", detail_radar_id, false)):
 		_fail(129, "Radar logical-detail smoke: could not select persistent unit")
