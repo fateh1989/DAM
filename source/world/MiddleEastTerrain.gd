@@ -2312,6 +2312,20 @@ func _create_artillery_visual(index: int) -> Node3D:
 	turret.material_override = _solid_unshaded_material(army_color)
 	turret_pivot.add_child(turret)
 
+	var gun_mount := Node3D.new()
+	gun_mount.name = "GunMount"
+	gun_mount.position = Vector3(0.0, 0.69 if family == "western" else 0.61, -0.48)
+	turret_pivot.add_child(gun_mount)
+
+	var barrel_mesh := BoxMesh.new()
+	barrel_mesh.size = Vector3(0.13, 0.13, 2.44 if family == "western" else 2.22)
+	var barrel := MeshInstance3D.new()
+	barrel.name = "Barrel"
+	barrel.mesh = barrel_mesh
+	barrel.position = Vector3(0.0, 0.0, -1.30 if family == "western" else -1.18)
+	barrel.material_override = _solid_unshaded_material(army_color.lightened(0.06))
+	gun_mount.add_child(barrel)
+
 	var marker := Node3D.new()
 	marker.name = "MapMarker"
 	root_node.add_child(marker)
