@@ -23,5 +23,10 @@ func run(_world_scene: Node) -> String:
 	if absf(height_a - height_b) < 5.0:
 		battle.free()
 		return "battle terrain relief is effectively flat"
+	for position in battle.call("get_friendly_positions"):
+		var expected_y := float(battle.call("_unit_ground_y", position.x, position.z))
+		if absf(position.y - expected_y) > 0.01:
+			battle.free()
+			return "friendly unit is not attached to terrain relief"
 	battle.free()
 	return ""
