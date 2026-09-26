@@ -26,4 +26,14 @@ func run(scene: Node) -> String:
 			return "miniature city governorate order is inconsistent"
 		if str(cities[i].city_name_ar) != str(scene.GOVERNORATES[i]["name_ar"]):
 			return "miniature city name does not match governorate city marker"
+	if str(cities[0].call("get_style_id")) != "damascene":
+		return "Damascus miniature city did not receive Damascene style"
+	if str(cities[2].call("get_style_id")) != "aleppine":
+		return "Aleppo miniature city did not receive Aleppine style"
+	if str(cities[5].call("get_style_id")) != "coastal":
+		return "Latakia miniature city did not receive coastal style"
+	if str(cities[9].call("get_style_id")) != "eastern":
+		return "Deir ez-Zor miniature city did not receive eastern style"
+	if str(cities[12].call("get_style_id")) != "southern":
+		return "Suwayda miniature city did not receive southern basalt style"
 	return ""

@@ -272,6 +272,16 @@ func get_governorate_military_status(index: int) -> Dictionary:
 	return result
 
 
+func get_city_style_for_governorate(index: int) -> String:
+	match index:
+		0, 1: return "damascene"
+		2, 7: return "aleppine"
+		5, 6: return "coastal"
+		8, 9, 10: return "eastern"
+		11, 12, 13: return "southern"
+		_: return "central"
+
+
 func _setup_city_markers() -> void:
 	if _city_root == null or not is_instance_valid(_city_root):
 		_city_root = Node3D.new()
@@ -285,7 +295,7 @@ func _setup_city_markers() -> void:
 		var city := MINIATURE_CITY_SCRIPT.new()
 		city.name = "City_%02d_%s" % [i, str(data.get("slug", "city"))]
 		_city_root.add_child(city)
-		city.setup(i, str(data.get("name_ar", data.get("name_en", ""))), "central")
+		city.setup(i, str(data.get("name_ar", data.get("name_en", ""))), get_city_style_for_governorate(i))
 		_city_markers.append(city)
 	_sync_city_marker_positions()
 

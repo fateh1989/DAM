@@ -34,13 +34,23 @@ func _material(color: Color) -> StandardMaterial3D:
 
 
 func _palette() -> Dictionary:
-	return {
-		"wall": Color(0.63, 0.55, 0.42, 1.0),
-		"roof": Color(0.38, 0.29, 0.22, 1.0),
-		"accent": Color(0.48, 0.42, 0.31, 1.0),
-		"road": Color(0.19, 0.18, 0.16, 1.0),
-		"base": Color(0.40, 0.37, 0.27, 1.0),
-	}
+	match style_id:
+		"damascene":
+			return {"wall":Color(0.72,0.65,0.52,1),"roof":Color(0.30,0.24,0.20,1),"accent":Color(0.20,0.18,0.17,1),"road":Color(0.18,0.17,0.15,1),"base":Color(0.43,0.39,0.29,1)}
+		"aleppine":
+			return {"wall":Color(0.66,0.58,0.44,1),"roof":Color(0.42,0.33,0.25,1),"accent":Color(0.52,0.44,0.33,1),"road":Color(0.20,0.19,0.17,1),"base":Color(0.42,0.38,0.30,1)}
+		"coastal":
+			return {"wall":Color(0.77,0.74,0.64,1),"roof":Color(0.48,0.31,0.24,1),"accent":Color(0.32,0.45,0.34,1),"road":Color(0.22,0.22,0.20,1),"base":Color(0.39,0.45,0.33,1)}
+		"eastern":
+			return {"wall":Color(0.69,0.58,0.39,1),"roof":Color(0.45,0.34,0.22,1),"accent":Color(0.56,0.45,0.29,1),"road":Color(0.22,0.20,0.17,1),"base":Color(0.49,0.41,0.26,1)}
+		"southern":
+			return {"wall":Color(0.47,0.45,0.42,1),"roof":Color(0.28,0.27,0.26,1),"accent":Color(0.58,0.53,0.44,1),"road":Color(0.17,0.17,0.17,1),"base":Color(0.35,0.34,0.31,1)}
+		_:
+			return {"wall":Color(0.63,0.55,0.42,1),"roof":Color(0.38,0.29,0.22,1),"accent":Color(0.48,0.42,0.31,1),"road":Color(0.19,0.18,0.16,1),"base":Color(0.40,0.37,0.27,1)}
+
+
+func get_style_id() -> String:
+	return style_id
 
 
 func _hash01(seed: int, salt: float) -> float:
