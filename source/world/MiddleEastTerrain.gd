@@ -2319,11 +2319,11 @@ func _create_tank_visual(index: int) -> Node3D:
 	turret_pivot.add_child(gun_mount)
 
 	var barrel_mesh := BoxMesh.new()
-	barrel_mesh.size = Vector3(0.16, 0.16, 1.55)
+	barrel_mesh.size = Vector3(0.15, 0.15, 1.86) if family == "western" else Vector3(0.13, 0.13, 1.62)
 	var barrel := MeshInstance3D.new()
 	barrel.name = "Barrel"
 	barrel.mesh = barrel_mesh
-	barrel.position = Vector3(0.0, 0.0, -0.84)
+	barrel.position = Vector3(0.0, 0.0, -1.00 if family == "western" else -0.88)
 	barrel.material_override = _solid_unshaded_material(army_color.lightened(0.08))
 	gun_mount.add_child(barrel)
 
