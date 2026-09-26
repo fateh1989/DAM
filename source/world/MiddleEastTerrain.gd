@@ -4267,6 +4267,10 @@ func _handle_world_tap(screen_position: Vector2) -> void:
 			closest_index = i
 
 	if closest_index >= 0:
+		if not _selected_unit_indices.is_empty() and closest_index not in _selected_unit_indices:
+			if issue_selected_attack(closest_index) > 0:
+				_update_status()
+				return
 		if _rts_zoom_level >= RTS_DETAIL_UNIT_LOD_MIN:
 			var closest_unit: Dictionary = _units[closest_index]
 			var logical_id := str(closest_unit.get("logical_unit_id", ""))
