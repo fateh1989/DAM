@@ -16,4 +16,14 @@ func run(scene: Node) -> String:
 	scene.set("_multi_touch_gesture_active", false)
 	if bool(scene.call("_should_accept_world_tap", 1, scene.TAP_MAX_DRAG_PX + 1.0)):
 		return "drag release could become a false world tap"
+	if bool(scene.call("_should_pan_world", 1, scene.TAP_MAX_DRAG_PX - 1.0)):
+		return "tiny finger movement can still pan the battlefield"
+	if not bool(scene.call("_should_pan_world", 1, scene.TAP_MAX_DRAG_PX + 1.0)):
+		return "real drag does not enter pan mode"
+	scene.set("_multi_touch_gesture_active", true)
+	if bool(scene.call("_should_pan_world", 1, scene.TAP_MAX_DRAG_PX + 20.0)):
+		return "pinch gesture can leak into single-finger panning"
+	scene.set("_multi_touch_gesture_active", false)
+	if float(scene.PINCH_ZOOM_STEP_PX) < 30.0:
+		return "pinch zoom threshold became too sensitive"
 	return ""
