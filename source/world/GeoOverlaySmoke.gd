@@ -12,38 +12,40 @@ func _fail(code: int, message: String) -> void:
 func _run() -> void:
 	var packed := load("res://source/world/MiddleEastTerrain.tscn")
 	if packed == null:
-		_fail(2, "Strategic geography smoke: scene load failed")
+		_fail(2, "Continuous geography smoke: scene load failed")
 		return
 
 	var scene = packed.instantiate()
 	root.add_child(scene)
 	await process_frame
+	await process_frame
 
-	if scene._geo_overlay_data.is_empty():
-		_fail(3, "Strategic geography smoke: Syria overlay data missing")
+	var world_id := scene.get_instance_id()
+	if not bool(scene.get("_terrain_mode")):
+		_fail(3, "Continuous geography smoke: DAM did not boot into the RTS world")
 		return
-	if scene._geo_overlay_data.get("boundaries", []).size() < 1:
-		_fail(4, "Strategic geography smoke: no administrative boundaries")
+	if scene.get_parent() != root or not is_instance_valid(scene) or scene.get_instance_id() != world_id:
+		_fail(4, "Continuous geography smoke: world scene was replaced")
 		return
-	if scene._geo_overlay_data.get("labels", []).size() < 10:
-		_fail(5, "Strategic geography smoke: too few labels")
+
+	var geo_data: Dictionary = scene.get("_geo_overlay_data")
+	if geo_data.is_empty():
+		_fail(5, "Continuous geography smoke: Syria overlay data missing")
+		return
+	if geo_data.get("boundaries", []).size() < 1:
+		_fail(6, "Continuous geography smoke: no administrative boundaries")
+		return
+	if geo_data.get("labels", []).size() < 10:
+		_fail(7, "Continuous geography smoke: too few geography labels")
 		return
 	if scene.get_node_or_null("HUD/RTSRadar") == null:
-		_fail(6, "Strategic geography smoke: strategic radar missing")
-		return
-	if scene.mode_button.text != "START BATTLE":
-		_fail(7, "Strategic geography smoke: battle entry button missing")
-		return
-
-	var battle_scene := load("res://source/battle/TacticalBattle.tscn")
-	if battle_scene == null:
-		_fail(8, "Strategic geography smoke: tactical battle scene missing")
+		_fail(8, "Continuous geography smoke: RTS radar missing")
 		return
 
 	var army: Dictionary = scene.get_country_army_snapshot("syria")
 	if army.is_empty():
-		_fail(9, "Strategic geography smoke: persistent army not connected")
+		_fail(9, "Continuous geography smoke: persistent army not connected")
 		return
 
-	print("Strategic geography smoke: Syria data + radar + battle entry + persistent army OK")
+	print("Continuous geography smoke: same RTS world + Syria geography + radar + persistent army OK")
 	quit(0)
