@@ -2339,6 +2339,16 @@ func _create_tank_visual(index: int) -> Node3D:
 	hatch.material_override = _solid_unshaded_material(army_color.lightened(0.04))
 	turret_pivot.add_child(hatch)
 
+	for side in [-1.0, 1.0]:
+		var stowage_mesh := BoxMesh.new()
+		stowage_mesh.size = Vector3(0.28, 0.22, 0.46)
+		var stowage := MeshInstance3D.new()
+		stowage.name = "TurretStowageLeft" if side < 0.0 else "TurretStowageRight"
+		stowage.mesh = stowage_mesh
+		stowage.position = Vector3(side * (0.58 if family == "western" else 0.50), 0.72 if family == "western" else 0.62, 0.42)
+		stowage.material_override = _solid_unshaded_material(army_color.darkened(0.20))
+		turret_pivot.add_child(stowage)
+
 	var marker := Node3D.new()
 	marker.name = "MapMarker"
 	root_node.add_child(marker)
