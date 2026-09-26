@@ -4802,8 +4802,9 @@ func _update_status() -> void:
 		else:
 			status_label.text = "SYRIA STRATEGIC READY" if _is_strategic_map() else "%s MAP READY" % _governorate_name()
 
-	if not _selected_unit_indices.is_empty():
-		status_label.text += " • SELECTED %d" % _selected_unit_indices.size()
+	var selected_count := maxi(_selected_unit_indices.size(), _selected_logical_unit_ids.size())
+	if selected_count > 0:
+		status_label.text += " • SELECTED %d" % selected_count
 	_update_command_buttons_state()
 
 
