@@ -2679,7 +2679,7 @@ func _create_artillery_visual(index: int) -> Node3D:
 	selection.name = "Selection"
 	selection.mesh = selection_mesh
 	selection.position.y = 0.03
-	selection.material_override = _solid_unshaded_material(Color(1.0, 0.92, 0.20, 0.82), 0.50)
+	selection.material_override = _solid_unshaded_material(Color(0.18, 1.0, 0.30, 0.72), 0.62)
 	selection.visible = false
 	root_node.add_child(selection)
 
@@ -2846,7 +2846,7 @@ func _create_launcher_visual(index: int) -> Node3D:
 	selection.name = "Selection"
 	selection.mesh = selection_mesh
 	selection.position.y = 0.03
-	selection.material_override = _solid_unshaded_material(Color(1.0, 0.92, 0.20, 0.82), 0.50)
+	selection.material_override = _solid_unshaded_material(Color(0.18, 1.0, 0.30, 0.72), 0.62)
 	selection.visible = false
 	root_node.add_child(selection)
 
@@ -3088,7 +3088,7 @@ func _create_tank_visual(index: int) -> Node3D:
 	selection.name = "Selection"
 	selection.mesh = selection_mesh
 	selection.position.y = 0.03
-	selection.material_override = _solid_unshaded_material(Color(1.0, 0.92, 0.20, 0.82), 0.50)
+	selection.material_override = _solid_unshaded_material(Color(0.18, 1.0, 0.30, 0.72), 0.62)
 	selection.visible = false
 	root_node.add_child(selection)
 
