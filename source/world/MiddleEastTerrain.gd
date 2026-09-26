@@ -1400,6 +1400,8 @@ func _continuous_macro_color(height_m: float, lon: float, lat: float) -> Color:
 		base = Color(0.52, 0.43, 0.25, 1.0).lerp(Color(0.62, 0.52, 0.31, 1.0), dry_wave * 0.30)
 	var coastal_green := clampf((37.0 - lon) / 1.25, 0.0, 1.0)
 	base = base.lerp(Color(0.24, 0.43, 0.22, 1.0), coastal_green * 0.34)
+	var eastern_dry := clampf((lon - 38.4) / 2.8, 0.0, 1.0)
+	base = base.lerp(Color(0.64, 0.52, 0.30, 1.0), eastern_dry * 0.46)
 	return base
 
 
