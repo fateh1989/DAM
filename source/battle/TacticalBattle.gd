@@ -321,6 +321,14 @@ func get_visible_ground_chunk_count() -> int:
 	return count
 
 
+func get_ground_chunk_instance_ids() -> Array[int]:
+	var ids: Array[int] = []
+	for chunk in _terrain_chunks:
+		if is_instance_valid(chunk):
+			ids.append(chunk.get_instance_id())
+	return ids
+
+
 func get_ground_chunk_count() -> int:
 	return _terrain_chunks.size()
 
