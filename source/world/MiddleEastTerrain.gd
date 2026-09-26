@@ -2287,6 +2287,7 @@ func _create_detail_unit_visual(logical: Dictionary) -> Node3D:
 	var lat := float(logical.get("lat", 0.0))
 	var height := _designed_height_m(lon, lat) / 1000.0 + 0.012
 	node.position = _geo_to_local(lon, lat, height)
+	node.rotation.y = float(logical.get("heading_rad", 0.0))
 	node.scale = Vector3.ONE * get_rts_unit_visual_scale()
 	var model := _get_unit_model_node(node)
 	if model != null:
@@ -2360,6 +2361,7 @@ func _sync_detail_unit_lod(force: bool = false) -> void:
 		var lat: float = float(logical.get("lat", 0.0))
 		var height: float = _designed_height_m(lon, lat) / 1000.0 + 0.012
 		node.position = _geo_to_local(lon, lat, height)
+		node.rotation.y = float(logical.get("heading_rad", node.rotation.y))
 		var selection := node.get_node_or_null("Selection")
 		if selection != null:
 			var is_selected: bool = logical_id in _selected_logical_unit_ids
