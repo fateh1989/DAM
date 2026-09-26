@@ -2257,6 +2257,33 @@ func _setup_unit_layer() -> void:
 			_append_governorate_unit(i, unit_type)
 
 
+func _create_detail_unit_visual(logical: Dictionary) -> Node3D:
+	var governorate_index := int(logical.get("current_governorate_index", -1))
+	var unit_type := str(logical.get("unit_type", ""))
+	var logical_id := str(logical.get("id", ""))
+	if governorate_index < 0 or governorate_index >= GOVERNORATES.size() or logical_id.is_empty():
+		return null
+	var node := _create_heavy_unit_visual(unit_type, governorate_index)
+	node.name = "Detail_" + logical_id
+	node.set_meta("logical_unit_id", logical_id)
+	node.set_meta("detail_unit", true)
+	var marker := node.get_node_or_null("MapMarker") as Node3D
+	var selection := node.get_node_or_null("Selection") as Node3D
+	if marker != null:
+		marker.visible = false
+	if selection != null:
+		selection.visible = false
+	var lon := float(logical.get("lon", 0.0))
+	var lat := float(logical.get("lat", 0.0))
+	var height := _designed_height_m(lon, lat) / 1000.0 + 0.012
+	node.position = _geo_to_local(lon, lat, height)
+	node.scale = Vector3.ONE * get_rts_unit_visual_scale()
+	var model := _get_unit_model_node(node)
+	if model != null:
+		model.visible = _terrain_mode
+	return node
+
+
 func _army_color(index: int) -> Color:
 	var hue := fmod(float(index) * 0.61803398875, 1.0)
 	return Color.from_hsv(hue, 0.78, 0.96, 1.0)
