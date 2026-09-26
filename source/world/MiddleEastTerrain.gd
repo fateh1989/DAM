@@ -66,6 +66,7 @@ const UNIT_SPEED_KM_PER_SEC := 0.60
 const GOVERNORORATE_TANK_SEED := 14
 const UNIT_SELECT_RADIUS_PX := 54.0
 const TAP_MAX_DRAG_PX := 18.0
+const PINCH_ZOOM_STEP_PX := 42.0
 const ART_ROAD_WIDTH_KM := 0.090
 const ART_ROAD_SHOULDER_KM := 0.145
 const ART_CREEK_WIDTH_KM := 0.060
@@ -652,7 +653,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			var new_distance := new_a.distance_to(new_b)
 			_pinch_accumulator += new_distance - old_distance
 
-			if abs(_pinch_accumulator) >= 42.0:
+			if abs(_pinch_accumulator) >= PINCH_ZOOM_STEP_PX:
 				_set_rts_zoom_level(_rts_zoom_level + (1 if _pinch_accumulator > 0.0 else -1))
 				_pinch_accumulator = 0.0
 
