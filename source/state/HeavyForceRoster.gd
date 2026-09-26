@@ -131,6 +131,13 @@ func issue_move(unit_id: String, target_lon: float, target_lat: float) -> bool:
 	return issue_route(unit_id, [Vector2(target_lon, target_lat)])
 
 
+func _route_distance_km(a: Vector2, b: Vector2) -> float:
+	var mean_lat := deg_to_rad((a.y + b.y) * 0.5)
+	var lon_km := (b.x - a.x) * 111.32 * maxf(0.15, cos(mean_lat))
+	var lat_km := (b.y - a.y) * 111.32
+	return sqrt(lon_km * lon_km + lat_km * lat_km)
+
+
 func issue_route(unit_id: String, waypoints: Array) -> bool:
 	if not _index_by_id.has(unit_id) or waypoints.is_empty():
 		return false
@@ -140,13 +147,24 @@ func issue_route(unit_id: String, waypoints: Array) -> bool:
 		return false
 	var normalized: Array = []
 	for raw_point in waypoints:
+		var point := Vector2.ZERO
+		var valid_point := false
 		if raw_point is Vector2:
-			var point: Vector2 = raw_point
-			normalized.append({"lon": point.x, "lat": point.y})
+			point = raw_point
+			valid_point = true
 		elif typeof(raw_point) == TYPE_DICTIONARY:
 			var point_dict: Dictionary = raw_point
 			if point_dict.has("lon") and point_dict.has("lat"):
-				normalized.append({"lon": float(point_dict["lon"]), "lat": float(point_dict["lat"])})
+				point = Vector2(float(point_dict["lon"]), float(point_dict["lat"]))
+				valid_point = true
+		if not valid_point:
+			continue
+		if not normalized.is_empty():
+			var previous: Dictionary = normalized.back()
+			var previous_point := Vector2(float(previous["lon"]), float(previous["lat"]))
+			if _route_distance_km(previous_point, point) < 0.0005:
+				continue
+		normalized.append({"lon": point.x, "lat": point.y})
 	if normalized.is_empty():
 		return false
 	var first: Dictionary = normalized.pop_front()
