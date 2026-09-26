@@ -51,8 +51,19 @@ func run(scene: Node) -> String:
 	scene.call("_sync_landmark_lod")
 	if int(landmarks[2].lod_level) != 1:
 		return "distant landmark LOD is not simplified"
+	scene.set("_terrain_mode", true)
+	scene.set("_governorate_index", 2)
+	scene.set("_center_lon", float(scene.GOVERNORATES[2]["lon"]))
+	scene.set("_center_lat", float(scene.GOVERNORATES[2]["lat"]))
+	scene.set("_origin_lon", float(scene.GOVERNORATES[2]["lon"]))
+	scene.set("_origin_lat", float(scene.GOVERNORATES[2]["lat"]))
 	scene.set("_rts_zoom_level", 5)
-	scene.call("_sync_landmark_lod")
+	scene.call("_sync_landmark_positions")
 	if int(landmarks[2].lod_level) != 2:
 		return "close landmark LOD is not detailed"
+	var visible_count := int(scene.call("get_visible_landmark_count"))
+	if visible_count < 1 or visible_count >= 14:
+		return "landmark culling is not limiting local terrain draw cost"
+	if not bool(landmarks[2].visible):
+		return "focused governorate landmark was culled"
 	return ""

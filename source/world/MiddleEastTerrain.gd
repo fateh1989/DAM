@@ -309,11 +309,35 @@ func _sync_landmark_positions() -> void:
 	_sync_landmark_labels()
 
 
+func _landmark_visibility_radius_km() -> float:
+	match _rts_zoom_level:
+		1: return 220.0
+		2: return 175.0
+		3: return 135.0
+		4: return 105.0
+		_: return 82.0
+
+
 func _sync_landmark_lod() -> void:
 	var lod := 2 if _rts_zoom_level >= 3 else 1
+	var radius_km := _landmark_visibility_radius_km()
 	for item in _landmarks:
-		if is_instance_valid(item) and item.has_method("set_lod"):
+		if not is_instance_valid(item):
+			continue
+		if item.has_method("set_lod"):
 			item.call("set_lod", lod)
+		var province_index := int(item.get("governorate_index"))
+		var is_focused := province_index == _governorate_index
+		var local_distance := Vector2(item.position.x, item.position.z).length()
+		item.visible = _terrain_mode and (is_focused or local_distance <= radius_km)
+
+
+func get_visible_landmark_count() -> int:
+	var count := 0
+	for item in _landmarks:
+		if is_instance_valid(item) and item.visible:
+			count += 1
+	return count
 
 
 func _sync_landmark_selection() -> void:
