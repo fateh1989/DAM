@@ -2299,6 +2299,19 @@ func _create_artillery_visual(index: int) -> Node3D:
 			wheel.material_override = _solid_unshaded_material(Color(0.16, 0.17, 0.15, 1.0))
 			model.add_child(wheel)
 
+	var turret_pivot := Node3D.new()
+	turret_pivot.name = "TurretPivot"
+	model.add_child(turret_pivot)
+
+	var turret_mesh := BoxMesh.new()
+	turret_mesh.size = Vector3(1.18, 0.42, 1.12) if family == "western" else Vector3(1.02, 0.36, 1.04)
+	var turret := MeshInstance3D.new()
+	turret.name = "Turret"
+	turret.mesh = turret_mesh
+	turret.position = Vector3(0.0, 0.65 if family == "western" else 0.58, 0.06)
+	turret.material_override = _solid_unshaded_material(army_color)
+	turret_pivot.add_child(turret)
+
 	var marker := Node3D.new()
 	marker.name = "MapMarker"
 	root_node.add_child(marker)
