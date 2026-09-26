@@ -99,6 +99,8 @@ func _draw() -> void:
 		draw_circle(point, float(style.get("radius", 3.5)), color)
 		if str(item.get("unit_type", "")) == "artillery":
 			draw_line(point + Vector2(-4.5, 0.0), point + Vector2(4.5, 0.0), Color(0.95, 0.92, 0.78, 0.95), 1.4)
+		elif str(item.get("unit_type", "")) == "rocket_launcher":
+			draw_rect(Rect2(point - Vector2(4.8, 4.8), Vector2(9.6, 9.6)), Color(0.95, 0.92, 0.78, 0.95), false, 1.4)
 		if selected:
 			draw_arc(
 				point,
