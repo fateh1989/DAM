@@ -493,15 +493,15 @@ func _focus_world_audio(screen_position: Vector2) -> void:
 func _setup_environment() -> void:
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color(0.19, 0.28, 0.34, 1.0)
-	environment.background_energy_multiplier = 0.72
+	environment.background_color = Color(0.24, 0.31, 0.35, 1.0)
+	environment.background_energy_multiplier = 0.66
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color(0.70, 0.68, 0.58, 1.0)
-	environment.ambient_light_energy = 0.58
+	environment.ambient_light_color = Color(0.78, 0.70, 0.56, 1.0)
+	environment.ambient_light_energy = 0.48
 	environment.adjustment_enabled = true
-	environment.adjustment_brightness = 1.0
-	environment.adjustment_contrast = 1.08
-	environment.adjustment_saturation = 0.88
+	environment.adjustment_brightness = 1.03
+	environment.adjustment_contrast = 1.16
+	environment.adjustment_saturation = 0.98
 	world_environment.environment = environment
 
 
