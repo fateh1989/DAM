@@ -68,6 +68,16 @@ func _run() -> void:
 		_fail(108, "River crossing smoke: " + river_crossing_error)
 		return
 
+	var hydrology_visual_smoke_script := load("res://source/world/HydrologyVisualSmoke.gd") as Script
+	if hydrology_visual_smoke_script == null:
+		_fail(109, "Hydrology visual smoke: contract script missing")
+		return
+	var hydrology_visual_smoke = hydrology_visual_smoke_script.new()
+	var hydrology_visual_error := str(hydrology_visual_smoke.call("run", scene))
+	if not hydrology_visual_error.is_empty():
+		_fail(110, "Hydrology visual smoke: " + hydrology_visual_error)
+		return
+
 	var mobile_contract_script := load("res://source/world/MobileControlSmoke.gd") as Script
 	if mobile_contract_script == null:
 		_fail(58, "Mobile control smoke: contract script missing")
