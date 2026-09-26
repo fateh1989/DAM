@@ -223,8 +223,10 @@ def nearest_river(point, rivers, segment_index, max_km):
 
 
 def add_crossing(result, item):
+    item_group = item.get("river_group") or item.get("river_id", "")
     for old in result:
-        if old["river_id"] != item["river_id"]:
+        old_group = old.get("river_group") or old.get("river_id", "")
+        if old_group != item_group:
             continue
         _, d = nearest_on_segment_geo(
             (item["lon"], item["lat"]),
@@ -257,6 +259,7 @@ def main():
         add_crossing(crossings, {
             "kind": "bridge",
             "river_id": river["id"],
+            "river_group": river.get("river_group", river["id"]),
             "river_name": river["name"],
             "name": bridge["name"],
             "road_class": bridge["highway"],
@@ -277,6 +280,7 @@ def main():
         add_crossing(crossings, {
             "kind": "ford",
             "river_id": river["id"],
+            "river_group": river.get("river_group", river["id"]),
             "river_name": river["name"],
             "name": ford["name"],
             "source_id": "node:%d" % ford["node_id"],
