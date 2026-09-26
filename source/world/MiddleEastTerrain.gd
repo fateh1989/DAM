@@ -23,6 +23,7 @@ const STRATEGIC_VARIATION_PATH := "res://source/world/generated/syria_macro_vari
 const STRATEGIC_HEIGHT_PATH := "res://source/world/generated/syria_macro_height.png"
 const STRATEGIC_SHADER_PATH := "res://source/world/shaders/StrategicMacro.gdshader"
 const STRATEGIC_OVERLAY_PATH := "res://source/world/generated/syria_geo_overlay.json"
+const HYDROLOGY_PATH := "res://source/world/data/syria_hydrology.json"
 const TACTICAL_SHADER_PATH := "res://source/world/shaders/TacticalGround.gdshader"
 const PROVINCE_LANDMARK_SCRIPT := preload("res://source/world/ProvinceLandmark.gd")
 
@@ -187,6 +188,12 @@ var _last_geo_overlay_origin := Vector2(999.0, 999.0)
 var _last_geo_overlay_zoom := -1
 var _geo_overlay_boundary_count := 0
 var _geo_overlay_label_count := 0
+
+var _hydrology_root: Node3D = null
+var _hydrology_data: Dictionary = {}
+var _last_hydrology_origin := Vector2(999.0, 999.0)
+var _hydrology_river_count := 0
+var _hydrology_crossing_count := 0
 
 var _unit_root: Node3D = null
 var _units: Array = []
@@ -420,6 +427,7 @@ func _ready() -> void:
 	zoom_wheel.visible = _terrain_mode
 	_setup_unit_layer()
 	_setup_geo_overlay_layer()
+	_setup_hydrology_layer()
 	_build_continuous_macro_world()
 	_position_camera()
 	_refresh_tiles()
@@ -427,6 +435,7 @@ func _ready() -> void:
 	_sync_unit_visuals()
 	_sync_detail_unit_lod()
 	_refresh_geo_overlay(true)
+	_refresh_hydrology(true)
 	_bind_audio_controls()
 	_update_radar_mode_ui()
 	_update_status()
@@ -1797,6 +1806,130 @@ func _refresh_vector_data(force: bool) -> void:
 	_vector_inflight = false
 	_update_status()
 
+
+
+func _setup_hydrology_layer() -> void:
+	if is_instance_valid(_hydrology_root):
+		return
+	_hydrology_root = Node3D.new()
+	_hydrology_root.name = "Hydrology"
+	add_child(_hydrology_root)
+	_load_hydrology_data()
+
+
+func _load_hydrology_data() -> void:
+	_hydrology_data = {}
+	if not FileAccess.file_exists(HYDROLOGY_PATH):
+		return
+	var file := FileAccess.open(HYDROLOGY_PATH, FileAccess.READ)
+	if file == null:
+		return
+	var parsed = JSON.parse_string(file.get_as_text())
+	file.close()
+	if typeof(parsed) == TYPE_DICTIONARY:
+		_hydrology_data = parsed
+
+
+func _clear_hydrology() -> void:
+	if not is_instance_valid(_hydrology_root):
+		return
+	for child in _hydrology_root.get_children():
+		child.free()
+	_hydrology_river_count = 0
+	_hydrology_crossing_count = 0
+
+
+func _river_width_km(feature: Dictionary) -> float:
+	var tagged_width_m := maxf(0.0, float(feature.get("width_m", 0.0)))
+	if tagged_width_m > 0.0:
+		return clampf(tagged_width_m / 1000.0, 0.028, 0.70)
+	var combined_name := (str(feature.get("name", "")) + " " + str(feature.get("name_en", ""))).to_lower()
+	if "euphrates" in combined_name or "الفرات" in combined_name:
+		return 0.42
+	if "tigris" in combined_name or "دجلة" in combined_name:
+		return 0.30
+	if "khabur" in combined_name or "خابور" in combined_name:
+		return 0.13
+	if "orontes" in combined_name or "العاصي" in combined_name:
+		return 0.11
+	if str(feature.get("waterway", "")) == "canal":
+		return 0.035
+	return 0.075
+
+
+func _append_hydrology_segment(st: SurfaceTool, a_geo: Vector2, b_geo: Vector2, width_km: float, y_offset: float) -> void:
+	var a := _geo_to_local(a_geo.x, a_geo.y, _designed_height_m(a_geo.x, a_geo.y) / 1000.0 + y_offset)
+	var b := _geo_to_local(b_geo.x, b_geo.y, _designed_height_m(b_geo.x, b_geo.y) / 1000.0 + y_offset)
+	var delta := Vector2(b.x - a.x, b.z - a.z)
+	if delta.length_squared() <= 0.0000001:
+		return
+	var direction := delta.normalized()
+	var side := Vector3(-direction.y, 0.0, direction.x) * width_km * 0.5
+	st.add_vertex(a - side)
+	st.add_vertex(b - side)
+	st.add_vertex(a + side)
+	st.add_vertex(a + side)
+	st.add_vertex(b - side)
+	st.add_vertex(b + side)
+
+
+func _commit_hydrology_batch(st: SurfaceTool, node_name: String, color: Color, roughness: float) -> void:
+	var mesh := st.commit()
+	if mesh == null:
+		return
+	var node := MeshInstance3D.new()
+	node.name = node_name
+	node.mesh = mesh
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = roughness
+	material.metallic = 0.03
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	node.material_override = material
+	_hydrology_root.add_child(node)
+
+
+func _refresh_hydrology(force: bool = false) -> void:
+	if not is_instance_valid(_hydrology_root):
+		return
+	if _hydrology_data.is_empty():
+		_load_hydrology_data()
+		if _hydrology_data.is_empty():
+			return
+	var current_origin := Vector2(_origin_lon, _origin_lat)
+	if not force and _last_hydrology_origin.distance_to(current_origin) < 0.00001:
+		return
+	_clear_hydrology()
+	_last_hydrology_origin = current_origin
+
+	var banks := SurfaceTool.new()
+	banks.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var water := SurfaceTool.new()
+	water.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var segment_count := 0
+	for raw_feature in _hydrology_data.get("rivers", []):
+		if typeof(raw_feature) != TYPE_DICTIONARY:
+			continue
+		var feature: Dictionary = raw_feature
+		var points: Array = feature.get("points", [])
+		if points.size() < 2:
+			continue
+		var width_km := _river_width_km(feature)
+		for i in range(points.size() - 1):
+			var raw_a = points[i]
+			var raw_b = points[i + 1]
+			if raw_a.size() < 2 or raw_b.size() < 2:
+				continue
+			var a := Vector2(float(raw_a[0]), float(raw_a[1]))
+			var b := Vector2(float(raw_b[0]), float(raw_b[1]))
+			_append_hydrology_segment(banks, a, b, width_km * 1.42, 0.0007)
+			_append_hydrology_segment(water, a, b, width_km, 0.0010)
+			segment_count += 1
+	_commit_hydrology_batch(banks, "RiverBanks", Color(0.24, 0.20, 0.13, 0.68), 0.96)
+	_commit_hydrology_batch(water, "RiverWater", Color(0.08, 0.34, 0.50, 0.93), 0.24)
+	_hydrology_river_count = segment_count
+	_hydrology_crossing_count = int((_hydrology_data.get("crossings", []) as Array).size())
 
 
 func _setup_geo_overlay_layer() -> void:
