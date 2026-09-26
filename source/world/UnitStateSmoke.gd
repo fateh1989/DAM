@@ -147,6 +147,16 @@ func _run() -> void:
 		_fail(82, "Heavy roster smoke: " + heavy_roster_error)
 		return
 
+	var heavy_movement_smoke_script := load("res://source/world/HeavyMovementPersistenceSmoke.gd") as Script
+	if heavy_movement_smoke_script == null:
+		_fail(83, "Heavy movement persistence smoke: contract script missing")
+		return
+	var heavy_movement_smoke = heavy_movement_smoke_script.new()
+	var heavy_movement_error := str(heavy_movement_smoke.call("run", scene))
+	if not heavy_movement_error.is_empty():
+		_fail(84, "Heavy movement persistence smoke: " + heavy_movement_error)
+		return
+
 	var radar = scene.get_node_or_null("HUD/RTSRadar")
 	if radar == null:
 		_fail(6, "Strategic unit smoke: RTS radar is missing")
