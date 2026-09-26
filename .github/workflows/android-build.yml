@@ -181,16 +181,13 @@ jobs:
             godot --headless --editor --path . --import --quit
           fi
 
-      - name: Strategic Syria macro smoke
+      - name: Continuous Syria world smoke
         shell: bash
         run: |
           set -euo pipefail
-          test -s source/world/generated/syria_macro.png
-          test -s source/world/generated/syria_macro_height.png
-          test -s source/world/generated/syria_macro_variation.png
-          godot --headless --path . --script source/world/StrategicViewSmoke.gd
+          godot --headless --path . --script source/world/ContinuousWorldSmoke.gd
 
-      - name: Strategic geography and battle-entry smoke
+      - name: Continuous Syria geography smoke
         shell: bash
         run: |
           set -euo pipefail
