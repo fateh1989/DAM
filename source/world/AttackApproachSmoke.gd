@@ -30,7 +30,7 @@ func run(scene: Node) -> String:
 	units[target_index] = target
 	scene.set("_units", units)
 	scene.call("clear_selected_units")
-	if not bool(scene.call("select_single_unit", attacker_index)):
+	if scene.call("select_single_unit", attacker_index) != true:
 		return "attack approach smoke could not select attacker"
 	if int(scene.call("issue_selected_attack", target_index)) != 1:
 		return "out-of-range attack did not queue approach"
