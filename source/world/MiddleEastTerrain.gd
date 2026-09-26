@@ -6,6 +6,8 @@ extends Node3D
 # a requirement. Terrain, roads, vegetation and local settlements are designed
 # for gameplay and visual quality; only strategic locations/distances stay real.
 
+const PROVINCE_CLOCK_SCRIPT := preload("res://source/world/ProvinceClock.gd")
+
 const MIN_MAP_ZOOM := 4
 const MAX_MAP_ZOOM := 10
 const DEFAULT_MAP_ZOOM := 9
@@ -103,6 +105,7 @@ const VECTOR_REFRESH_DISTANCE_DEG := 0.025
 @onready var governorate_label: Label = $HUD/GovernorateBar/Row/GovernorateLabel
 @onready var zoom_wheel: VSlider = $HUD/ZoomWheel/Column/Slider
 @onready var rts_radar: Control = $HUD/RTSRadar
+@onready var province_clock_grid: GridContainer = $HUD/ProvinceClockPanel/Grid
 
 var _terrain_mode := false
 var _map_zoom := DEFAULT_MAP_ZOOM
@@ -166,6 +169,34 @@ var _mouse_press_position := Vector2.ZERO
 var _mouse_drag_distance := 0.0
 var _radar_action_mode := "camera"
 var _move_order_serial := 0
+var _province_clocks: Array[Control] = []
+
+
+func _setup_province_clocks() -> void:
+	_province_clocks.clear()
+	for child in province_clock_grid.get_children():
+		child.free()
+	for i in range(GOVERNORATES.size()):
+		var clock := PROVINCE_CLOCK_SCRIPT.new()
+		clock.name = "ProvinceClock_%02d" % i
+		province_clock_grid.add_child(clock)
+		clock.setup(i, str(GOVERNORATES[i].get("name_ar", GOVERNORATES[i].get("name_en", ""))))
+		clock.set_military_status(0.5, 0.5)
+		clock.set_attacking_state(false)
+		clock.set_selected_state(i == _governorate_index)
+		clock.province_requested.connect(focus_governorate_from_clock)
+		_province_clocks.append(clock)
+
+
+func _sync_province_clock_selection() -> void:
+	for i in range(_province_clocks.size()):
+		var clock: Control = _province_clocks[i]
+		if is_instance_valid(clock) and clock.has_method("set_selected_state"):
+			clock.call("set_selected_state", i == _governorate_index)
+
+
+func get_province_clocks() -> Array[Control]:
+	return _province_clocks.duplicate()
 
 
 func _game_state_node() -> Node:
@@ -181,6 +212,7 @@ func _ready() -> void:
 		_native_core = ClassDB.instantiate("DAMNativeCore")
 	_setup_army_combat_core()
 	_setup_environment()
+	_setup_province_clocks()
 	_origin_lon = _center_lon
 	_origin_lat = _center_lat
 	_update_governorate_ui()
@@ -2512,6 +2544,7 @@ func focus_governorate_from_clock(index: int) -> bool:
 
 func _select_governorate(index: int) -> void:
 	_governorate_index = posmod(index, GOVERNORATES.size())
+	_sync_province_clock_selection()
 	var gov := _governorate()
 	_center_lon = float(gov["lon"])
 	_center_lat = float(gov["lat"])

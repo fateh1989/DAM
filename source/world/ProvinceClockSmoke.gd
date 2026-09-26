@@ -49,4 +49,14 @@ func run(scene: Node) -> String:
 		return "selected province highlight state was not retained"
 	clock.set_selected_state(false)
 	clock.free()
+
+	var clocks: Array = scene.call("get_province_clocks")
+	if clocks.size() != scene.GOVERNORATES.size() or clocks.size() != 14:
+		return "strategic HUD did not create all 14 province clocks"
+	for i in range(clocks.size()):
+		var item = clocks[i]
+		if int(item.province_index) != i:
+			return "province clock index order is inconsistent"
+		if str(item.display_name).is_empty():
+			return "province clock is missing its governorate name"
 	return ""
