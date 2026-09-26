@@ -1427,7 +1427,7 @@ func _continuous_macro_color(height_m: float, lon: float, lat: float) -> Color:
 	var northern_steppe := clampf((lat - 35.9) / 0.9, 0.0, 1.0)
 	base = base.lerp(Color(0.37, 0.50, 0.23, 1.0), northern_steppe * 0.40)
 	var central_fertile := clampf(1.0 - absf(lon - 36.75) / 0.85, 0.0, 1.0) * clampf(1.0 - absf(lat - 35.15) / 1.55, 0.0, 1.0)
-	base = base.lerp(Color(0.34, 0.46, 0.23, 1.0), central_fertile * 0.20)
+	base = base.lerp(Color(0.32, 0.47, 0.22, 1.0), central_fertile * 0.26)
 	var interior_plateau := clampf((lon - 37.25) / 1.25, 0.0, 1.0) * clampf((39.35 - lon) / 1.15, 0.0, 1.0)
 	base = base.lerp(Color(0.59, 0.47, 0.27, 1.0), interior_plateau * 0.26)
 	return base
