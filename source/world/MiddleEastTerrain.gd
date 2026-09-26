@@ -3403,6 +3403,23 @@ func select_logical_heavy_unit(unit_id: String, additive: bool = false) -> bool:
 	return true
 
 
+func toggle_logical_heavy_selection(unit_id: String) -> bool:
+	var game_state := _game_state_node()
+	if game_state == null:
+		return false
+	var logical: Dictionary = game_state.call("get_heavy_unit", unit_id)
+	if logical.is_empty() or not bool(logical.get("alive", true)):
+		return false
+	if unit_id in _selected_logical_unit_ids:
+		_selected_logical_unit_ids.erase(unit_id)
+	else:
+		_selected_logical_unit_ids.append(unit_id)
+	_sync_unit_visuals()
+	_sync_detail_unit_lod()
+	_update_status()
+	return true
+
+
 func select_governorate_logical_heavy_units(governorate_index: int, unit_type: String = "", quantity: int = -1) -> int:
 	var game_state := _game_state_node()
 	if game_state == null or governorate_index < 0 or governorate_index >= GOVERNORATES.size():
