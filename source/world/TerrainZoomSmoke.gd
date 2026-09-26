@@ -33,4 +33,6 @@ func run(scene: Node) -> String:
 	var shader_text := FileAccess.get_file_as_string("res://source/world/shaders/TacticalGround.gdshader")
 	if "uniform float detail_lod" not in shader_text:
 		return "tactical terrain shader is missing detail LOD control"
+	if "uniform float slope_detail_strength" not in shader_text:
+		return "tactical terrain shader is missing slope rock detail control"
 	return ""

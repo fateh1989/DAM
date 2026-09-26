@@ -8,6 +8,7 @@ uniform vec3 warm_soil : source_color = vec3(0.39, 0.27, 0.16);
 uniform vec3 pale_soil : source_color = vec3(0.58, 0.45, 0.27);
 uniform vec3 rock : source_color = vec3(0.37, 0.36, 0.31);
 uniform float detail_lod : hint_range(0.0, 1.0) = 1.0;
+uniform float slope_detail_strength : hint_range(0.0, 1.0) = 1.0;
 
 varying vec3 world_normal;
 
@@ -59,7 +60,8 @@ void fragment() {
 	ground = mix(ground, warm_soil, soil_patch * 0.46);
 
 	float slope = 1.0 - clamp(abs(world_normal.y), 0.0, 1.0);
-	float rock_mask = smoothstep(0.18, 0.48, slope);
+	float slope_breakup = mix(0.5, 0.82 + detail * 0.28, slope_detail_strength);
+	float rock_mask = smoothstep(0.18, 0.48, slope) * slope_breakup;
 	ground = mix(ground, rock, rock_mask * 0.68);
 
 	float micro = 0.92 + detail * 0.16;
