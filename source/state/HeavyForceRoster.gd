@@ -177,6 +177,13 @@ func issue_route(unit_id: String, waypoints: Array) -> bool:
 	var first: Dictionary = normalized.pop_front()
 	unit["target_lon"] = float(first["lon"])
 	unit["target_lat"] = float(first["lat"])
+	var start_lon := float(unit.get("lon", 0.0))
+	var start_lat := float(unit.get("lat", 0.0))
+	var lon_scale_km := maxf(1.0, 111.32 * cos(deg_to_rad(start_lat)))
+	var delta_lon_km := (float(first["lon"]) - start_lon) * lon_scale_km
+	var delta_lat_km := (float(first["lat"]) - start_lat) * 111.32
+	if absf(delta_lon_km) + absf(delta_lat_km) > 0.000001:
+		unit["heading_rad"] = atan2(-delta_lon_km, delta_lat_km)
 	unit["route_points"] = normalized
 	unit["moving"] = true
 	_units[index] = unit
