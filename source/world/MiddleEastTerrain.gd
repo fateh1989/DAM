@@ -2256,6 +2256,15 @@ func _create_tank_visual(index: int) -> Node3D:
 	hull.material_override = _solid_unshaded_material(army_color.darkened(0.24))
 	model.add_child(hull)
 
+	var upper_hull_mesh := BoxMesh.new()
+	upper_hull_mesh.size = Vector3(1.48, 0.22, 1.78) if family == "western" else Vector3(1.30, 0.18, 1.62)
+	var upper_hull := MeshInstance3D.new()
+	upper_hull.name = "UpperHull"
+	upper_hull.mesh = upper_hull_mesh
+	upper_hull.position = Vector3(0.0, 0.55 if family == "western" else 0.47, 0.08)
+	upper_hull.material_override = _solid_unshaded_material(army_color.darkened(0.14))
+	model.add_child(upper_hull)
+
 	var turret_mesh := CylinderMesh.new()
 	turret_mesh.top_radius = 0.52
 	turret_mesh.bottom_radius = 0.58
