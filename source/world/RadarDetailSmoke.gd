@@ -33,4 +33,6 @@ func run(scene: Node) -> String:
 		return "radar selection did not reach exact persistent unit state"
 	scene.call("clear_logical_heavy_selection")
 	scene.call("_set_rts_zoom_level", original_zoom)
+	if int(scene.call("get_rts_zoom_level")) != original_zoom:
+		return "radar detail smoke did not restore original zoom"
 	return ""
