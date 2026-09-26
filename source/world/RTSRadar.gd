@@ -97,6 +97,8 @@ func _draw() -> void:
 		var selected := bool(item.get("selected", false))
 		var style := get_blip_style(item)
 		draw_circle(point, float(style.get("radius", 3.5)), color)
+		if str(item.get("unit_type", "")) == "artillery":
+			draw_line(point + Vector2(-4.5, 0.0), point + Vector2(4.5, 0.0), Color(0.95, 0.92, 0.78, 0.95), 1.4)
 		if selected:
 			draw_arc(
 				point,
