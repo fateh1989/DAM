@@ -187,6 +187,16 @@ func _run() -> void:
 		_fail(121, "Heavy weapon pose smoke: " + weapon_pose_error)
 		return
 
+	var attack_range_smoke_script := load("res://source/world/AttackRangeSmoke.gd") as Script
+	if attack_range_smoke_script == null:
+		_fail(138, "Attack range smoke: contract script missing")
+		return
+	var attack_range_smoke = attack_range_smoke_script.new()
+	var attack_range_error := str(attack_range_smoke.call("run", scene))
+	if not attack_range_error.is_empty():
+		_fail(139, "Attack range smoke: " + attack_range_error)
+		return
+
 	var selected_attack_smoke_script := load("res://source/world/SelectedAttackSmoke.gd") as Script
 	if selected_attack_smoke_script == null:
 		_fail(134, "Selected attack smoke: contract script missing")
