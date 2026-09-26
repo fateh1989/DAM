@@ -2247,6 +2247,42 @@ func purchase_country_units(unit_type: String, quantity: int = 1, country_id: St
 	return _army_core.purchase(country_id, unit_type, quantity)
 
 
+func resolve_logical_heavy_attack(attacker_id: String, target_id: String, weapon_id: String) -> Dictionary:
+	var game_state := _game_state_node()
+	if game_state == null:
+		return {"ok": false, "reason": "game_state_missing"}
+	var result: Dictionary = game_state.call("resolve_heavy_shot", attacker_id, target_id, weapon_id)
+	if not bool(result.get("ok", false)):
+		return result
+	if not bool(game_state.call("apply_heavy_shot_result", target_id, result)):
+		return {"ok": false, "reason": "persistent_combat_result_failed"}
+
+	var logical_after: Dictionary = game_state.call("get_heavy_unit", target_id)
+	if logical_after.is_empty():
+		return {"ok": false, "reason": "target_state_missing_after_shot"}
+
+	for i in range(_units.size()):
+		var unit: Dictionary = _units[i]
+		if str(unit.get("logical_unit_id", "")) != target_id:
+			continue
+		unit["hp"] = float(logical_after.get("hp", unit.get("hp", 0.0)))
+		unit["alive"] = bool(logical_after.get("alive", unit.get("alive", true)))
+		var combat_state: Dictionary = unit.get("combat_state", {})
+		if not combat_state.is_empty():
+			combat_state["hp"] = float(unit["hp"])
+			combat_state["alive"] = bool(unit["alive"])
+			unit["combat_state"] = combat_state
+		_units[i] = unit
+		break
+
+	_sync_unit_visuals()
+	_sync_detail_unit_lod()
+	result["target_id"] = target_id
+	result["target_hp"] = float(logical_after.get("hp", 0.0))
+	result["target_alive"] = bool(logical_after.get("alive", false))
+	return result
+
+
 func resolve_unit_attack(attacker_index: int, target_index: int, weapon_id: String = "tank_cannon") -> Dictionary:
 	if _army_core == null:
 		return {"ok": false, "reason": "army_core_unavailable"}
