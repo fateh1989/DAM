@@ -1819,6 +1819,17 @@ func _build_art_directed_battlefield() -> void:
 	_add_fallback_governorate_label()
 
 
+func get_art_battlefield_feature_snapshot() -> Dictionary:
+	return {
+		"roads": _road_feature_count,
+		"buildings": _building_feature_count,
+		"water": _water_feature_count,
+		"landcover": _landcover_feature_count,
+		"trees": _tree_instance_count,
+		"vector_children": vector_root.get_child_count() if is_instance_valid(vector_root) else 0,
+	}
+
+
 func _refresh_vector_data(force: bool) -> void:
 	if not _terrain_mode or _is_tactical_overview() or _vector_inflight:
 		return
