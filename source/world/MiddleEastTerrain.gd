@@ -4301,6 +4301,11 @@ func _handle_world_tap(screen_position: Vector2) -> void:
 
 	var detail_logical_id := pick_detail_logical_id_from_screen(screen_position)
 	if not detail_logical_id.is_empty():
+		var selected_attackers := _selected_attack_logical_ids()
+		if not selected_attackers.is_empty() and detail_logical_id not in selected_attackers:
+			if issue_selected_logical_attack(detail_logical_id) > 0:
+				_update_status()
+				return
 		clear_selected_units()
 		toggle_logical_heavy_selection(detail_logical_id)
 		return
