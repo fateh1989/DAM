@@ -404,6 +404,7 @@ func _ready() -> void:
 	_build_continuous_macro_world()
 	_position_camera()
 	_refresh_tiles()
+	_sync_continuous_world_lod()
 	_sync_unit_visuals()
 	_refresh_geo_overlay(true)
 	_bind_audio_controls()
@@ -630,6 +631,23 @@ func get_tactical_detail_profile(level: int = _rts_zoom_level) -> Dictionary:
 	}
 
 
+func _use_macro_world_lod(level: int = _rts_zoom_level) -> bool:
+	return level <= 2
+
+
+func _sync_continuous_world_lod() -> void:
+	var use_macro := _use_macro_world_lod()
+	if is_instance_valid(_continuous_macro_node):
+		_continuous_macro_node.visible = use_macro
+	for state_value in _tiles.values():
+		var state: Dictionary = state_value
+		var node = state.get("node")
+		if node != null and is_instance_valid(node):
+			node.visible = not use_macro
+	if is_instance_valid(vector_root):
+		vector_root.visible = not use_macro
+
+
 func _sync_tactical_ground_detail() -> void:
 	if _tactical_ground_material == null:
 		return
@@ -645,6 +663,7 @@ func _set_rts_zoom_level(new_level: int) -> void:
 	_rts_zoom_level = new_level
 	_position_camera()
 	_sync_tactical_ground_detail()
+	_sync_continuous_world_lod()
 	_sync_unit_visuals()
 	_refresh_geo_overlay(true)
 	if _terrain_mode and not _is_tactical_overview() and _rts_zoom_level >= 4:
@@ -811,6 +830,7 @@ func _refresh_tiles() -> void:
 			_remove_tile(key)
 
 	_pump_requests()
+	_sync_continuous_world_lod()
 	_update_status()
 
 
