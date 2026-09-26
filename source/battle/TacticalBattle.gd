@@ -71,8 +71,15 @@ func _ready() -> void:
 	_spawn_friendly_units()
 	_spawn_enemy_units()
 	_bind_audio_controls()
+	if not get_viewport().size_changed.is_connected(_on_viewport_size_changed):
+		get_viewport().size_changed.connect(_on_viewport_size_changed)
 	_update_zoom_ui()
 	_update_status()
+
+
+func _on_viewport_size_changed() -> void:
+	_clamp_camera_to_battlefield()
+	_sync_terrain_chunk_visibility()
 
 
 func _bind_audio_controls() -> void:

@@ -34,6 +34,14 @@ func run(_world_scene: Node) -> String:
 		battle.free()
 		return "pinch zoom mutated protected terrain"
 	battle.call("set_zoom_level", 4, false)
+	var resize_signature_before: Dictionary = battle.call("get_terrain_integrity_signature")
+	battle.call("_on_viewport_size_changed")
+	if resize_signature_before != battle.call("get_terrain_integrity_signature"):
+		battle.free()
+		return "viewport resize handler mutated terrain"
+	if not bool(battle.call("is_camera_ground_covered")):
+		battle.free()
+		return "viewport resize handler left terrain coverage hole"
 	battle.camera.position = Vector3(9000.0, 850.0, 9000.0)
 	battle.call("_clamp_camera_to_battlefield")
 	var target_z: float = battle.camera.position.z - battle.CAMERA_BACK_OFFSET_Z
