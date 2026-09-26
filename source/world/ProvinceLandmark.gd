@@ -117,6 +117,10 @@ func _build() -> void:
 			gate_right.name = "CityGateRight"
 			var gate_beam := _add_box(Vector3(-0.134, 0.098, 0.0), Vector3(0.050, 0.014, 0.030), city_light)
 			gate_beam.name = "CityGateBeam"
+			var mast := _add_cylinder(Vector3(-0.115, 0.115, 0.095), 0.007, 0.23, Color(0.30, 0.31, 0.29, 1.0))
+			mast.name = "CityCommsMast"
+			var mast_head := _add_sphere(Vector3(-0.115, 0.235, 0.095), 0.015, Color(0.72, 0.58, 0.28, 1.0))
+			mast_head.name = "CityCommsHead"
 		"citadel", "castle":
 			_add_box(Vector3(0, 0.035, 0), Vector3(0.22, 0.07, 0.18), stone)
 			for x in [-0.085, 0.085]:
