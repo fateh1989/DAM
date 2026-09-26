@@ -2416,9 +2416,6 @@ func radar_center_on_uv(uv: Vector2) -> void:
 	uv.y = clampf(uv.y, 0.0, 1.0)
 	_center_lon = lerpf(REGION_WEST, REGION_EAST, uv.x)
 	_center_lat = lerpf(REGION_NORTH, REGION_SOUTH, uv.y)
-	_origin_lon = _center_lon
-	_origin_lat = _center_lat
-	_clear_all_world_nodes()
 	_position_camera()
 	_refresh_tiles()
 	_sync_unit_visuals()
