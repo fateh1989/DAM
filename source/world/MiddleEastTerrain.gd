@@ -2434,6 +2434,22 @@ func _create_launcher_visual(index: int) -> Node3D:
 			wheel.material_override = _solid_unshaded_material(Color(0.16, 0.17, 0.15, 1.0))
 			model.add_child(wheel)
 
+	var launcher_pivot := Node3D.new()
+	launcher_pivot.name = "LauncherPivot"
+	launcher_pivot.position = Vector3(0.0, 0.62 if family == "western" else 0.56, 0.04)
+	model.add_child(launcher_pivot)
+
+	var base_mesh := CylinderMesh.new()
+	base_mesh.top_radius = 0.48
+	base_mesh.bottom_radius = 0.54
+	base_mesh.height = 0.18
+	base_mesh.radial_segments = 12
+	var rotating_base := MeshInstance3D.new()
+	rotating_base.name = "RotatingBase"
+	rotating_base.mesh = base_mesh
+	rotating_base.material_override = _solid_unshaded_material(army_color.darkened(0.05))
+	launcher_pivot.add_child(rotating_base)
+
 	var marker := Node3D.new()
 	marker.name = "MapMarker"
 	root_node.add_child(marker)
