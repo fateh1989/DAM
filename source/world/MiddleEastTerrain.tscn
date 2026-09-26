@@ -154,6 +154,12 @@ layout_mode = 2
 text = "SELECT ALL"
 
 
+[node name="BoxSelectButton" type="Button" parent="HUD/CommandBar/Row"]
+custom_minimum_size = Vector2(112, 56)
+layout_mode = 2
+text = "BOX SELECT"
+
+
 [node name="ClearSelectionButton" type="Button" parent="HUD/CommandBar/Row"]
 custom_minimum_size = Vector2(104, 56)
 layout_mode = 2
@@ -266,6 +272,7 @@ horizontal_alignment = 2
 
 [connection signal="pressed" from="HUD/GeoOverlayButton" to="." method="_on_geo_overlay_pressed"]
 [connection signal="pressed" from="HUD/CommandBar/Row/SelectAllUnitsButton" to="." method="_on_select_all_units_pressed"]
+[connection signal="pressed" from="HUD/CommandBar/Row/BoxSelectButton" to="." method="_on_box_select_pressed"]
 [connection signal="pressed" from="HUD/CommandBar/Row/ClearSelectionButton" to="." method="_on_clear_selection_pressed"]
 [connection signal="pressed" from="HUD/CommandBar/Row/PreviousUnitButton" to="." method="_on_previous_unit_pressed"]
 [connection signal="pressed" from="HUD/CommandBar/Row/NextUnitButton" to="." method="_on_next_unit_pressed"]
