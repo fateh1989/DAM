@@ -281,3 +281,15 @@ func tick_movement(delta: float, excluded_ids: Dictionary = {}) -> int:
 		moved_count += 1
 
 	return moved_count
+
+
+func set_heading(unit_id: String, heading_rad: float) -> bool:
+	if not _index_by_id.has(unit_id):
+		return false
+	var index := int(_index_by_id[unit_id])
+	var unit: Dictionary = _units[index]
+	if not bool(unit.get("alive", true)):
+		return false
+	unit["heading_rad"] = wrapf(heading_rad, -PI, PI)
+	_units[index] = unit
+	return true
