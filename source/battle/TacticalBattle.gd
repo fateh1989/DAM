@@ -257,6 +257,14 @@ func _sync_terrain_chunk_visibility() -> void:
 		)
 
 
+func terrain_coverage_ok_for_camera_size(test_size: float) -> bool:
+	var previous_size := camera.size
+	set_camera_size_safely(test_size)
+	var covered := is_camera_ground_covered()
+	set_camera_size_safely(previous_size)
+	return covered
+
+
 func is_camera_ground_covered() -> bool:
 	var target := Vector2(camera.position.x, camera.position.z - CAMERA_BACK_OFFSET_Z)
 	var half_view := _camera_target_half_extents() * 0.92

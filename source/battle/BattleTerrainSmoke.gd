@@ -73,6 +73,10 @@ func run(_world_scene: Node) -> String:
 	if terrain_signature_before != terrain_signature_after:
 		battle.free()
 		return "camera zoom mutated terrain geometry or world scale"
+	for guarded_size in [550.0, 1100.0, 2200.0, 4200.0, 6500.0]:
+		if not bool(battle.call("terrain_coverage_ok_for_camera_size", guarded_size)):
+			battle.free()
+			return "terrain coverage guard failed at camera size %.0f" % guarded_size
 	battle.camera.size = battle.ZOOM_NORMAL
 	battle.call("_sync_terrain_chunk_visibility")
 	battle.call("radar_center_on_uv", Vector2(0.94, 0.94))
