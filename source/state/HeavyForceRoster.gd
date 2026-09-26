@@ -111,3 +111,14 @@ func get_unit(unit_id: String) -> Dictionary:
 	if index < 0 or index >= _units.size():
 		return {}
 	return _units[index].duplicate(true)
+
+
+func set_unit_position(unit_id: String, lon: float, lat: float) -> bool:
+	if not _index_by_id.has(unit_id):
+		return false
+	var index := int(_index_by_id[unit_id])
+	var unit: Dictionary = _units[index]
+	unit["lon"] = lon
+	unit["lat"] = lat
+	_units[index] = unit
+	return true
