@@ -4293,9 +4293,11 @@ func select_nearest_radar_target_uv(uv: Vector2, max_distance: float = 0.06) -> 
 	if best.is_empty():
 		return false
 	var logical_id := str(best.get("logical_id", ""))
-	if bool(best.get("logical_detail", false)) and not logical_id.is_empty():
-		clear_selected_units()
-		return select_logical_heavy_unit(logical_id, false)
+	if best.get("logical_detail", false) == true and not logical_id.is_empty():
+		if select_logical_heavy_unit(logical_id, false):
+			clear_selected_units()
+			return true
+		return false
 	var index := int(best.get("index", -1))
 	if index >= 0:
 		clear_logical_heavy_selection()
