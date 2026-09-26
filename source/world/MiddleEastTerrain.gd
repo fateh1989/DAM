@@ -3644,15 +3644,22 @@ func _update_status() -> void:
 
 
 func _on_battle_pressed() -> void:
+	start_battle_in_current_world()
+
+
+func start_battle_in_current_world() -> bool:
 	var gov := _governorate()
 	var province_id := str(gov.get("slug", "unknown"))
 	var province_name := str(gov.get("name_ar", gov.get("name_en", province_id)))
 	var game_state := _game_state_node()
 	if game_state == null:
-		return
+		return false
 	game_state.call("select_province", province_id, province_name)
-	if bool(game_state.call("begin_battle", province_id, province_name)):
-		get_tree().change_scene_to_file("res://source/battle/TacticalBattle.tscn")
+	if not bool(game_state.call("begin_battle", province_id, province_name)):
+		return false
+	mode_button.text = "BATTLE ACTIVE"
+	_update_status()
+	return true
 
 
 func _on_mode_pressed() -> void:
