@@ -123,7 +123,9 @@ func ensure_heavy_force_roster(governorates: Array) -> bool:
 		specs[unit_type] = army_core.unit_spec(unit_type)
 	if not heavy_force_roster.seed(governorates, specs):
 		return false
-	return str(heavy_force_roster.validate()).is_empty()
+	if not str(heavy_force_roster.validate()).is_empty():
+		return false
+	return _ensure_heavy_roster_deployed()
 
 
 func _ensure_heavy_roster_deployed() -> bool:
