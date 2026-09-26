@@ -196,6 +196,7 @@ var _landmark_root: Node3D = null
 var _landmarks: Array[Node3D] = []
 var _city_root: Node3D = null
 var _city_markers: Array[Node3D] = []
+var _city_health_by_governorate: Array[float] = []
 
 
 func _ensure_province_clock_state() -> void:
@@ -272,6 +273,44 @@ func get_governorate_military_status(index: int) -> Dictionary:
 	return result
 
 
+func _ensure_city_state() -> void:
+	while _city_health_by_governorate.size() < GOVERNORATES.size():
+		_city_health_by_governorate.append(1.0)
+
+
+func get_governorate_city_health(index: int) -> float:
+	_ensure_city_state()
+	if index < 0 or index >= _city_health_by_governorate.size():
+		return -1.0
+	return _city_health_by_governorate[index]
+
+
+func set_governorate_city_health(index: int, value: float) -> bool:
+	_ensure_city_state()
+	if index < 0 or index >= _city_health_by_governorate.size():
+		return false
+	_city_health_by_governorate[index] = clampf(value, 0.0, 1.0)
+	if index < _city_markers.size() and is_instance_valid(_city_markers[index]):
+		_city_markers[index].call("set_city_health", _city_health_by_governorate[index])
+	return true
+
+
+func damage_governorate_city(index: int, amount: float) -> float:
+	var current := get_governorate_city_health(index)
+	if current < 0.0:
+		return -1.0
+	set_governorate_city_health(index, current - maxf(0.0, amount))
+	return get_governorate_city_health(index)
+
+
+func repair_governorate_city(index: int, amount: float) -> float:
+	var current := get_governorate_city_health(index)
+	if current < 0.0:
+		return -1.0
+	set_governorate_city_health(index, current + maxf(0.0, amount))
+	return get_governorate_city_health(index)
+
+
 func get_city_style_for_governorate(index: int) -> String:
 	match index:
 		0, 1: return "damascene"
@@ -283,6 +322,7 @@ func get_city_style_for_governorate(index: int) -> String:
 
 
 func _setup_city_markers() -> void:
+	_ensure_city_state()
 	if _city_root == null or not is_instance_valid(_city_root):
 		_city_root = Node3D.new()
 		_city_root.name = "MiniatureCities"
@@ -296,6 +336,7 @@ func _setup_city_markers() -> void:
 		city.name = "City_%02d_%s" % [i, str(data.get("slug", "city"))]
 		_city_root.add_child(city)
 		city.setup(i, str(data.get("name_ar", data.get("name_en", ""))), get_city_style_for_governorate(i))
+		city.call("set_city_health", _city_health_by_governorate[i])
 		_city_markers.append(city)
 	_sync_city_marker_positions()
 

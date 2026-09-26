@@ -84,4 +84,21 @@ func run(scene: Node) -> String:
 	var label := cities[2].get_node_or_null("CityLabel") as Label3D
 	if label == null or not label.visible:
 		return "focused city label is not visible at close zoom"
+	if not bool(scene.call("set_governorate_city_health", 2, 0.25)):
+		return "could not set Aleppo city health"
+	if absf(float(scene.call("get_governorate_city_health", 2)) - 0.25) > 0.001:
+		return "Aleppo city health state was not persisted"
+	if absf(float(cities[2].call("get_city_health")) - 0.25) > 0.001:
+		return "runtime Aleppo marker did not receive city damage"
+	if int(cities[2].call("get_damage_stage")) != 3:
+		return "heavily damaged Aleppo marker did not enter devastated stage"
+	var rubble_before := int(cities[2].call("get_rubble_count"))
+	var repaired := float(scene.call("repair_governorate_city", 2, 0.50))
+	if absf(repaired - 0.75) > 0.001:
+		return "governorate city repair did not restore persistent health"
+	if int(cities[2].call("get_rubble_count")) >= rubble_before:
+		return "repaired governorate city did not clear rubble"
+	for i in range(14):
+		if float(scene.call("get_governorate_city_health", i)) < 0.0:
+			return "one or more governorates lack city health state"
 	return ""
