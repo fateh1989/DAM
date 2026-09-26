@@ -17,6 +17,9 @@ func run(scene: Node) -> String:
 	if float(sample.call("get_core_clear_radius")) <= 0.08:
 		sample.free()
 		return "miniature city has no protected landmark core"
+	if int(sample.call("get_street_count")) != 4:
+		sample.free()
+		return "miniature city lacks four readable radial access streets"
 	sample.free()
 	var cities: Array = scene.call("get_city_markers")
 	if cities.size() != 14:

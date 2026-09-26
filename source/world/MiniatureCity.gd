@@ -96,6 +96,27 @@ func _build_base(palette: Dictionary) -> void:
 	_body_root.add_child(base)
 
 
+func _is_street_gap(angle: float) -> bool:
+	var normalized := fposmod(angle, TAU)
+	for axis in [0.0, PI * 0.5, PI, PI * 1.5]:
+		var delta := absf(wrapf(normalized - float(axis), -PI, PI))
+		if delta < 0.10:
+			return true
+	return false
+
+
+func _build_radial_streets(palette: Dictionary) -> void:
+	var road_mat := _material(palette["road"])
+	var segment_length := 0.31
+	var center_offset := CORE_CLEAR_RADIUS + segment_length * 0.5
+	for direction_index in range(4):
+		var angle := float(direction_index) * PI * 0.5
+		var p := Vector3(cos(angle) * center_offset, 0.014, sin(angle) * center_offset)
+		var road := _add_box(_street_root, p, Vector3(segment_length, 0.008, 0.026), road_mat, "RadialRoad_%02d" % direction_index)
+		road.rotation.y = -angle
+		_street_nodes.append(road)
+
+
 func _build_residential_rings(palette: Dictionary) -> void:
 	var wall_mat := _material(palette["wall"])
 	var roof_mat := _material(palette["roof"])
@@ -105,6 +126,8 @@ func _build_residential_rings(palette: Dictionary) -> void:
 		for slot in range(count):
 			var seed := governorate_index * 97 + ring_index * 31 + slot
 			var angle := TAU * float(slot) / float(count) + (_hash01(seed, 1.3) - 0.5) * 0.12
+			if _is_street_gap(angle):
+				continue
 			var radial_jitter := (_hash01(seed, 2.9) - 0.5) * 0.025
 			var r := radius + radial_jitter
 			var width := 0.048 + _hash01(seed, 4.1) * 0.028
@@ -143,6 +166,7 @@ func _rebuild() -> void:
 	_ensure_roots()
 	var palette := _palette()
 	_build_base(palette)
+	_build_radial_streets(palette)
 	_build_residential_rings(palette)
 	_build_label()
 
