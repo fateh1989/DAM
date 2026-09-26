@@ -225,3 +225,9 @@ func stop_heavy_unit(unit_id: String) -> bool:
 	if heavy_force_roster == null:
 		return false
 	return heavy_force_roster.stop_unit(unit_id)
+
+
+func update_heavy_unit_position(unit_id: String, lon: float, lat: float) -> bool:
+	if heavy_force_roster == null:
+		return false
+	return heavy_force_roster.set_unit_position(unit_id, lon, lat)
