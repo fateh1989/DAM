@@ -238,6 +238,34 @@ func _build_roof_details(palette: Dictionary) -> void:
 			_detail_nodes.append(cap)
 
 
+func _build_signature_blocks(palette: Dictionary) -> void:
+	var wall_mat := _material(palette["wall"])
+	var accent_mat := _material(palette["accent"])
+	var roof_mat := _material(palette["roof"])
+	for i in range(3):
+		var angle := PI * 0.32 + float(i) * TAU / 3.0
+		var radius := CORE_CLEAR_RADIUS + 0.035
+		var root := Node3D.new()
+		root.name = "SignatureBlock_%02d" % i
+		root.position = Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
+		root.rotation.y = -angle
+		_body_root.add_child(root)
+		var base_height := 0.11 + 0.018 * float(i)
+		_add_box(root, Vector3(0, base_height * 0.5 + 0.012, 0), Vector3(0.052, base_height, 0.048), wall_mat, "TowerBody")
+		match style_id:
+			"damascene", "aleppine":
+				_add_cylinder(root, Vector3(0, base_height + 0.034, 0), 0.022, 0.050, roof_mat, "Dome", 12)
+			"coastal":
+				_add_box(root, Vector3(0, base_height + 0.020, 0), Vector3(0.066, 0.018, 0.040), accent_mat, "Terrace")
+			"eastern":
+				_add_box(root, Vector3(0, base_height + 0.018, 0), Vector3(0.048, 0.024, 0.048), accent_mat, "UpperBlock")
+			"southern":
+				_add_box(root, Vector3(0, base_height + 0.020, 0), Vector3(0.040, 0.032, 0.040), accent_mat, "BasaltCap")
+			_:
+				_add_box(root, Vector3(0, base_height + 0.018, 0), Vector3(0.045, 0.020, 0.045), accent_mat, "Cap")
+		_signature_nodes.append(root)
+
+
 func _build_industrial_edge(palette: Dictionary) -> void:
 	var wall_mat := _material(palette["accent"])
 	var roof_mat := _material(palette["roof"])
@@ -299,6 +327,7 @@ func _rebuild() -> void:
 	_build_facade_details(palette)
 	_build_balconies_and_arcades(palette)
 	_build_roof_details(palette)
+	_build_signature_blocks(palette)
 	_build_industrial_edge(palette)
 	_build_label()
 	_apply_damage_visuals()
