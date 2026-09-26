@@ -13,8 +13,8 @@ func run(scene: Node) -> String:
 		return "landmark procedural body was not created"
 	item.free()
 	var landmarks: Array = scene.call("get_province_landmarks")
-	if landmarks.size() != 10:
-		return "second landmark batch did not create ten landmarks"
+	if landmarks.size() != 14:
+		return "final landmark batch did not create fourteen landmarks"
 	if str(landmarks[2].landmark_name_ar) != "قلعة حلب":
 		return "Aleppo landmark is not Citadel of Aleppo"
 	return ""

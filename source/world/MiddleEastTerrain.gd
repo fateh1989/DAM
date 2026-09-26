@@ -37,6 +37,10 @@ const PROVINCE_LANDMARKS := [
 	{"governorate_index":7,"name_ar":"قلب لوزة","name_en":"Qalb Lozeh","kind":"ruins","lat":36.1670,"lon":36.5810},
 	{"governorate_index":8,"name_ar":"باب بغداد","name_en":"Baghdad Gate","kind":"gate","lat":35.9505,"lon":39.0100},
 	{"governorate_index":9,"name_ar":"الجسر المعلق","name_en":"Deir ez-Zor Suspension Bridge","kind":"bridge","lat":35.3374,"lon":40.1471},
+	{"governorate_index":10,"name_ar":"تل حلف","name_en":"Tell Halaf","kind":"ruins","lat":36.8210,"lon":40.0390},
+	{"governorate_index":11,"name_ar":"مسرح بصرى","name_en":"Bosra Roman Theatre","kind":"theatre","lat":32.5185,"lon":36.4812},
+	{"governorate_index":12,"name_ar":"مسرح شهبا","name_en":"Shahba Roman Theatre","kind":"theatre","lat":32.8558,"lon":36.6284},
+	{"governorate_index":13,"name_ar":"القنيطرة القديمة","name_en":"Old Quneitra","kind":"ruins","lat":33.1259,"lon":35.8246},
 ]
 const TACTICAL_RELIEF_EXAGGERATION := 1.0
 const TACTICAL_OVERVIEW_ZOOM := 8
