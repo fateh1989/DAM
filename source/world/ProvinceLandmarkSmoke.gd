@@ -12,6 +12,9 @@ func run(scene: Node) -> String:
 	var body := item.get_node_or_null("Body") as Node3D
 	if body == null or body.get_child_count() < 8:
 		return "city miniature does not contain enough 3D structure"
+	for required_path in ["CityRoadNS", "CityRoadEW", "CityIndustrialHall", "CityGateLeft", "CityGateRight", "CityGateBeam", "CityCommsMast", "CityCommsHead"]:
+		if body.get_node_or_null(required_path) == null:
+			return "city miniature missing " + required_path
 	if not bool(item.call("set_damage_state", "damaged")) or str(item.damage_state) != "damaged":
 		return "city damaged state failed"
 	if not bool(item.call("set_damage_state", "rubble")) or str(item.damage_state) != "rubble":
