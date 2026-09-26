@@ -23,6 +23,10 @@ func run(scene: Node) -> String:
 		return "far RTS zoom does not preserve unit readability"
 	if near_unit_scale < 0.0035:
 		return "near RTS unit scale became too small"
+	if not bool(scene.call("uses_unit_marker_lod", 1)):
+		return "far RTS zoom is not using lightweight unit markers"
+	if bool(scene.call("uses_unit_marker_lod", 8)):
+		return "near RTS zoom did not restore full unit models"
 	scene.set("_terrain_mode", true)
 	scene.call("_set_rts_zoom_level", 8)
 	if int(scene.call("get_rts_zoom_level")) != 8:

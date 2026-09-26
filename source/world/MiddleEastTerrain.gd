@@ -52,6 +52,7 @@ const RTS_ZOOM_FAR_DISTANCE_SCALE := 1.0
 const RTS_ZOOM_DISTANCE_SCALES := [12.0, 6.5, 3.5, 1.9, 1.05, 0.72, 0.52, 0.40]
 const RTS_CAMERA_HEIGHTS := [180.0, 105.0, 58.0, 30.0, 15.0, 8.5, 4.5, 2.35]
 const RTS_CAMERA_BACKS := [220.0, 130.0, 72.0, 38.0, 20.0, 11.0, 5.8, 3.05]
+const RTS_MARKER_SCALES := [0.24, 0.14, 0.075]
 const CONTINUOUS_MACRO_GRID := 36
 const GROUP_FORMATION_SPACING_KM := 0.035
 const UNIT_SPEED_KM_PER_SEC := 0.60
@@ -2322,10 +2323,16 @@ func _create_tank_visual(index: int) -> Node3D:
 	return root_node
 
 
+func uses_unit_marker_lod(level: int = _rts_zoom_level) -> bool:
+	return clampi(level, RTS_ZOOM_LEVEL_MIN, RTS_ZOOM_LEVEL_MAX) <= 3
+
+
 func get_rts_unit_visual_scale(level: int = _rts_zoom_level) -> float:
 	var clamped_level := clampi(level, RTS_ZOOM_LEVEL_MIN, RTS_ZOOM_LEVEL_MAX)
-	var t := float(clamped_level - RTS_ZOOM_LEVEL_MIN) / float(RTS_ZOOM_LEVEL_MAX - RTS_ZOOM_LEVEL_MIN)
-	return lerpf(0.0046, 0.0038, t)
+	if clamped_level <= 3:
+		return float(RTS_MARKER_SCALES[clamped_level - 1])
+	var t := float(clamped_level - 4) / float(RTS_ZOOM_LEVEL_MAX - 4)
+	return lerpf(0.0085, 0.0038, t)
 
 
 func _tank_visual_scale() -> float:
@@ -2363,10 +2370,11 @@ func _sync_unit_visuals() -> void:
 		var model := node.get_node_or_null("TankModel")
 		var marker := node.get_node_or_null("MapMarker")
 		var selection := node.get_node_or_null("Selection")
+		var marker_lod := uses_unit_marker_lod()
 		if model != null:
-			model.visible = _terrain_mode
+			model.visible = _terrain_mode and not marker_lod
 		if marker != null:
-			marker.visible = not _terrain_mode
+			marker.visible = _terrain_mode and marker_lod
 		if selection != null:
 			var is_selected := i in _selected_unit_indices
 			var is_primary := is_selected and i == _selected_unit_index
