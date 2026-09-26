@@ -182,3 +182,9 @@ func get_heavy_force_counts() -> Dictionary:
 		"artillery": artillery,
 		"total": tank + rocket_launcher + artillery,
 	}
+
+
+func get_heavy_unit(unit_id: String) -> Dictionary:
+	if heavy_force_roster == null:
+		return {}
+	return heavy_force_roster.get_unit(unit_id)
