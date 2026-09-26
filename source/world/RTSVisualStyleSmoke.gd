@@ -32,4 +32,14 @@ func run(scene: Node) -> String:
 		return "RTS roads lost readable shoulder width"
 	if 'Color(0.80, 0.67, 0.42, 1.0)' not in source:
 		return "RTS road surface lost command-view contrast"
+	var vector_root := scene.get_node_or_null("VectorRoot")
+	if vector_root == null:
+		return "RTS terrain vector root is missing"
+	for required_node in ["ArtDirtRoads", "ArtFields", "ArtRocks", "ArtSettlement"]:
+		if vector_root.get_node_or_null(required_node) == null:
+			return "RTS battlefield missing " + required_node
+	if int(scene.get("_road_feature_count")) < 3:
+		return "RTS battlefield lost feeder road network"
+	if int(scene.get("_building_feature_count")) < 40:
+		return "RTS battlefield settlement density became too sparse"
 	return ""
