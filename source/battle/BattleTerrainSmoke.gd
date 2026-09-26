@@ -40,6 +40,11 @@ func run(_world_scene: Node) -> String:
 	if valley_near < 0.8 or valley_far > 0.2:
 		battle.free()
 		return "terrain valley mask is not carving a localized corridor"
+	var local_a := float(battle.call("terrain_height_at", 1200.0, 900.0))
+	var local_b := float(battle.call("terrain_height_at", 1325.0, 900.0))
+	if absf(local_a - local_b) < 0.5:
+		battle.free()
+		return "terrain surface lacks local erosion relief"
 	if not (battle.call("get_battle_ground_material") is ShaderMaterial):
 		battle.free()
 		return "battle terrain is not using the natural ground shader"

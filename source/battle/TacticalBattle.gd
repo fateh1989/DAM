@@ -115,8 +115,9 @@ func terrain_height_at(x: float, z: float) -> float:
 	var broad := sin(x * 0.00105) * 42.0 + cos(z * 0.00120) * 34.0
 	var diagonal := sin((x + z) * 0.00072 + 1.3) * 24.0
 	var ridge := sin(x * 0.00195 - z * 0.00061) * 16.0
+	var erosion := sin(x * 0.0051 + sin(z * 0.0017) * 2.1) * 6.0 + cos(z * 0.0047 - x * 0.0008) * 4.0
 	var valley_depth := terrain_valley_mask_at(x, z) * 58.0
-	return broad + diagonal + ridge - valley_depth
+	return broad + diagonal + ridge + erosion - valley_depth
 
 
 func _build_terrain_chunk_mesh(center_x: float, center_z: float) -> ArrayMesh:

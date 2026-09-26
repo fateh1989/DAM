@@ -43,6 +43,7 @@ void fragment() {
 	float continental = fbm(world_pos.xz * 0.00028 + vec2(37.0, 11.0));
 	float macro = fbm(world_pos.xz * 0.0010);
 	float detail = fbm(world_pos.xz * 0.0045 + vec2(8.0, 17.0));
+	float erosion = fbm(world_pos.xz * 0.012 + vec2(21.0, 6.0));
 	float green_mask = smoothstep(0.40, 0.72, macro + detail * 0.12);
 	float soil_mask = smoothstep(0.58, 0.82, detail + macro * 0.18);
 	float valley_center = sin(world_pos.z * 0.00055) * 650.0 + cos(world_pos.z * 0.00017) * 220.0;
@@ -55,7 +56,7 @@ void fragment() {
 	float slope = 1.0 - clamp(abs(world_normal.y), 0.0, 1.0);
 	float rock_mask = smoothstep(0.12, 0.38, slope);
 	ground = mix(ground, rock_color, rock_mask * 0.72);
-	ALBEDO = ground * (0.92 + detail * 0.14);
+	ALBEDO = ground * (0.90 + detail * 0.13 + erosion * 0.06);
 	ROUGHNESS = 0.97;
 	SPECULAR = 0.08;
 }
