@@ -3672,9 +3672,6 @@ func _on_reset_pressed() -> void:
 		_map_zoom = DEFAULT_MAP_ZOOM
 		_map_zoom_before_terrain = _map_zoom
 	zoom_wheel.set_value_no_signal(float(_map_zoom))
-	_origin_lon = _center_lon
-	_origin_lat = _center_lat
-	_clear_all_world_nodes()
 	_position_camera()
 	_refresh_tiles()
 	if _terrain_mode and not _is_tactical_overview():
