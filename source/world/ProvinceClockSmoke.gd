@@ -65,4 +65,17 @@ func run(scene: Node) -> String:
 		return "province clocks are not arranged as a seven-by-two mobile grid"
 	if old_bar == null or old_bar.visible:
 		return "legacy governorate strip still competes with province clocks"
+	if not bool(scene.call("set_governorate_military_status", 2, 0.92, 0.84)):
+		return "live military status update was rejected"
+	if not bool(scene.call("set_governorate_attack_state", 2, true)):
+		return "live province attack state update was rejected"
+	var aleppo = clocks[2]
+	if absf(float(aleppo.strength) - 0.92) > 0.001 or absf(float(aleppo.readiness) - 0.84) > 0.001:
+		return "province clock did not receive live strength and readiness"
+	if not bool(aleppo.attacking):
+		return "attacking province clock did not enable steam state"
+	var state: Dictionary = scene.call("get_governorate_military_status", 2)
+	if not bool(state.get("attacking", false)):
+		return "province military state did not retain attack flag"
+	scene.call("set_governorate_attack_state", 2, false)
 	return ""

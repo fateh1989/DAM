@@ -170,9 +170,19 @@ var _mouse_drag_distance := 0.0
 var _radar_action_mode := "camera"
 var _move_order_serial := 0
 var _province_clocks: Array[Control] = []
+var _governorate_military_status: Array[Dictionary] = []
+var _governorate_attack_state: Array[bool] = []
+
+
+func _ensure_province_clock_state() -> void:
+	while _governorate_military_status.size() < GOVERNORATES.size():
+		_governorate_military_status.append({"strength": 0.5, "readiness": 0.5})
+	while _governorate_attack_state.size() < GOVERNORATES.size():
+		_governorate_attack_state.append(false)
 
 
 func _setup_province_clocks() -> void:
+	_ensure_province_clock_state()
 	_province_clocks.clear()
 	for child in province_clock_grid.get_children():
 		child.free()
@@ -181,22 +191,61 @@ func _setup_province_clocks() -> void:
 		clock.name = "ProvinceClock_%02d" % i
 		province_clock_grid.add_child(clock)
 		clock.setup(i, str(GOVERNORATES[i].get("name_ar", GOVERNORATES[i].get("name_en", ""))))
-		clock.set_military_status(0.5, 0.5)
-		clock.set_attacking_state(false)
-		clock.set_selected_state(i == _governorate_index)
 		clock.province_requested.connect(focus_governorate_from_clock)
 		_province_clocks.append(clock)
+		_sync_province_clock(i)
+
+
+func _sync_province_clock(index: int) -> void:
+	if index < 0 or index >= _province_clocks.size():
+		return
+	_ensure_province_clock_state()
+	var clock: Control = _province_clocks[index]
+	if not is_instance_valid(clock):
+		return
+	var status: Dictionary = _governorate_military_status[index]
+	clock.call("set_military_status", float(status.get("strength", 0.5)), float(status.get("readiness", 0.5)))
+	clock.call("set_attacking_state", bool(_governorate_attack_state[index]))
+	clock.call("set_selected_state", index == _governorate_index)
 
 
 func _sync_province_clock_selection() -> void:
 	for i in range(_province_clocks.size()):
-		var clock: Control = _province_clocks[i]
-		if is_instance_valid(clock) and clock.has_method("set_selected_state"):
-			clock.call("set_selected_state", i == _governorate_index)
+		_sync_province_clock(i)
 
 
 func get_province_clocks() -> Array[Control]:
 	return _province_clocks.duplicate()
+
+
+func set_governorate_military_status(index: int, strength_value: float, readiness_value: float) -> bool:
+	if index < 0 or index >= GOVERNORATES.size():
+		return false
+	_ensure_province_clock_state()
+	_governorate_military_status[index] = {
+		"strength": clampf(strength_value, 0.0, 1.0),
+		"readiness": clampf(readiness_value, 0.0, 1.0),
+	}
+	_sync_province_clock(index)
+	return true
+
+
+func set_governorate_attack_state(index: int, value: bool) -> bool:
+	if index < 0 or index >= GOVERNORATES.size():
+		return false
+	_ensure_province_clock_state()
+	_governorate_attack_state[index] = value
+	_sync_province_clock(index)
+	return true
+
+
+func get_governorate_military_status(index: int) -> Dictionary:
+	if index < 0 or index >= GOVERNORATES.size():
+		return {}
+	_ensure_province_clock_state()
+	var result: Dictionary = _governorate_military_status[index].duplicate()
+	result["attacking"] = bool(_governorate_attack_state[index])
+	return result
 
 
 func _game_state_node() -> Node:
