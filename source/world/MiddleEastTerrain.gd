@@ -2359,6 +2359,15 @@ func _create_tank_visual(index: int) -> Node3D:
 		skirt.material_override = _solid_unshaded_material(army_color.darkened(0.10))
 		model.add_child(skirt)
 
+	var engine_deck_mesh := BoxMesh.new()
+	engine_deck_mesh.size = Vector3(1.18, 0.12, 0.64)
+	var engine_deck := MeshInstance3D.new()
+	engine_deck.name = "EngineDeck"
+	engine_deck.mesh = engine_deck_mesh
+	engine_deck.position = Vector3(0.0, 0.60 if family == "western" else 0.51, 0.78)
+	engine_deck.material_override = _solid_unshaded_material(army_color.darkened(0.28))
+	model.add_child(engine_deck)
+
 	var marker := Node3D.new()
 	marker.name = "MapMarker"
 	root_node.add_child(marker)
