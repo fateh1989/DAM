@@ -3374,6 +3374,23 @@ func get_selected_logical_heavy_count() -> int:
 	return _selected_logical_unit_ids.size()
 
 
+func select_logical_heavy_unit(unit_id: String, additive: bool = false) -> bool:
+	var game_state := _game_state_node()
+	if game_state == null:
+		return false
+	var logical: Dictionary = game_state.call("get_heavy_unit", unit_id)
+	if logical.is_empty() or not bool(logical.get("alive", true)):
+		return false
+	if not additive:
+		_selected_logical_unit_ids.clear()
+	if unit_id not in _selected_logical_unit_ids:
+		_selected_logical_unit_ids.append(unit_id)
+	_sync_unit_visuals()
+	_sync_detail_unit_lod()
+	_update_status()
+	return true
+
+
 func focus_selected_units() -> bool:
 	var lon_sum := 0.0
 	var lat_sum := 0.0
