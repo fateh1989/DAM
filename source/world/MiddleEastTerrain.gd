@@ -2744,6 +2744,14 @@ func resolve_unit_attack(attacker_index: int, target_index: int, weapon_id: Stri
 	if not bool(attacker.get("alive", true)) or not bool(target.get("alive", true)):
 		return {"ok": false, "reason": "unit_destroyed"}
 
+	var attacker_node = attacker.get("node")
+	if attacker_node is Node3D and is_instance_valid(attacker_node):
+		aim_heavy_visual_at_geo(
+			attacker_node,
+			Vector2(float(attacker.get("lon", 0.0)), float(attacker.get("lat", 0.0))),
+			Vector2(float(target.get("lon", 0.0)), float(target.get("lat", 0.0)))
+		)
+
 	var result: Dictionary = _army_core.resolve_shot(
 		attacker.get("combat_state", {}),
 		target.get("combat_state", {}),
@@ -3703,6 +3711,29 @@ func set_heavy_visual_weapon_pose(node: Node3D, yaw_degrees: float, elevation_de
 		node.set_meta("weapon_elevation_deg", clamped_elevation)
 		return true
 	return false
+
+
+func aim_heavy_visual_at_geo(node: Node3D, source_geo: Vector2, target_geo: Vector2) -> bool:
+	if node == null or not is_instance_valid(node):
+		return false
+	var source_local := _geo_to_local(source_geo.x, source_geo.y, 0.0)
+	var target_local := _geo_to_local(target_geo.x, target_geo.y, 0.0)
+	var delta := Vector2(target_local.x - source_local.x, target_local.z - source_local.z)
+	if delta.length_squared() <= 0.000001:
+		return false
+	var world_yaw := rad_to_deg(atan2(-delta.x, -delta.y))
+	var hull_yaw := rad_to_deg(node.rotation.y)
+	var relative_yaw := wrapf(world_yaw - hull_yaw, -180.0, 180.0)
+	var distance_km := maxf(0.01, _geo_distance_km(source_geo, target_geo))
+	var unit_type := str(node.get_meta("unit_type", ""))
+	var elevation := 3.0
+	if unit_type == "artillery":
+		elevation = clampf(30.0 - distance_km * 0.35, 8.0, 30.0)
+	elif unit_type == "rocket_launcher":
+		elevation = clampf(42.0 - distance_km * 0.25, 12.0, 42.0)
+	else:
+		elevation = clampf(7.0 - distance_km * 0.10, 0.0, 7.0)
+	return set_heavy_visual_weapon_pose(node, relative_yaw, elevation)
 
 
 func _orient_unit_hull_to_target(node: Node3D, unit: Dictionary) -> void:
