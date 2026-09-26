@@ -39,6 +39,16 @@ func run(scene: Node) -> String:
 	if int(sample.call("get_decoration_count")) < 20:
 		sample.free()
 		return "miniature city lacks plazas and small tree clusters"
+	sample.call("set_lod", 2)
+	var close_detail_count := int(sample.call("get_visible_detail_count"))
+	if close_detail_count < 20:
+		sample.free()
+		return "close miniature city LOD lost architectural details"
+	sample.call("set_lod", 1)
+	if int(sample.call("get_visible_detail_count")) != 0:
+		sample.free()
+		return "distant miniature city LOD still renders fine architectural details"
+	sample.call("set_lod", 2)
 	var coastal := CITY_SCRIPT.new()
 	coastal.setup(5, "اللاذقية", "coastal")
 	var eastern := CITY_SCRIPT.new()

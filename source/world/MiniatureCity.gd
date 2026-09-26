@@ -567,6 +567,14 @@ func get_damage_mark_count() -> int:
 	return _damage_nodes.size()
 
 
+func get_visible_detail_count() -> int:
+	var count := 0
+	for detail in _detail_nodes:
+		if is_instance_valid(detail) and detail.visible:
+			count += 1
+	return count
+
+
 func set_label_visible(value: bool) -> void:
 	if _label != null:
 		_label.visible = value
@@ -583,6 +591,13 @@ func set_lod(level: int) -> void:
 		_industrial_root.visible = lod_level >= 2
 	if _rubble_root != null:
 		_rubble_root.visible = lod_level >= 2
+	if _decoration_root != null:
+		_decoration_root.visible = lod_level >= 2
+	if _damage_root != null:
+		_damage_root.visible = lod_level >= 2
+	for detail in _detail_nodes:
+		if is_instance_valid(detail):
+			detail.visible = lod_level >= 2 and damage_stage < 3
 	for i in range(_roof_nodes.size()):
 		var building_visible := i < _building_nodes.size() and _building_nodes[i].visible
 		_roof_nodes[i].visible = lod_level >= 2 and building_visible
