@@ -99,24 +99,42 @@ func _run() -> void:
 		return
 
 
-	if scene._units.size() != scene.GOVERNORATES.size() or scene._units.size() != 14:
-		_fail(3, "Strategic unit smoke: expected one persistent tank per governorate")
+	if scene._units.size() != scene.GOVERNORATES.size() * 3 or scene._units.size() != 42:
+		_fail(3, "Strategic unit smoke: expected tank artillery and launcher representatives in every governorate")
 		return
 
 	var armies := {}
-	for i in range(scene._units.size()):
-		var unit: Dictionary = scene._units[i]
-		armies[int(unit["army_id"])] = true
-		if int(unit["governorate_index"]) != i:
-			_fail(4, "Strategic unit smoke: governorate ownership mapping is inconsistent")
+	var type_counts := {"tank": 0, "artillery": 0, "rocket_launcher": 0}
+	for unit in scene._units:
+		var item: Dictionary = unit
+		var governorate_index := int(item["governorate_index"])
+		if governorate_index < 0 or governorate_index >= scene.GOVERNORATES.size():
+			_fail(4, "Strategic unit smoke: governorate ownership mapping is outside bounds")
 			return
+		if int(item["army_id"]) != governorate_index + 1:
+			_fail(4, "Strategic unit smoke: army id no longer matches governorate ownership")
+			return
+		armies[int(item["army_id"])] = true
+		var unit_type := str(item.get("unit_type", ""))
+		if not type_counts.has(unit_type):
+			_fail(78, "Strategic unit smoke: unexpected heavy representative type")
+			return
+		type_counts[unit_type] = int(type_counts[unit_type]) + 1
 	if armies.size() != 14:
 		_fail(5, "Strategic unit smoke: each governorate must have a different army")
 		return
+	for required_type in type_counts.keys():
+		if int(type_counts[required_type]) != scene.GOVERNORATES.size():
+			_fail(79, "Strategic unit smoke: heavy representative count mismatch for " + str(required_type))
+			return
 
 	var tank_visual_error := str(scene.call("validate_strategic_tank_visuals"))
 	if not tank_visual_error.is_empty():
 		_fail(77, "Strategic tank visual smoke: " + tank_visual_error)
+		return
+	var support_visual_error := str(scene.call("validate_support_heavy_visuals"))
+	if not support_visual_error.is_empty():
+		_fail(80, "Support heavy visual smoke: " + support_visual_error)
 		return
 
 	var radar = scene.get_node_or_null("HUD/RTSRadar")
@@ -183,10 +201,10 @@ func _run() -> void:
 		_fail(26, "Strategic unit smoke: select all command button missing")
 		return
 	select_all_button.emit_signal("pressed")
-	if scene.get_selected_unit_count() != 14:
+	if scene.get_selected_unit_count() != 42:
 		_fail(27, "Strategic unit smoke: select all command button failed")
 		return
-	if "SELECTED 14" not in scene.status_label.text:
+	if "SELECTED 42" not in scene.status_label.text:
 		_fail(45, "Strategic unit smoke: selected unit count missing from status HUD")
 		return
 	var clear_button := scene.get_node_or_null("HUD/CommandBar/Row/ClearSelectionButton") as Button
@@ -263,7 +281,7 @@ func _run() -> void:
 		_fail(13, "Strategic unit smoke: clear selection control failed")
 		return
 	scene.select_all_units()
-	if scene.get_selected_unit_count() != 14:
+	if scene.get_selected_unit_count() != 42:
 		_fail(14, "Strategic unit smoke: select all control failed")
 		return
 	scene.select_single_unit(1)
@@ -327,8 +345,8 @@ func _run() -> void:
 		return
 
 	var radar_units: Array = scene.get_radar_units()
-	if radar_units.size() != 14:
-		_fail(9, "Strategic unit smoke: radar does not mirror active armies")
+	if radar_units.size() != 42:
+		_fail(9, "Strategic unit smoke: radar does not mirror active heavy representatives")
 		return
 
 	if int((radar_units[0] as Dictionary).get("index", -1)) != 0:
@@ -355,5 +373,5 @@ func _run() -> void:
 		_fail(76, "World continuity smoke: " + continuity_error)
 		return
 
-	print("Strategic unit smoke: 14 armies + radar + group movement OK")
+	print("Strategic unit smoke: 14 armies / 42 heavy representatives + radar + group movement OK")
 	quit(0)

@@ -2231,31 +2231,8 @@ func _setup_unit_layer() -> void:
 	add_child(_unit_root)
 
 	for i in range(GOVERNORATES.size()):
-		var gov: Dictionary = GOVERNORATES[i]
-		var node := _create_tank_visual(i)
-		_unit_root.add_child(node)
-		var combat_state: Dictionary = {}
-		if _army_core != null:
-			var deployed: Dictionary = _army_core.deploy("syria", "tank", 1)
-			if bool(deployed.get("ok", false)):
-				combat_state = _army_core.create_unit_state("tank", "syria")
-		var tank_spec: Dictionary = _army_core.unit_spec("tank") if _army_core != null else {}
-		_units.append({
-			"army_id": i + 1,
-			"country_id": "syria",
-			"unit_type": "tank",
-			"governorate_index": i,
-			"lon": float(gov["lon"]),
-			"lat": float(gov["lat"]),
-			"target_lon": float(gov["lon"]),
-			"target_lat": float(gov["lat"]),
-			"moving": false,
-			"alive": bool(combat_state.get("alive", true)),
-			"hp": float(combat_state.get("hp", tank_spec.get("hp", 1200.0))),
-			"combat_state": combat_state,
-			"speed_km_sec": float(combat_state.get("speed_km_sec", UNIT_SPEED_KM_PER_SEC)),
-			"node": node,
-		})
+		for unit_type in ["tank", "artillery", "rocket_launcher"]:
+			_append_governorate_unit(i, unit_type)
 
 
 func _army_color(index: int) -> Color:
