@@ -59,4 +59,18 @@ func run(scene: Node) -> String:
 	if int(counts_after.get("tank", 0)) != int(counts_before.get("tank", 0)):
 		return "partial damage incorrectly changed live tank count"
 
+	var original_zoom := int(scene.call("get_rts_zoom_level"))
+	scene.call("_set_rts_zoom_level", 8)
+	var logical_near: Dictionary = game_state.call("get_heavy_unit", logical_id)
+	if absf(float(logical_near.get("hp", 0.0)) - logical_hp) > 0.001:
+		return "near zoom rebuilt persistent heavy HP incorrectly"
+	scene.call("_set_rts_zoom_level", original_zoom)
+	var logical_restored: Dictionary = game_state.call("get_heavy_unit", logical_id)
+	if absf(float(logical_restored.get("hp", 0.0)) - logical_hp) > 0.001:
+		return "restored zoom changed persistent heavy HP"
+	units = scene.get("_units")
+	var visible_restored: Dictionary = units[target_index]
+	if absf(float(visible_restored.get("hp", 0.0)) - logical_hp) > 0.001:
+		return "visible representative HP diverged after zoom round trip"
+
 	return ""
