@@ -4392,6 +4392,18 @@ func _group_formation_spacing_km(unit_count: int) -> float:
 	return clampf(GROUP_FORMATION_SPACING_KM + sqrt(float(count)) * 0.004, 0.04, 0.08)
 
 
+func _formation_type_depth_km(unit_type: String) -> float:
+	match unit_type:
+		"tank":
+			return 0.035
+		"artillery":
+			return -0.045
+		"rocket_launcher":
+			return -0.080
+		_:
+			return 0.0
+
+
 func _selected_logical_group_centroid(game_state: Node) -> Vector2:
 	var sum := Vector2.ZERO
 	var count := 0
@@ -4425,12 +4437,15 @@ func issue_selected_logical_group_move(destination: Vector2) -> int:
 	var columns: int = maxi(1, int(ceil(sqrt(float(_selected_logical_unit_ids.size())))))
 	var rows: int = int(ceil(float(_selected_logical_unit_ids.size()) / float(columns)))
 	for order_index in range(_selected_logical_unit_ids.size()):
+		var logical_id: String = _selected_logical_unit_ids[order_index]
+		var logical_for_formation: Dictionary = game_state.call("get_heavy_unit", logical_id)
+		var unit_type := str(logical_for_formation.get("unit_type", ""))
 		var row: int = int(order_index / columns)
 		var column: int = order_index % columns
 		var centered_column: float = float(column) - float(columns - 1) * 0.5
 		var centered_row: float = float(row) - float(rows - 1) * 0.5
 		var lateral_km := centered_column * formation_spacing_km
-		var depth_km := -centered_row * formation_spacing_km
+		var depth_km := -centered_row * formation_spacing_km + _formation_type_depth_km(unit_type)
 		var east_km: float = right.x * lateral_km + forward.x * depth_km
 		var north_km: float = right.y * lateral_km + forward.y * depth_km
 		var target_lat: float = destination.y + rad_to_deg(north_km / EARTH_RADIUS_KM)
@@ -4440,7 +4455,6 @@ func issue_selected_logical_group_move(destination: Vector2) -> int:
 			clampf(target_lon, REGION_WEST, REGION_EAST),
 			clampf(target_lat, REGION_SOUTH, REGION_NORTH)
 		)
-		var logical_id: String = _selected_logical_unit_ids[order_index]
 		var representative_index: int = -1
 		for visible_index in range(_units.size()):
 			var visible_unit: Dictionary = _units[visible_index]
