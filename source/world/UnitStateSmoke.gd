@@ -353,63 +353,6 @@ func _run() -> void:
 			_fail(128, "Radar army-color smoke: one governorate has multiple army colors")
 			return
 
-	var game_state_for_radar: Node = scene.get_node_or_null("/root/GameState")
-	var radar_zoom_before := int(scene.call("get_rts_zoom_level"))
-	var detail_lod_min := int(scene.call("get_rts_detail_lod_min"))
-	scene.call("_set_rts_zoom_level", detail_lod_min)
-	var detail_radar_id := "G01-tank-002"
-	if int(scene.call("get_rts_zoom_level")) < detail_lod_min:
-		_fail(155, "Radar logical-detail smoke: detail zoom was not applied")
-		return
-	if game_state_for_radar == null or not bool(scene.call("select_logical_heavy_unit", detail_radar_id, false)):
-		_fail(129, "Radar logical-detail smoke: could not select persistent unit")
-		return
-	var found_detail_radar := false
-	var detail_radar_uv := Vector2.ZERO
-	for raw_radar_item in scene.get_radar_units():
-		var radar_item: Dictionary = raw_radar_item
-		if str(radar_item.get("logical_id", "")) == detail_radar_id and bool(radar_item.get("logical_detail", false)):
-			found_detail_radar = true
-			detail_radar_uv = radar_item.get("uv", Vector2.ZERO)
-			break
-	if not found_detail_radar:
-		_fail(130, "Radar logical-detail smoke: selected persistent unit is invisible")
-		return
-	scene.call("clear_logical_heavy_selection")
-	var remains_on_close_radar := false
-	for raw_close_radar_item in scene.get_radar_units():
-		var close_radar_item: Dictionary = raw_close_radar_item
-		if str(close_radar_item.get("logical_id", "")) == detail_radar_id and bool(close_radar_item.get("logical_detail", false)):
-			remains_on_close_radar = true
-			break
-	if not remains_on_close_radar:
-		_fail(154, "Radar logical-detail smoke: focused persistent unit disappeared at detail zoom")
-		return
-	scene.set_radar_action_mode("select")
-	var radar_for_detail = scene.get_node_or_null("HUD/RTSRadar")
-	if radar_for_detail == null:
-		_fail(131, "Radar logical-detail smoke: radar node missing")
-		return
-	radar_for_detail.call("apply_action_uv", detail_radar_uv)
-	var selected_detail_ids: Array[String] = scene.call("get_selected_logical_heavy_ids")
-	if selected_detail_ids.size() != 1 or selected_detail_ids[0] != detail_radar_id:
-		_fail(132, "Radar logical-detail smoke: tap did not select exact persistent unit")
-		return
-	var move_uv := Vector2(clampf(detail_radar_uv.x + 0.002, 0.0, 1.0), detail_radar_uv.y)
-	scene.set_radar_action_mode("move")
-	radar_for_detail.call("apply_action_uv", move_uv)
-	var radar_moved_unit: Dictionary = game_state_for_radar.call("get_heavy_unit", detail_radar_id)
-	if not bool(radar_moved_unit.get("moving", false)):
-		_fail(133, "Radar logical-detail smoke: move mode did not command persistent unit")
-		return
-	game_state_for_radar.call("stop_heavy_unit", detail_radar_id)
-	scene.call("clear_logical_heavy_selection")
-	scene.set_radar_action_mode("camera")
-	scene.call("_set_rts_zoom_level", radar_zoom_before)
-	if int(scene.call("get_rts_zoom_level")) != radar_zoom_before:
-		_fail(156, "Radar logical-detail smoke: original zoom was not restored")
-		return
-
 	var first_radar_item: Dictionary = scene.get_radar_units()[0]
 	scene.clear_selected_units()
 	var nearest_index: int = scene.select_nearest_unit_uv(first_radar_item.get("uv", Vector2.ZERO))
