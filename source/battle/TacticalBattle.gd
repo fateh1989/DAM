@@ -105,11 +105,18 @@ func _setup_camera() -> void:
 	camera.look_at(Vector3.ZERO, Vector3.UP)
 
 
+func terrain_valley_mask_at(x: float, z: float) -> float:
+	var valley_center := sin(z * 0.00055) * 650.0 + cos(z * 0.00017) * 220.0
+	var distance := absf(x - valley_center)
+	return 1.0 - smoothstep(180.0, 700.0, distance)
+
+
 func terrain_height_at(x: float, z: float) -> float:
 	var broad := sin(x * 0.00105) * 42.0 + cos(z * 0.00120) * 34.0
 	var diagonal := sin((x + z) * 0.00072 + 1.3) * 24.0
 	var ridge := sin(x * 0.00195 - z * 0.00061) * 16.0
-	return broad + diagonal + ridge
+	var valley_depth := terrain_valley_mask_at(x, z) * 58.0
+	return broad + diagonal + ridge - valley_depth
 
 
 func _build_terrain_chunk_mesh(center_x: float, center_z: float) -> ArrayMesh:

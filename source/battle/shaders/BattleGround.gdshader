@@ -45,10 +45,13 @@ void fragment() {
 	float detail = fbm(world_pos.xz * 0.0045 + vec2(8.0, 17.0));
 	float green_mask = smoothstep(0.40, 0.72, macro + detail * 0.12);
 	float soil_mask = smoothstep(0.58, 0.82, detail + macro * 0.18);
+	float valley_center = sin(world_pos.z * 0.00055) * 650.0 + cos(world_pos.z * 0.00017) * 220.0;
+	float valley_mask = 1.0 - smoothstep(180.0, 700.0, abs(world_pos.x - valley_center));
 	vec3 ground = mix(dry_grass, scrub_green, green_mask * 0.68);
 	float broad_dry = smoothstep(0.48, 0.76, continental);
 	ground = mix(ground, pale_soil, (1.0 - green_mask) * (0.24 + broad_dry * 0.26));
 	ground = mix(ground, warm_soil, soil_mask * 0.38);
+	ground = mix(ground, warm_soil * 0.86, valley_mask * 0.42);
 	float slope = 1.0 - clamp(abs(world_normal.y), 0.0, 1.0);
 	float rock_mask = smoothstep(0.12, 0.38, slope);
 	ground = mix(ground, rock_color, rock_mask * 0.72);

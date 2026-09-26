@@ -35,6 +35,11 @@ func run(_world_scene: Node) -> String:
 	if "continental" not in shader_text:
 		battle.free()
 		return "battle ground shader lacks broad macro variation"
+	var valley_near := float(battle.call("terrain_valley_mask_at", 220.0, 0.0))
+	var valley_far := float(battle.call("terrain_valley_mask_at", 2200.0, 0.0))
+	if valley_near < 0.8 or valley_far > 0.2:
+		battle.free()
+		return "terrain valley mask is not carving a localized corridor"
 	if not (battle.call("get_battle_ground_material") is ShaderMaterial):
 		battle.free()
 		return "battle terrain is not using the natural ground shader"
