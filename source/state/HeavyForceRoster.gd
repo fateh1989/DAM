@@ -239,3 +239,42 @@ func set_surviving_hp(unit_id: String, hp: float) -> bool:
 	unit["hp"] = next_hp
 	_units[index] = unit
 	return true
+
+
+func tick_movement(delta: float, excluded_ids: Dictionary = {}) -> int:
+	if delta <= 0.0:
+		return 0
+	var moved_count: int = 0
+	for i in range(_units.size()):
+		var unit: Dictionary = _units[i]
+		var unit_id: String = str(unit.get("id", ""))
+		if excluded_ids.has(unit_id):
+			continue
+		if not bool(unit.get("alive", true)) or not bool(unit.get("moving", false)):
+			continue
+
+		var lon: float = float(unit.get("lon", 0.0))
+		var lat: float = float(unit.get("lat", 0.0))
+		var target_lon: float = float(unit.get("target_lon", lon))
+		var target_lat: float = float(unit.get("target_lat", lat))
+		var lat_scale_km: float = 111.32
+		var lon_scale_km: float = maxf(1.0, 111.32 * cos(deg_to_rad(lat)))
+		var delta_lon_km: float = (target_lon - lon) * lon_scale_km
+		var delta_lat_km: float = (target_lat - lat) * lat_scale_km
+		var distance_km: float = sqrt(delta_lon_km * delta_lon_km + delta_lat_km * delta_lat_km)
+		var speed_km_sec: float = maxf(0.0, float(unit.get("speed_km_sec", 0.0)))
+		var step_km: float = speed_km_sec * delta
+
+		if distance_km <= maxf(0.0001, step_km):
+			unit["lon"] = target_lon
+			unit["lat"] = target_lat
+			unit["moving"] = false
+		else:
+			var ratio: float = step_km / distance_km
+			unit["lon"] = lerpf(lon, target_lon, ratio)
+			unit["lat"] = lerpf(lat, target_lat, ratio)
+
+		_units[i] = unit
+		moved_count += 1
+
+	return moved_count
