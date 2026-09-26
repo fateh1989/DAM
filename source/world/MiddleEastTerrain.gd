@@ -2368,6 +2368,18 @@ func _create_tank_visual(index: int) -> Node3D:
 	engine_deck.material_override = _solid_unshaded_material(army_color.darkened(0.28))
 	model.add_child(engine_deck)
 
+	var antenna_mesh := CylinderMesh.new()
+	antenna_mesh.top_radius = 0.018
+	antenna_mesh.bottom_radius = 0.024
+	antenna_mesh.height = 0.78 if family == "western" else 0.58
+	antenna_mesh.radial_segments = 8
+	var antenna := MeshInstance3D.new()
+	antenna.name = "TurretAntenna"
+	antenna.mesh = antenna_mesh
+	antenna.position = Vector3(-0.38 if family == "western" else -0.28, 1.16 if family == "western" else 0.98, 0.30)
+	antenna.material_override = _solid_unshaded_material(Color(0.12, 0.13, 0.11, 1.0))
+	turret_pivot.add_child(antenna)
+
 	var marker := Node3D.new()
 	marker.name = "MapMarker"
 	root_node.add_child(marker)
