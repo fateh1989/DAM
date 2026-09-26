@@ -42,4 +42,22 @@ func run(_scene: Node) -> String:
 			return "%s still routes user zoom into legacy map mode" % zoom_function
 		if "_set_rts_zoom_level" not in zoom_block:
 			return "%s no longer controls the RTS camera" % zoom_function
+
+	var camera_block := _function_block(source, "_position_camera")
+	if camera_block.is_empty():
+		return "RTS camera function is missing"
+	if "PROJECTION_ORTHOGONAL" in camera_block:
+		return "camera can still switch to legacy orthographic overview"
+	if "PROJECTION_PERSPECTIVE" not in camera_block:
+		return "camera is no longer locked to RTS perspective"
+	if "_is_strategic_map" in camera_block or "_is_tactical_overview" in camera_block:
+		return "camera still branches into legacy world modes"
+
+	var pan_block := _function_block(source, "_pan_from_screen_delta")
+	if "camera.size" in pan_block:
+		return "camera panning still depends on legacy orthographic map size"
+
+	var zoom_setter := _function_block(source, "_set_rts_zoom_level")
+	if "_is_tactical_overview" in zoom_setter or "_set_map_zoom" in zoom_setter:
+		return "RTS zoom still routes through legacy map/tactical modes"
 	return ""
