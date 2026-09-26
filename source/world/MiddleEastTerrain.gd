@@ -3420,6 +3420,26 @@ func toggle_logical_heavy_selection(unit_id: String) -> bool:
 	return true
 
 
+
+func add_logical_heavy_ids(unit_ids: Array) -> int:
+	var game_state := _game_state_node()
+	if game_state == null:
+		return 0
+	var added_count: int = 0
+	for raw_id in unit_ids:
+		var logical_id: String = str(raw_id)
+		if logical_id.is_empty() or logical_id in _selected_logical_unit_ids:
+			continue
+		var logical: Dictionary = game_state.call("get_heavy_unit", logical_id)
+		if logical.is_empty() or not bool(logical.get("alive", true)):
+			continue
+		_selected_logical_unit_ids.append(logical_id)
+		added_count += 1
+	_sync_unit_visuals()
+	_sync_detail_unit_lod()
+	_update_status()
+	return added_count
+
 func select_governorate_logical_heavy_units(governorate_index: int, unit_type: String = "", quantity: int = -1) -> int:
 	var game_state := _game_state_node()
 	if game_state == null or governorate_index < 0 or governorate_index >= GOVERNORATES.size():
