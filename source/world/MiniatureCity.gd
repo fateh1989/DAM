@@ -273,6 +273,16 @@ func set_city_health(value: float) -> void:
 	_apply_damage_visuals()
 
 
+func damage_city(amount: float) -> float:
+	set_city_health(city_health - maxf(0.0, amount))
+	return city_health
+
+
+func repair_city(amount: float) -> float:
+	set_city_health(city_health + maxf(0.0, amount))
+	return city_health
+
+
 func get_city_health() -> float:
 	return city_health
 

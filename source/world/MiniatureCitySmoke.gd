@@ -38,6 +38,15 @@ func run(scene: Node) -> String:
 	if int(sample.call("get_rubble_count")) != 0:
 		sample.free()
 		return "fully repaired city kept stale rubble"
+	sample.call("set_city_health", 0.25)
+	var rubble_before_repair := int(sample.call("get_rubble_count"))
+	var repaired_health := float(sample.call("repair_city", 0.45))
+	if absf(repaired_health - 0.70) > 0.001:
+		sample.free()
+		return "city repair progression did not restore health"
+	if int(sample.call("get_rubble_count")) >= rubble_before_repair:
+		sample.free()
+		return "city repair did not clear destroyed building rubble"
 	sample.free()
 	var cities: Array = scene.call("get_city_markers")
 	if cities.size() != 14:
