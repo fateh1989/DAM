@@ -53,6 +53,7 @@ const RTS_ZOOM_DISTANCE_SCALES := [12.0, 6.5, 3.5, 1.9, 1.05, 0.72, 0.52, 0.40]
 const RTS_CAMERA_HEIGHTS := [180.0, 105.0, 58.0, 30.0, 15.0, 8.5, 4.5, 2.35]
 const RTS_CAMERA_BACKS := [220.0, 130.0, 72.0, 38.0, 20.0, 11.0, 5.8, 3.05]
 const RTS_MARKER_SCALES := [0.24, 0.14, 0.075]
+const RTS_DETAIL_UNIT_LOD_MIN := 6
 const CONTINUOUS_MACRO_GRID := 36
 const GROUP_FORMATION_SPACING_KM := 0.035
 const HEAVY_FORCE_TEMPLATE := {
@@ -188,6 +189,9 @@ var _geo_overlay_label_count := 0
 
 var _unit_root: Node3D = null
 var _units: Array = []
+var _detail_unit_root: Node3D = null
+var _detail_unit_nodes: Array[Node3D] = []
+var _detail_governorate_index := -1
 var _selected_unit_index := -1
 var _selected_unit_indices: Array[int] = []
 var _touch_press_positions := {}
@@ -2243,6 +2247,10 @@ func _setup_unit_layer() -> void:
 	_unit_root = Node3D.new()
 	_unit_root.name = "PersistentUnits"
 	add_child(_unit_root)
+
+	_detail_unit_root = Node3D.new()
+	_detail_unit_root.name = "DetailedUnits"
+	add_child(_detail_unit_root)
 
 	for i in range(GOVERNORATES.size()):
 		for unit_type in ["tank", "artillery", "rocket_launcher"]:
