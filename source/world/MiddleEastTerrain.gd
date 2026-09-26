@@ -680,6 +680,7 @@ func _set_rts_zoom_level(new_level: int) -> void:
 	_sync_tactical_ground_detail()
 	_sync_continuous_world_lod()
 	_sync_unit_visuals()
+	_sync_detail_unit_lod()
 	_refresh_geo_overlay(true)
 	if _terrain_mode and not _is_tactical_overview() and _rts_zoom_level >= 4:
 		call_deferred("_refresh_vector_data", true)
