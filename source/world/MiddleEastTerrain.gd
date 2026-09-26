@@ -2282,6 +2282,8 @@ func resolve_unit_attack(attacker_index: int, target_index: int, weapon_id: Stri
 	if not bool(attacker.get("alive", true)) or not bool(target.get("alive", true)):
 		return {"ok": false, "reason": "unit_destroyed"}
 
+	orient_visible_weapon_visual_at_unit(attacker_index, target_index)
+
 	var result: Dictionary = _army_core.resolve_shot(
 		attacker.get("combat_state", {}),
 		target.get("combat_state", {}),
