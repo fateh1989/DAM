@@ -58,6 +58,16 @@ func _run() -> void:
 		_fail(57, "Movement core smoke: " + movement_error)
 		return
 
+	var river_crossing_smoke_script := load("res://source/world/RiverCrossingSmoke.gd") as Script
+	if river_crossing_smoke_script == null:
+		_fail(107, "River crossing smoke: contract script missing")
+		return
+	var river_crossing_smoke = river_crossing_smoke_script.new()
+	var river_crossing_error := str(river_crossing_smoke.call("run", scene))
+	if not river_crossing_error.is_empty():
+		_fail(108, "River crossing smoke: " + river_crossing_error)
+		return
+
 	var mobile_contract_script := load("res://source/world/MobileControlSmoke.gd") as Script
 	if mobile_contract_script == null:
 		_fail(58, "Mobile control smoke: contract script missing")

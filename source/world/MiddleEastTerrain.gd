@@ -4102,8 +4102,14 @@ func issue_selected_logical_group_move(destination: Vector2) -> int:
 		if representative_index >= 0:
 			if _issue_move_order(representative_index, target):
 				issued_count += 1
-		elif bool(game_state.call("issue_heavy_move", logical_id, target.x, target.y)):
-			issued_count += 1
+		else:
+			var logical: Dictionary = game_state.call("get_heavy_unit", logical_id)
+			if logical.is_empty():
+				continue
+			var start := Vector2(float(logical.get("lon", target.x)), float(logical.get("lat", target.y)))
+			var route := plan_ground_route(start, target)
+			if not route.is_empty() and bool(game_state.call("issue_heavy_route", logical_id, route)):
+				issued_count += 1
 	return issued_count
 
 
@@ -4126,6 +4132,7 @@ func stop_selected_logical_heavy_units() -> int:
 			unit["moving"] = false
 			unit["target_lon"] = float(unit.get("lon", 0.0))
 			unit["target_lat"] = float(unit.get("lat", 0.0))
+			unit["route_points"] = []
 			_units[representative_index] = unit
 		if bool(game_state.call("stop_heavy_unit", logical_id)):
 			stopped_count += 1
@@ -4232,6 +4239,7 @@ func stop_selected_units() -> int:
 		unit["moving"] = false
 		unit["target_lon"] = float(unit["lon"])
 		unit["target_lat"] = float(unit["lat"])
+		unit["route_points"] = []
 		_units[index] = unit
 	return stopped_count
 
@@ -4290,15 +4298,29 @@ func _issue_move_order(unit_index: int, destination: Vector2) -> bool:
 	if unit_index < 0 or unit_index >= _units.size():
 		return false
 	var unit: Dictionary = _units[unit_index]
-	var target_lon := clampf(destination.x, REGION_WEST, REGION_EAST)
-	var target_lat := clampf(destination.y, REGION_SOUTH, REGION_NORTH)
+	var start := Vector2(float(unit.get("lon", 0.0)), float(unit.get("lat", 0.0)))
+	var route := plan_ground_route(start, destination)
+	if route.is_empty():
+		return false
+	return _issue_move_route(unit_index, route)
+
+
+func _issue_move_route(unit_index: int, route: Array[Vector2]) -> bool:
+	if unit_index < 0 or unit_index >= _units.size() or route.is_empty():
+		return false
+	var unit: Dictionary = _units[unit_index]
 	var logical_id := str(unit.get("logical_unit_id", ""))
 	if not logical_id.is_empty():
 		var game_state := _game_state_node()
-		if game_state == null or not bool(game_state.call("issue_heavy_move", logical_id, target_lon, target_lat)):
+		if game_state == null or not bool(game_state.call("issue_heavy_route", logical_id, route)):
 			return false
-	unit["target_lon"] = target_lon
-	unit["target_lat"] = target_lat
+	var first: Vector2 = route[0]
+	var pending: Array[Vector2] = []
+	for i in range(1, route.size()):
+		pending.append(route[i])
+	unit["target_lon"] = first.x
+	unit["target_lat"] = first.y
+	unit["route_points"] = pending
 	unit["move_order_serial"] = _move_order_serial
 	unit["moving"] = true
 	_units[unit_index] = unit
@@ -4359,7 +4381,22 @@ func _process(delta: float) -> void:
 		if distance_km <= maxf(0.001, step_km):
 			unit["lon"] = float(unit["target_lon"])
 			unit["lat"] = float(unit["target_lat"])
-			unit["moving"] = false
+			var pending: Array = unit.get("route_points", [])
+			if not pending.is_empty():
+				var next_point: Vector2 = pending.pop_front()
+				unit["target_lon"] = next_point.x
+				unit["target_lat"] = next_point.y
+				unit["route_points"] = pending
+				unit["moving"] = true
+				var logical_id := str(unit.get("logical_unit_id", ""))
+				var game_state := _game_state_node()
+				if not logical_id.is_empty() and game_state != null:
+					var remaining_route: Array[Vector2] = [next_point]
+					for later_point in pending:
+						remaining_route.append(later_point)
+					game_state.call("issue_heavy_route", logical_id, remaining_route)
+			else:
+				unit["moving"] = false
 		else:
 			var ratio := step_km / distance_km
 			var next_local := Vector3(
