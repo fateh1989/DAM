@@ -119,7 +119,6 @@ const VECTOR_REFRESH_DISTANCE_DEG := 0.025
 @onready var world_environment: WorldEnvironment = $WorldEnvironment
 @onready var zoom_label: Label = $HUD/TopBar/Row/ZoomLabel
 @onready var status_label: Label = $HUD/TopBar/Row/StatusLabel
-@onready var mode_button: Button = $HUD/ModeButton
 @onready var geo_overlay_button: Button = $HUD/GeoOverlayButton
 @onready var governorate_label: Label = $HUD/GovernorateBar/Row/GovernorateLabel
 @onready var zoom_wheel: VSlider = $HUD/ZoomWheel/Column/Slider
@@ -3651,49 +3650,6 @@ func _update_status() -> void:
 	_update_command_buttons_state()
 
 
-func _on_battle_pressed() -> void:
-	start_battle_in_current_world()
-
-
-func start_battle_in_current_world() -> bool:
-	var gov := _governorate()
-	var province_id := str(gov.get("slug", "unknown"))
-	var province_name := str(gov.get("name_ar", gov.get("name_en", province_id)))
-	var game_state := _game_state_node()
-	if game_state == null:
-		return false
-	game_state.call("select_province", province_id, province_name)
-	if not bool(game_state.call("begin_battle", province_id, province_name)):
-		return false
-	mode_button.text = "BATTLE ACTIVE"
-	_update_status()
-	return true
-
-
-func _on_mode_pressed() -> void:
-	if not _terrain_mode:
-		_map_zoom_before_terrain = _map_zoom
-		_terrain_mode = true
-		_map_zoom = MAX_MAP_ZOOM
-		_rts_zoom_level = RTS_ZOOM_LEVEL_MIN
-	else:
-		_terrain_mode = false
-		_map_zoom = clampi(_map_zoom_before_terrain, MIN_MAP_ZOOM, MAX_MAP_ZOOM)
-
-	_origin_lon = _center_lon
-	_origin_lat = _center_lat
-	zoom_wheel.set_value_no_signal(float(clampi(_map_zoom, ZOOM_WHEEL_MIN, ZOOM_WHEEL_MAX)))
-	mode_button.text = "MAP" if _terrain_mode else "TERRAIN"
-
-	_clear_all_world_nodes()
-	_position_camera()
-	_refresh_tiles()
-	_sync_unit_visuals()
-	_refresh_geo_overlay(true)
-	_update_status()
-
-	if _terrain_mode and not _is_tactical_overview():
-		call_deferred("_refresh_vector_data", true)
 
 func _on_zoom_in_pressed() -> void:
 	if _terrain_mode:
