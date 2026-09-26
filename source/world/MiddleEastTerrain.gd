@@ -2180,11 +2180,11 @@ func resolve_unit_attack(attacker_index: int, target_index: int, weapon_id: Stri
 	target["alive"] = bool(updated_state.get("alive", false))
 	if not bool(target["alive"]):
 		target["moving"] = false
-		_army_core.record_loss(
-			str(target.get("country_id", "syria")),
-			str(target.get("unit_type", "tank")),
-			1
-		)
+		var logical_id := str(target.get("logical_unit_id", ""))
+		var game_state := _game_state_node()
+		if not logical_id.is_empty() and game_state != null:
+			if not bool(game_state.call("record_heavy_loss", logical_id)):
+				return {"ok": false, "reason": "persistent_loss_failed"}
 	_units[target_index] = target
 	_sync_unit_visuals()
 	return result
