@@ -50,8 +50,8 @@ const RTS_ZOOM_LEVEL_MAX := 8
 const RTS_ZOOM_NEAR_DISTANCE_SCALE := 0.50
 const RTS_ZOOM_FAR_DISTANCE_SCALE := 1.0
 const RTS_ZOOM_DISTANCE_SCALES := [12.0, 6.5, 3.5, 1.9, 1.05, 0.72, 0.52, 0.40]
-const RTS_CAMERA_HEIGHTS := [180.0, 105.0, 58.0, 30.0, 15.0, 8.5, 4.5, 2.35]
-const RTS_CAMERA_BACKS := [220.0, 130.0, 72.0, 38.0, 20.0, 11.0, 5.8, 3.05]
+const RTS_CAMERA_HEIGHTS := [170.0, 96.0, 53.0, 28.0, 14.5, 8.0, 4.4, 2.45]
+const RTS_CAMERA_BACKS := [184.0, 105.0, 58.0, 31.0, 16.2, 8.9, 4.9, 2.75]
 const RTS_MARKER_SCALES := [0.24, 0.14, 0.075]
 const RTS_DETAIL_UNIT_LOD_MIN := 6
 const CONTINUOUS_MACRO_GRID := 36
@@ -711,7 +711,7 @@ func get_rts_camera_profile(level: int = _rts_zoom_level) -> Dictionary:
 		"height": float(RTS_CAMERA_HEIGHTS[index]),
 		"back": float(RTS_CAMERA_BACKS[index]),
 		"look_y": lerpf(0.05, 0.22, t),
-		"fov": lerpf(38.0, 45.0, t),
+		"fov": lerpf(34.0, 39.0, t),
 	}
 
 
