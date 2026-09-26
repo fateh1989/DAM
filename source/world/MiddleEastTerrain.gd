@@ -2451,6 +2451,17 @@ func _tank_visual_scale() -> float:
 	return maxf(0.55, camera.size * 0.0085)
 
 
+func _orient_unit_hull_to_target(node: Node3D, unit: Dictionary) -> void:
+	if not bool(unit.get("moving", false)):
+		return
+	var current := _geo_to_local(float(unit["lon"]), float(unit["lat"]), 0.0)
+	var target := _geo_to_local(float(unit["target_lon"]), float(unit["target_lat"]), 0.0)
+	var delta := Vector2(target.x - current.x, target.z - current.z)
+	if delta.length_squared() <= 0.000001:
+		return
+	node.rotation.y = atan2(-delta.x, -delta.y)
+
+
 func _sync_unit_visuals() -> void:
 	if not is_instance_valid(_unit_root):
 		return
